@@ -1,12 +1,10 @@
 # Ripple — Class Diagram
 
-> The complete UML class diagram of **Ripple**, Phase 1.
-> It is the **source of truth for the class structure**: every class in `com.ripple` appears here, and every class here exists in the code.
-> `DiagramConsistencyTest` fails the build if the two drift apart.
+> The complete UML class diagram of **Ripple**, Phase 1, plus one focused diagram per design pattern (section 5).
 
-Status: **Phase 0 — planned design.** Reviewed before coding; updated in the same commit as any class change.
+**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. When the code is complete, `DiagramConsistencyTest` (Section 6) fails the build if code and diagram drift apart.
 
-Related: [pattern-diagrams.md](pattern-diagrams.md) (one small diagram per pattern, for slides) · [architecture.md](architecture.md) (layers, sequence diagrams, database)
+Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [PHASE1.md](../PHASE1.md) (who builds what)
 
 ---
 
@@ -43,6 +41,8 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 
 - **Plain getters and setters** (`getName()`, `setName(...)`) for the attributes shown — they would double the diagram's size and add nothing. Getters with real logic (e.g. `getReceiptNumber()`) **are** shown.
 - **Constructors**, except where the constructor is part of the pattern (the Singleton's private constructor, the decorator's protected constructor).
+- **Swing widget fields inside views** (text fields, tables, buttons) and their small private helper methods. Views show only the controllers and status bar they depend on.
+- **`toString()` overrides** that only return a display name for combo boxes (`Donor`, `DonationMethod`).
 - **Swing and JDK classes** (`JPanel`, `JFrame`, `RuntimeException`). Inheritance from them is stated in the class tables below.
 
 ---
@@ -168,6 +168,8 @@ namespace factory {
         -createCash(Donor, DonationType, DonationRequest) CashDonation
         -createOnline(Donor, DonationType, DonationRequest) OnlineDonation
         -createInKind(Donor, DonationType, DonationRequest) InKindDonation
+        -requirePositiveAmount(double amount)$ void
+        -createdAtOf(DonationRequest request)$ LocalDateTime
     }
     class DonationRequest {
         <<record>>
@@ -311,16 +313,19 @@ namespace logging {
         +info(String message) void
         +error(String message) void
         +getRecentEntries(int limit) List~String~
+        -write(String level, String message) void
     }
 }
 
 %% ===================== repository =====================
 namespace repository {
     class Database {
+        +String DEFAULT_PATH$
         -String url
         +fromEnvironment()$ Database
         +getConnection() Connection
         +initialize() void
+        -seedIfEmpty(Connection, String table, String insertSql, Object[][] rows) void
     }
     class LookupRepository~T~ {
         <<interface>>
@@ -545,7 +550,11 @@ namespace view {
         -CardLayout cards
         -JPanel content
         -StatusBar statusBar
+        -Map~String, JPanel~ cardsByName
         -Map~String, Refreshable~ screens
+        -String currentScreen
+        +addScreen(String name, JPanel screen) void
+        +getStatusBar() StatusBar
         -showScreen(String name) void
     }
     class DashboardPanel {
@@ -687,6 +696,7 @@ DonationService ..> InputValidator
 %% ---------- controllers ----------
 LookupController --> "2" LookupService
 LookupController ..> LookupKind
+LookupController ..> ApplicationLogger : logs changes
 DonationController --> "1" DonationService
 DonationController --> "1" ReceiptRepository
 DonationController --> "1" DonorNotificationObserver : attach / detach
@@ -854,3 +864,309 @@ Main ..> MainFrame : «create»
 | `DonationFactory ..> CashDonation : «create»` | Dependency, not association: the factory does not keep the objects it creates. |
 | `MainFrame *-- DashboardPanel` | **Composition**: the frame creates its panels and they live only inside it. |
 | `ApplicationLogger` → itself (static `INSTANCE`) | The Singleton holds its own only instance in a private static field. |
+
+---
+
+## 5. Pattern views
+
+One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. The section of `PHASE1.md` that implements a pattern adds a short **"In the code / Demo / Test"** note under its diagram.
+
+| Pattern | Rubric | Package | Problem it solves | Section |
+|---|---|---|---|---|
+| Strategy | 1 | `communication` | Choose Email or SMS at runtime without `if/else` on the channel | 5 |
+| Observer | 1 | `observer` + `DonationService` | Several things must happen after a donation is recorded, without the donation code knowing them | 2 |
+| Decorator | 1 | `receipt` | Add optional receipt sections (thank-you, tax info) without changing the basic receipt | 3 |
+| Factory | 0.5 | `factory` | One place decides which `Donation` subclass to build and validates it | 1 |
+| Singleton | 0.5 | `logging` | Exactly one shared application log | 1 |
+| MVC | 2 | all | Keep UI, coordination and business rules apart | all, checked in 6 |
+### 5.1 Strategy — communication channels
+
+**Roles:** Strategy = `CommunicationStrategy` · Concrete strategies = `EmailStrategy`, `SmsStrategy` · Context = `CommunicationService` · Clients = `CommunicationController`, `DonorNotificationObserver`.
+
+```mermaid
+classDiagram
+direction LR
+class CommunicationService {
+    <<Context>>
+    -CommunicationStrategy strategy
+    -MessageLogRepository messageLog
+    +setStrategy(CommunicationStrategy strategy) void
+    +send(Contactable recipient, String subject, String body) DeliveryResult
+    +sendToAll(List~Contactable~ recipients, String subject, String body) List~DeliveryResult~
+}
+class CommunicationStrategy {
+    <<interface>>
+    +getChannel() ContactChannel
+    +addressOf(Contactable recipient) String
+    +isValidAddress(String address) boolean
+    +send(Message message) DeliveryResult
+}
+class EmailStrategy {
+    <<Strategy>>
+    +addressOf(Contactable recipient) String
+    +isValidAddress(String address) boolean
+    +send(Message message) DeliveryResult
+}
+class SmsStrategy {
+    <<Strategy>>
+    +addressOf(Contactable recipient) String
+    +isValidAddress(String address) boolean
+    +send(Message message) DeliveryResult
+}
+class CommunicationController
+class DonorNotificationObserver
+CommunicationService --> "0..1" CommunicationStrategy : strategy
+EmailStrategy ..|> CommunicationStrategy
+SmsStrategy ..|> CommunicationStrategy
+CommunicationController --> CommunicationService : setStrategy() + sendToAll()
+DonorNotificationObserver --> CommunicationService : setStrategy() + send()
+```
+
+**How it works:** the user picks "SMS" in the Communication screen → the controller calls `communicationService.setStrategy(strategies.get(SMS))` → `sendToAll(...)` asks the *current* strategy for each recipient's address (`addressOf`), validates it (`isValidAddress`) and sends (`send`). `CommunicationService` never mentions `EmailStrategy` or `SmsStrategy` by name.
+**Honesty note:** both strategies are simulations; they print to the console and return status `SIMULATED`.
+**Extending:** a real provider (e.g. WhatsApp) = one new class implementing `CommunicationStrategy`; nothing else changes.
+
+---
+
+### 5.2 Observer — reacting to a new donation
+
+**Roles:** Subject = `DonationSubject` / concrete subject `DonationService` · Observer = `DonationObserver` · Concrete observers = `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
+
+```mermaid
+classDiagram
+direction TB
+class DonationSubject {
+    <<interface>>
+    +attach(DonationObserver observer) void
+    +detach(DonationObserver observer) void
+    +notifyObservers(Donation donation) void
+}
+class DonationService {
+    <<Subject>>
+    -List~DonationObserver~ observers
+    +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
+    +isAttached(DonationObserver observer) boolean
+}
+class DonationObserver {
+    <<interface>>
+    +onDonationRecorded(Donation donation) void
+}
+class DonationLogObserver {
+    <<Observer>>
+    -ApplicationLogger logger
+}
+class ReceiptObserver {
+    <<Observer>>
+    -ReceiptRepository receiptRepository
+    +buildReceipt(Donation donation) Receipt
+}
+class DonorNotificationObserver {
+    <<Observer>>
+    -CommunicationService communicationService
+    -Map~ContactChannel, CommunicationStrategy~ strategies
+}
+DonationService ..|> DonationSubject
+DonationService "1" o-- "0..*" DonationObserver : observers
+DonationLogObserver ..|> DonationObserver
+ReceiptObserver ..|> DonationObserver
+DonorNotificationObserver ..|> DonationObserver
+```
+
+**How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `onDonationRecorded` on each one. The donation code does not know *what* the observers do.
+**Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `detach(donorNotifier)` / `attach(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
+**Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` uses the Strategy; `DonationLogObserver` uses the Singleton.
+
+---
+
+### 5.3 Decorator — donation receipts
+
+**Roles:** Component = `Receipt` · Concrete component = `BasicReceipt` · Decorator = `ReceiptDecorator` · Concrete decorators = `ThankYouMessageDecorator`, `TaxInformationDecorator`.
+
+```mermaid
+classDiagram
+direction TB
+class Receipt {
+    <<interface>>
+    +render() String
+}
+class BasicReceipt {
+    <<Component>>
+    -Donation donation
+    +render() String
+}
+class ReceiptDecorator {
+    <<abstract>>
+    #Receipt wrapped
+    #ReceiptDecorator(Receipt wrapped)
+    +render() String
+}
+class ThankYouMessageDecorator {
+    <<Decorator>>
+    -String donorName
+    +render() String
+}
+class TaxInformationDecorator {
+    <<Decorator>>
+    -Donation donation
+    +render() String
+}
+BasicReceipt ..|> Receipt
+ReceiptDecorator ..|> Receipt
+ReceiptDecorator o-- "1" Receipt : wrapped
+ThankYouMessageDecorator --|> ReceiptDecorator
+TaxInformationDecorator --|> ReceiptDecorator
+```
+
+**How it works:** each decorator's `render()` returns `wrapped.render()` plus its own section. `ReceiptObserver` builds the chain at runtime:
+
+```java
+Receipt receipt = new ThankYouMessageDecorator(new BasicReceipt(donation), donor.getName());
+if (donation.isTaxDeductible()) {
+    receipt = new TaxInformationDecorator(receipt, donation);   // CR4
+}
+String text = receipt.render();
+```
+
+`BasicReceipt` has no `if (showTax)` flag and is never edited to add sections — that is the point of the pattern. Same idea as the course lab's pizza toppings (`Pizza` / `ToppingDecorator`).
+
+---
+
+### 5.4 Factory — creating donations
+
+**Roles:** Factory = `DonationFactory` · Product = `Donation` · Concrete products = `CashDonation`, `OnlineDonation`, `InKindDonation` · Client = `DonationService` (and `DonationRepository` when loading rows).
+
+```mermaid
+classDiagram
+direction TB
+class DonationFactory {
+    <<Factory>>
+    +create(DonationMethod method, Donor donor, DonationType type, DonationRequest request) Donation
+    +parseMethod(String name) DonationMethod
+}
+class DonationRequest {
+    <<record>>
+    +double amount
+    +String transactionReference
+    +String itemDescription
+    +int quantity
+    +double estimatedValue
+    +LocalDateTime createdAt
+}
+class DonationMethod {
+    <<enumeration>>
+    CASH
+    ONLINE
+    IN_KIND
+}
+class Donation {
+    <<abstract>>
+    +getMethod()* DonationMethod
+    +getValue()* double
+    +describe()* String
+}
+class CashDonation
+class OnlineDonation
+class InKindDonation
+class DonationService
+class DonationRepository
+CashDonation --|> Donation
+OnlineDonation --|> Donation
+InKindDonation --|> Donation
+DonationFactory ..> DonationMethod : switches on
+DonationFactory ..> DonationRequest : reads
+DonationFactory ..> CashDonation : «create»
+DonationFactory ..> OnlineDonation : «create»
+DonationFactory ..> InKindDonation : «create»
+DonationService --> DonationFactory : new donations
+DonationRepository --> DonationFactory : rows from DB
+```
+
+**How it works:** `create(...)` switches on the method, checks the fields that method needs (online needs a transaction reference, in-kind needs a quantity > 0, ...) and returns the right subclass as a `Donation`. `parseMethod("CHEQUE")` throws `ValidationException("Unsupported donation method: CHEQUE")`. Callers only ever see `Donation`, so receipts, tables and the dashboard total use `getValue()` polymorphically.
+
+- **In the code:** [DonationFactory.java](../src/main/java/com/ripple/factory/DonationFactory.java), method `create(...)` and its `switch`. Products are in `com.ripple.model` (`CashDonation`, `OnlineDonation`, `InKindDonation`).
+- **Demo:** run `DonationFactoryTest` and show `create(...)`. From Section 2 on, the Donations screen records every donation through it (try an in-kind donation with quantity 0 to see the factory reject it).
+- **Test:** `src/test/java/com/ripple/factory/DonationFactoryTest.java` checks that each method gives the right subclass, rejects invalid details and unsupported methods, and keeps stored timestamps.
+
+---
+
+### 5.5 Singleton — application logger
+
+**Role:** Singleton = `ApplicationLogger`. Used by `DonationLogObserver` (writes) and `DashboardController` (reads recent entries).
+
+```mermaid
+classDiagram
+class ApplicationLogger {
+    <<Singleton>>
+    -ApplicationLogger INSTANCE$
+    -Path logFile
+    -Deque~String~ recentEntries
+    -ApplicationLogger()
+    +getInstance()$ ApplicationLogger
+    +info(String message) void
+    +error(String message) void
+    +getRecentEntries(int limit) List~String~
+}
+class DonationLogObserver
+class DashboardController
+ApplicationLogger --> ApplicationLogger : INSTANCE
+DonationLogObserver --> ApplicationLogger : info()
+DashboardController --> ApplicationLogger : getRecentEntries()
+```
+
+**How it works:** the constructor is `private`, so no other class can call `new ApplicationLogger()`. The single instance is created when the class is loaded (`private static final ApplicationLogger INSTANCE = new ApplicationLogger();`), which the JVM guarantees happens once, so it is thread-safe without `synchronized`.
+**Why this class deserves to be a Singleton:** there is one log file (`logs/ripple.log`) and one recent-activity feed on the Dashboard. Two logger objects would write the same file independently and each would see only half the activity.
+**Why nothing else is a Singleton:** `Database` and the services are passed through constructors so tests can give each one its own temporary database.
+
+- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `INSTANCE` and `getInstance()`. Used by `Main` ("Ripple started") and `LookupController` (every add, update or delete), and later by `DonationLogObserver` and the Dashboard.
+- **Demo:** add or delete a lookup value, then open `logs/ripple.log` and show the new line. Point out that `new ApplicationLogger()` does not compile outside the class.
+- **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first.
+
+---
+
+### 5.6 MVC — layers
+
+```mermaid
+classDiagram
+direction LR
+class DonationsPanel {
+    <<View>>
+}
+class LookupTablePanel {
+    <<View>>
+}
+class DonationController {
+    <<Controller>>
+}
+class LookupController {
+    <<Controller>>
+}
+class DonationService {
+    <<Model · service>>
+}
+class LookupService~T~ {
+    <<Model · service>>
+}
+class DonationRepository {
+    <<Model · repository>>
+}
+class LookupRepository~T~ {
+    <<Model · repository>>
+}
+class Donation {
+    <<Model · entity>>
+}
+class Result {
+    <<record>>
+}
+DonationsPanel --> DonationController : user action
+LookupTablePanel --> LookupController : user action
+DonationController ..> Result : returns
+LookupController ..> Result : returns
+DonationController --> DonationService
+LookupController --> LookupService
+DonationService --> DonationRepository
+LookupService --> LookupRepository
+DonationRepository ..> Donation
+```
+
+**Rule:** arrows only point to the right. A view never imports a repository or `java.sql`; a service never imports Swing. Full explanation in [architecture.md](architecture.md#2-mvc-with-a-thin-service-layer).

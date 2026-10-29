@@ -1,7 +1,17 @@
 package com.ripple.app;
 
+import com.ripple.controller.LookupController;
+import com.ripple.logging.ApplicationLogger;
+import com.ripple.model.DonationType;
+import com.ripple.model.EventCategory;
+import com.ripple.repository.Database;
+import com.ripple.repository.DonationTypeRepository;
+import com.ripple.repository.EventCategoryRepository;
+import com.ripple.service.LookupService;
+import com.ripple.view.LookupPanel;
 import com.ripple.view.MainFrame;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
@@ -9,9 +19,19 @@ import javax.swing.UIManager;
  * Entry point of Ripple and its <b>composition root</b>: the one place that creates
  * the application's objects and wires them together.
  *
- * <p>In step 1 there is nothing to wire yet, so it only opens the control panel.
- * Later steps add the database, repositories, services, observers and controllers
- * here, in the order described in {@code docs/architecture.md} section 4.
+ * <p>Objects are created in this order and passed to each other through constructors
+ * (see {@code docs/architecture.md}, "Composition root"):
+ * <ol>
+ *   <li>{@code Database}, then {@code initialize()} it;</li>
+ *   <li>{@code DonationFactory}, then the repositories;</li>
+ *   <li>the communication strategies;</li>
+ *   <li>the services;</li>
+ *   <li>the observers, attached to {@code DonationService};</li>
+ *   <li>the controllers;</li>
+ *   <li>on the Swing thread: {@link MainFrame}, then each screen via
+ *       {@link MainFrame#addScreen(String, javax.swing.JPanel)}.</li>
+ * </ol>
+ * Each section of {@code PHASE1.md} adds its lines at its own {@code // Section N} marker.
  */
 public final class Main {
 
@@ -26,9 +46,51 @@ public final class Main {
      */
     public static void main(String[] args) {
         useNativeLookAndFeel();
+
+        // ---- Model objects (database, repositories, services, observers) ----
+        // Section 1: Database, lookup repositories and LookupServices
+        Database database = Database.fromEnvironment();
+        try {
+            database.initialize();
+        } catch (IllegalStateException e) {
+            // Without a database nothing works, so explain the problem and stop.
+            JOptionPane.showMessageDialog(null, "Ripple could not open its database.\n\n" + e.getMessage(),
+                    "Ripple", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+            return;
+        }
+        LookupService<DonationType> donationTypeService =
+                new LookupService<>(new DonationTypeRepository(database), "Donation type");
+        LookupService<EventCategory> eventCategoryService =
+                new LookupService<>(new EventCategoryRepository(database), "Event category");
+
+        // Section 2: DonationFactory, DonorRepository, DonationRepository, DonationService, DonationLogObserver
+        // Section 3: ReceiptRepository, ReceiptObserver
+        // Section 4: VolunteerRepository, EventRepository, BeneficiaryRepository
+        // Section 5: strategies map, MessageLogRepository, CommunicationService, DonorNotificationObserver
+
+        // ---- Controllers ----
+        // Section 1: LookupController
+        LookupController lookupController = new LookupController(donationTypeService, eventCategoryService);
+        // Section 2: DonationController
+        // Section 4: VolunteerController, EventController, BeneficiaryController
+        // Section 5: CommunicationController
+        // Section 6: DashboardController
+
         // Swing is not thread-safe: every UI object must be created on the
         // Event Dispatch Thread, which is what invokeLater does.
-        SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            MainFrame frame = new MainFrame();
+            // ---- Screens: frame.addScreen(MainFrame.X, new XPanel(..., frame.getStatusBar())) ----
+            // Section 1: LOOKUPS       -> LookupPanel
+            frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()));
+            // Section 2: DONATIONS     -> DonationsPanel
+            // Section 4: VOLUNTEERS, EVENTS, BENEFICIARIES
+            // Section 5: COMMUNICATION -> CommunicationPanel
+            // Section 6: DASHBOARD     -> DashboardPanel
+            frame.setVisible(true);
+        });
+        ApplicationLogger.getInstance().info("Ripple started");
     }
 
     /** Makes Ripple look like a normal Windows (or Linux) app instead of Swing's default "Metal" theme. */

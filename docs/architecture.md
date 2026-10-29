@@ -1,9 +1,9 @@
 # Ripple — Architecture
 
 > How Ripple is organised, why, and how one user action travels through the code.
-> Status: **Phase 0 design** — this describes the planned code. It is updated in the same commit as any code change that affects it.
+> Read this before writing code for any section. If your change makes something here untrue, update it in the same change.
 
-Related: [class-diagram.md](class-diagram.md) · [pattern-diagrams.md](pattern-diagrams.md) · [requirements.md](requirements.md)
+Related: [class-diagram.md](class-diagram.md) (classes and pattern diagrams) · [PHASE1.md](../PHASE1.md) (requirements and who builds what)
 
 ---
 
@@ -65,7 +65,11 @@ flowchart LR
 
 **Why a service layer?** Rules like "no duplicate lookup names" must not live in a button handler (view) and should not be repeated in every controller. Services are added **only** where there are real rules: `LookupService`, `DonationService`. Simple CRUD screens (volunteers, events, beneficiaries) go controller → repository directly, with shared input checks in `InputValidator`.
 
-**How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. This is checked with a grep during verification (see `docs/mvc.md`, written in step 5).
+**How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. Section 6 checks it with this grep, which must print nothing:
+
+```bash
+grep -rlE "import (java\.sql|com\.ripple\.repository)" src/main/java/com/ripple/view
+```
 
 ---
 
@@ -127,7 +131,10 @@ flowchart TD
 3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy())`.
 4. Services: `LookupService` ×2, `DonationService`.
 5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
-6. Controllers, then `MainFrame` with all panels → shown on the Swing event thread.
+6. Controllers.
+7. On the Swing event thread: `MainFrame`, then each screen plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`. Until a screen is plugged in, its sidebar button shows a placeholder naming the section that builds it.
+
+`Main.java` already contains a `// Section N:` comment at each of these places; add your lines there.
 
 ---
 

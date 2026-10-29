@@ -1,35 +1,32 @@
 # Ripple — NGO Management System
 
-Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, and it is built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory and Singleton**.
+Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory and Singleton**.
 
-> **Status: step 1 of 6 — skeleton.** The control panel opens and navigates between screens; the screens themselves arrive in steps 2–5 (each one says which step).
-> A screenshot will be added once the screens are built.
+> **Status:** Section 1 of 6 is done: database, lookup tables (Lookup Management screen), Singleton and Factory. Screens not built yet say which section of [PHASE1.md](PHASE1.md) builds them.
 
-**Stack:** Java 21 · Swing · SQLite (from step 2) · Maven · JUnit 5 (from step 2)
+**Stack:** Java 21 · Swing · SQLite · Maven · JUnit 5
 
 ---
 
 ## Run in 2 minutes
 
-You need **JDK 21+** and **Maven 3.9+** on your `PATH` (check with `java -version` and `mvn -version`). This works the same on Windows and Linux.
+You need **JDK 21+** and **Maven 3.9+** on your `PATH` (check with `java -version` and `mvn -version`). Same on Windows and Linux.
 
 ```bash
 mvn compile exec:java
 ```
 
-Or build a jar and run it:
+Run the tests:
 
 ```bash
-mvn package
+mvn test
 ```
 
-```bash
-java -jar target/ripple.jar
-```
+The app creates `data/ripple.db` (the database) and `logs/ripple.log` (the activity log) in the folder you start it from. A single runnable `ripple.jar` comes in Section 6; until then, start the app with `mvn compile exec:java`.
 
 ### Configuration
 
-Ripple has no secrets. The only setting is where the database file is stored (used from step 2):
+Ripple has no secrets. The only setting is where the database file is stored:
 
 | Environment variable | Default | Meaning |
 |---|---|---|
@@ -43,30 +40,28 @@ See [.env.example](.env.example).
 
 | Document | What it covers |
 |---|---|
-| [docs/requirements.md](docs/requirements.md) | Phase 1 scope, rubric, functional and non-functional requirements |
-| [docs/client-requirements.md](docs/client-requirements.md) | Extra client requirements CR1–CR6 (assumptions) |
-| [docs/architecture.md](docs/architecture.md) | MVC layers, packages, object wiring, sequence diagrams, database |
-| [docs/class-diagram.md](docs/class-diagram.md) | Complete UML class diagram with legend |
-| [docs/pattern-diagrams.md](docs/pattern-diagrams.md) | One diagram per design pattern + MVC |
-| [CHANGELOG.md](CHANGELOG.md) | What changed in each step |
+| [PHASE1.md](PHASE1.md) | **Start here.** What is done, team rules, requirements (incl. client requirements CR1–CR6), and the 6 section checklists |
+| [docs/class-diagram.md](docs/class-diagram.md) | Complete UML class diagram (the team contract) and one diagram per design pattern |
+| [docs/architecture.md](docs/architecture.md) | MVC layers, packages, object wiring, sequence diagrams, database schema |
 
 ---
 
 ## Project structure
 
 ```
-pom.xml                         Maven build (Java 21, exec + jar plugins)
+pom.xml                          Maven build
+PHASE1.md                        Work plan and requirements
+docs/                            Class diagram and architecture
 src/main/java/com/ripple/
-  app/          Main — start-up and object wiring
-  model/        Domain entities
-  factory/      Factory pattern
-  observer/     Observer pattern
-  receipt/      Decorator pattern
-  communication/Strategy pattern
-  logging/      Singleton pattern
-  repository/   SQL / persistence
-  service/      Business rules
-  controller/   MVC controllers
-  view/         MVC views (Swing) — MainFrame is the control panel
-docs/           All documentation and diagrams
+  app/            Main — start-up and object wiring
+  model/          Domain entities
+  factory/        Factory pattern
+  observer/       Observer pattern
+  receipt/        Decorator pattern
+  communication/  Strategy pattern
+  logging/        Singleton pattern
+  repository/     SQL / persistence
+  service/        Business rules
+  controller/     MVC controllers
+  view/           MVC views (Swing) — MainFrame is the control panel
 ```
