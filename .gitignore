@@ -1,0 +1,22 @@
+# Build output
+target/
+out/
+
+# Runtime data (created on first run)
+data/*.db
+logs/
+
+# Secrets
+.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+Thumbs.db
+.DS_Store

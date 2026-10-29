@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.ripple</groupId>
+    <artifactId>ripple</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+
+    <name>Ripple</name>
+    <description>Ripple — NGO Management System (CSE336 Phase 1)</description>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <ripple.mainClass>com.ripple.app.Main</ripple.mainClass>
+    </properties>
+
+    <!-- No dependencies yet. sqlite-jdbc and junit-jupiter are added in step 2,
+         when the database and the first tests arrive. -->
+
+    <build>
+        <finalName>ripple</finalName>
+        <plugins>
+            <!-- `mvn compile exec:java` runs the app straight from the compiled classes. -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <mainClass>${ripple.mainClass}</mainClass>
+                </configuration>
+            </plugin>
+            <!-- Writes Main-Class into the jar manifest so `java -jar target/ripple.jar` works. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${ripple.mainClass}</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
