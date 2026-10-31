@@ -163,37 +163,37 @@ Add "Emergency Relief" → try adding it again (rejected) → rename it → dele
 ### Steps
 
 **1. Database code**
-- [ ] Save and load donors.
-- [ ] Save and load donations. When loading, rebuild each donation through the `DonationFactory` from Section 1.
+- [x] Save and load donors.
+- [x] Save and load donations. When loading, rebuild each donation through the `DonationFactory` from Section 1.
 
 **2. Observer pattern**
-- [ ] Two interfaces: `DonationSubject` (attach, detach, notify) and `DonationObserver` (one method: "a donation was recorded").
-- [ ] `DonationService` is the subject. When it saves a donation, it notifies all attached observers. If one observer fails, the others still run.
-- [ ] A first observer, `DonationLogObserver`, writes a line to the log each time a donation is recorded.
+- [x] Two interfaces: `DonationSubject` (attach, detach, notify) and `DonationObserver` (one method: "a donation was recorded").
+- [x] `DonationService` is the subject. When it saves a donation, it notifies all attached observers. If one observer fails, the others still run.
+- [x] A first observer, `DonationLogObserver`, writes a line to the log each time a donation is recorded.
 
 **3. Donor rules** (in `DonationService`)
-- [ ] A name is required.
-- [ ] If the donor prefers Email they need a valid email; if they prefer SMS they need a valid phone number.
+- [x] A name is required.
+- [x] If the donor prefers Email they need a valid email; if they prefer SMS they need a valid phone number.
 
 **4. Screen**
-- [ ] `DonationController` and the Donations screen, with:
+- [x] `DonationController` and the Donations screen, with:
   - a small form to register a donor (name, email, phone, Email/SMS);
   - a form to record a donation (pick the donor, donation type and method). **Only the fields for the chosen method are shown**: amount for Cash; amount and reference for Online; item, quantity and value for In-kind;
   - a table of all donations: receipt no., date, donor, type, method, value.
-- [ ] Plug the screen in from `Main.java` and attach the log observer.
+- [x] Plug the screen in from `Main.java` and attach the log observer.
 
 **5. Tests**
-- [ ] Recording each donation type works.
-- [ ] Bad input is rejected, and when it is, no observer is told anything.
-- [ ] Attach → notified; detach → not notified; attaching twice → notified only once.
+- [x] Recording each donation type works.
+- [x] Bad input is rejected, and when it is, no observer is told anything.
+- [x] Attach → notified; detach → not notified; attaching twice → notified only once.
 
 **6. Docs**
-- [ ] Under the Observer diagram in [class-diagram.md](docs/class-diagram.md), write 2–3 lines: where it is in the code, how to demo it, and which test proves it.
+- [x] Under the Observer diagram in [class-diagram.md](docs/class-diagram.md), write 2–3 lines: where it is in the code, how to demo it, and which test proves it.
 
 ### It works when…
-- [ ] You can register a donor and record one donation of each method; they appear in the table with receipt numbers.
-- [ ] Wrong input shows a red message.
-- [ ] Each donation adds a line to `logs/ripple.log`.
+- [x] You can register a donor and record one donation of each method; they appear in the table with receipt numbers.
+- [x] Wrong input shows a red message.
+- [x] Each donation adds a line to `logs/ripple.log`.
 
 ### Demo for the instructor
 Register a donor → record an Online donation → try an In-kind donation with quantity 0 (rejected) → open `logs/ripple.log` to show the observer's line → run the observer tests.
