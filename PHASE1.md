@@ -12,7 +12,7 @@ Ripple is a desktop app (Java + Swing) that helps a charity manage its **donatio
 |:-:|---|---|:-:|
 | 0 | Skeleton + design documents | — | Done |
 | 1 | Foundation, lookup tables, Singleton, Factory | Abdallah Momen | Done |
-| 2 | Donations + Observer |Sandra |IN Prograss |
+| 2 | Donations + Observer |Sandra |Done |
 | 3 | Receipts + Decorator | | Not started |
 | 4 | Volunteers, Events, Beneficiaries | | Not started |
 | 5 | Messages + Strategy | | Not started |
