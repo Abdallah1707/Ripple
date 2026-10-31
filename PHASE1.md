@@ -13,7 +13,7 @@ Ripple is a desktop app (Java + Swing) that helps a charity manage its **donatio
 | 0 | Skeleton + design documents | — | Done |
 | 1 | Foundation, lookup tables, Singleton, Factory | Abdallah Momen | Done |
 | 2 | Donations + Observer |Sandra |Done |
-| 3 | Receipts + Decorator | | Not started |
+| 3 | Receipts + Decorator | Nouran Mokhtar | Done |
 | 4 | Volunteers, Events, Beneficiaries | | Not started |
 | 5 | Messages + Strategy | | Not started |
 | 6 | Dashboard + final polish | | Not started |
@@ -209,31 +209,31 @@ Register a donor → record an Online donation → try an In-kind donation with 
 ### Steps
 
 **1. Decorator pattern**
-- [ ] `Receipt`: an interface with one method that returns the receipt text.
-- [ ] `BasicReceipt`: receipt number, date, donor, type, method and value. **No** thank-you or tax logic in here.
-- [ ] `ReceiptDecorator`: the parent of all decorators. It wraps another receipt.
-- [ ] `ThankYouMessageDecorator`: adds "Thank you, *name*, for your generous support."
-- [ ] `TaxInformationDecorator`: adds a tax note with the deductible amount.
+- [x] `Receipt`: an interface with one method that returns the receipt text.
+- [x] `BasicReceipt`: receipt number, date, donor, type, method and value. **No** thank-you or tax logic in here.
+- [x] `ReceiptDecorator`: the parent of all decorators. It wraps another receipt.
+- [x] `ThankYouMessageDecorator`: adds "Thank you, *name*, for your generous support."
+- [x] `TaxInformationDecorator`: adds a tax note with the deductible amount.
 
 **2. Make it automatic**
-- [ ] `ReceiptObserver`: a second observer (see Section 2). When a donation is recorded, it builds the receipt (basic + thank-you, plus tax **only if** the donation type is tax-deductible) and saves it.
-- [ ] Database code to save and load receipts.
+- [x] `ReceiptObserver`: a second observer (see Section 2). When a donation is recorded, it builds the receipt (basic + thank-you, plus tax **only if** the donation type is tax-deductible) and saves it.
+- [x] Database code to save and load receipts.
 
 **3. Screen**
-- [ ] Add a **View receipt** button to the Donations screen. It opens the selected donation's receipt in a pop-up.
-- [ ] Attach the receipt observer in `Main.java`.
+- [x] Add a **View receipt** button to the Donations screen. It opens the selected donation's receipt in a pop-up.
+- [x] Attach the receipt observer in `Main.java`.
 
 **4. Tests**
-- [ ] The basic receipt has no thank-you and no tax section.
-- [ ] Each decorator adds its part.
-- [ ] A *Zakat* donation gets tax info; a *Food Supplies* donation doesn't.
+- [x] The basic receipt has no thank-you and no tax section.
+- [x] Each decorator adds its part.
+- [x] A *Zakat* donation gets tax info; a *Food Supplies* donation doesn't.
 
 **5. Docs**
-- [ ] Under the Decorator diagram in [class-diagram.md](docs/class-diagram.md), write 2–3 lines: where it is in the code, how to demo it, and which test proves it.
+- [x] Under the Decorator diagram in [class-diagram.md](docs/class-diagram.md), write 2–3 lines: where it is in the code, how to demo it, and which test proves it.
 
 ### It works when…
-- [ ] Every new donation has a receipt you can open.
-- [ ] Tax info appears only for tax-deductible types.
+- [x] Every new donation has a receipt you can open.
+- [x] Tax info appears only for tax-deductible types.
 
 ### Demo for the instructor
 Record a *Zakat* donation → view its receipt (has a tax section) → record a *Food Supplies* donation → view it (no tax section) → show how `ReceiptObserver` wraps the receipt.

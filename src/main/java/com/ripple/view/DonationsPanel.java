@@ -15,10 +15,12 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.GridBagConstraints;
@@ -69,7 +71,10 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JLabel valueLabel = new JLabel("Estimated value (EGP)");
 
     private final JCheckBox notifyCheckBox = new JCheckBox("Notify donors on new donation");
+    private final JButton viewReceiptButton = new JButton("View receipt");
     private final DefaultTableModel tableModel;
+    private final JTable table;
+    private List<Donation> currentDonations = List.of();
 
     /**
      * Builds the screen.
@@ -100,8 +105,9 @@ public class DonationsPanel extends JPanel implements Refreshable {
                 return false;
             }
         };
-        JTable table = new JTable(tableModel);
+        table = new JTable(tableModel);
         table.setRowHeight(24);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
         // Ticked when the screen first opens: donors are notified by default.
@@ -113,8 +119,10 @@ public class DonationsPanel extends JPanel implements Refreshable {
                     ? "Donors will be notified about new donations"
                     : "Donor notifications are turned off"));
         });
+        viewReceiptButton.addActionListener(e -> viewReceipt());
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.add(notifyCheckBox, BorderLayout.WEST);
+        bottom.add(viewReceiptButton, BorderLayout.EAST);
         add(bottom, BorderLayout.SOUTH);
 
         methodBox.addActionListener(e -> showFieldsForMethod());
@@ -221,6 +229,19 @@ public class DonationsPanel extends JPanel implements Refreshable {
         }
     }
 
+    /** Opens the selected donation's receipt (basic + thank-you + tax if applicable) in a pop-up. */
+    private void viewReceipt() {
+        int row = table.getSelectedRow();
+        if (row < 0 || row >= currentDonations.size()) {
+            statusBar.showResult(Result.fail("Select a donation first"));
+            return;
+        }
+        Donation donation = currentDonations.get(row);
+        String receipt = donationController.getReceipt(donation.getId());
+        JOptionPane.showMessageDialog(this, receipt, "Receipt " + donation.getReceiptNumber(),
+                JOptionPane.PLAIN_MESSAGE);
+    }
+
     /** Reloads the donors, the donation types and the table. */
     @Override
     public void refresh() {
@@ -243,8 +264,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
         }
 
         tableModel.setRowCount(0);
-        List<Donation> donations = donationController.listDonations();
-        for (Donation donation : donations) {
+        currentDonations = donationController.listDonations();
+        for (Donation donation : currentDonations) {
             tableModel.addRow(new Object[]{
                     donation.getReceiptNumber(),
                     donation.getCreatedAt().format(DATE_FORMAT),

@@ -8,11 +8,13 @@ import com.ripple.model.DonationType;
 import com.ripple.model.EventCategory;
 import com.ripple.observer.DonationLogObserver;
 import com.ripple.observer.DonorNotificationObserver;
+import com.ripple.observer.ReceiptObserver;
 import com.ripple.repository.Database;
 import com.ripple.repository.DonationRepository;
 import com.ripple.repository.DonationTypeRepository;
 import com.ripple.repository.DonorRepository;
 import com.ripple.repository.EventCategoryRepository;
+import com.ripple.repository.ReceiptRepository;
 import com.ripple.service.DonationService;
 import com.ripple.service.LookupService;
 import com.ripple.view.DonationsPanel;
@@ -83,14 +85,17 @@ public final class Main {
         donationService.attach(new DonationLogObserver());
         donationService.attach(donorNotifier);
         // Section 3: ReceiptRepository, ReceiptObserver
+        ReceiptRepository receiptRepository = new ReceiptRepository(database);
+        donationService.attach(new ReceiptObserver(receiptRepository));
         // Section 4: VolunteerRepository, EventRepository, BeneficiaryRepository
         // Section 5: strategies map, MessageLogRepository, CommunicationService, DonorNotificationObserver
 
         // ---- Controllers ----
         // Section 1: LookupController
         LookupController lookupController = new LookupController(donationTypeService, eventCategoryService);
-        // Section 2: DonationController
-        DonationController donationController = new DonationController(donationService, donorNotifier);
+        // Section 2/3: DonationController
+        DonationController donationController =
+                new DonationController(donationService, receiptRepository, donorNotifier);
         // Section 4: VolunteerController, EventController, BeneficiaryController
         // Section 5: CommunicationController
         // Section 6: DashboardController
