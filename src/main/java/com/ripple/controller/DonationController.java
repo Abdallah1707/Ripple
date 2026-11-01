@@ -8,6 +8,7 @@ import com.ripple.model.Donation;
 import com.ripple.model.DonationMethod;
 import com.ripple.model.Donor;
 import com.ripple.observer.DonorNotificationObserver;
+import com.ripple.repository.ReceiptRepository;
 import com.ripple.service.DonationService;
 import com.ripple.service.InputValidator;
 import com.ripple.service.ValidationException;
@@ -20,23 +21,26 @@ import java.util.List;
  * <p>It turns the texts typed on the screen into typed values, passes them to
  * {@link DonationService}, and turns the outcome into a {@link Result} for the status bar.
  * It never throws to the view. It also attaches / detaches the donor notification observer
- * when the "Notify donors on new donation" checkbox changes.
- *
- * <p>Section 3 adds the receipt lookup ({@code getReceipt}) to this class.
+ * when the "Notify donors on new donation" checkbox changes, and looks up a donation's
+ * saved receipt for the "View receipt" pop-up.
  */
 public class DonationController {
 
     private final DonationService donationService;
+    private final ReceiptRepository receiptRepository;
     private final DonorNotificationObserver donorNotifier;
 
     /**
      * Creates the controller.
      *
-     * @param donationService the donation service (the Observer subject)
-     * @param donorNotifier   the observer that the checkbox attaches and detaches
+     * @param donationService   the donation service (the Observer subject)
+     * @param receiptRepository where saved receipts are read from
+     * @param donorNotifier     the observer that the checkbox attaches and detaches
      */
-    public DonationController(DonationService donationService, DonorNotificationObserver donorNotifier) {
+    public DonationController(DonationService donationService, ReceiptRepository receiptRepository,
+                              DonorNotificationObserver donorNotifier) {
         this.donationService = donationService;
+        this.receiptRepository = receiptRepository;
         this.donorNotifier = donorNotifier;
     }
 
@@ -116,6 +120,17 @@ public class DonationController {
      */
     public List<Donation> listDonations() {
         return donationService.findAllDonations();
+    }
+
+    /**
+     * Returns the saved receipt text for a donation, for the "View receipt" pop-up.
+     *
+     * @param donationId id of the donation
+     * @return the receipt text, or a message saying none was saved yet
+     */
+    public String getReceipt(int donationId) {
+        return receiptRepository.findByDonationId(donationId)
+                .orElse("No receipt was saved for this donation yet.");
     }
 
     /**
