@@ -58,6 +58,38 @@ public final class InputValidator {
     }
 
     /**
+     * Checks an email that may be left empty: an empty value is fine, a filled-in one must
+     * look like an email address.
+     *
+     * @param value the user's input (may be {@code null})
+     * @return the trimmed email, or an empty string if nothing was typed
+     * @throws ValidationException if something was typed that is not a valid email
+     */
+    public static String optionalEmail(String value) {
+        String trimmed = value == null ? "" : value.trim();
+        if (!trimmed.isEmpty() && !isValidEmail(trimmed)) {
+            throw new ValidationException("Email is not valid (example: name@example.com)");
+        }
+        return trimmed;
+    }
+
+    /**
+     * Checks a phone number that may be left empty: an empty value is fine, a filled-in one
+     * must look like a phone number.
+     *
+     * @param value the user's input (may be {@code null})
+     * @return the trimmed phone number, or an empty string if nothing was typed
+     * @throws ValidationException if something was typed that is not a valid phone number
+     */
+    public static String optionalPhone(String value) {
+        String trimmed = value == null ? "" : value.trim();
+        if (!trimmed.isEmpty() && !isValidPhone(trimmed)) {
+            throw new ValidationException("Phone number is not valid (8 to 15 digits)");
+        }
+        return trimmed;
+    }
+
+    /**
      * Converts the user's input to a decimal number.
      *
      * @param value the user's input
