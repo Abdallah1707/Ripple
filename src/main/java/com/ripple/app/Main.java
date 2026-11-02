@@ -1,12 +1,18 @@
 package com.ripple.app;
 
+import com.ripple.communication.CommunicationService;
+import com.ripple.communication.CommunicationStrategy;
+import com.ripple.communication.EmailStrategy;
+import com.ripple.communication.SmsStrategy;
 import com.ripple.controller.BeneficiaryController;
+import com.ripple.controller.CommunicationController;
 import com.ripple.controller.DonationController;
 import com.ripple.controller.EventController;
 import com.ripple.controller.LookupController;
 import com.ripple.controller.VolunteerController;
 import com.ripple.factory.DonationFactory;
 import com.ripple.logging.ApplicationLogger;
+import com.ripple.model.ContactChannel;
 import com.ripple.model.DonationType;
 import com.ripple.model.EventCategory;
 import com.ripple.observer.DonationLogObserver;
@@ -19,11 +25,13 @@ import com.ripple.repository.DonationTypeRepository;
 import com.ripple.repository.DonorRepository;
 import com.ripple.repository.EventCategoryRepository;
 import com.ripple.repository.EventRepository;
+import com.ripple.repository.MessageLogRepository;
 import com.ripple.repository.ReceiptRepository;
 import com.ripple.repository.VolunteerRepository;
 import com.ripple.service.DonationService;
 import com.ripple.service.LookupService;
 import com.ripple.view.BeneficiariesPanel;
+import com.ripple.view.CommunicationPanel;
 import com.ripple.view.DonationsPanel;
 import com.ripple.view.EventsPanel;
 import com.ripple.view.LookupPanel;
@@ -33,6 +41,7 @@ import com.ripple.view.VolunteersPanel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import java.util.Map;
 
 /**
  * Entry point of Ripple and its <b>composition root</b>: the one place that creates
@@ -89,10 +98,8 @@ public final class Main {
         DonationRepository donationRepository = new DonationRepository(database, donationFactory);
         DonationService donationService = new DonationService(donationFactory, donorRepository,
                 donationRepository, new DonationTypeRepository(database));
-        // Observers: attached to the subject (DonationService). Donor notification starts attached (CR5).
-        DonorNotificationObserver donorNotifier = new DonorNotificationObserver();
+        // Observers: attached to the subject (DonationService).
         donationService.attach(new DonationLogObserver());
-        donationService.attach(donorNotifier);
         // Section 3: ReceiptRepository, ReceiptObserver
         ReceiptRepository receiptRepository = new ReceiptRepository(database);
         donationService.attach(new ReceiptObserver(receiptRepository));
@@ -101,6 +108,13 @@ public final class Main {
         EventRepository eventRepository = new EventRepository(database);
         BeneficiaryRepository beneficiaryRepository = new BeneficiaryRepository(database);
         // Section 5: strategies map, MessageLogRepository, CommunicationService, DonorNotificationObserver
+        Map<ContactChannel, CommunicationStrategy> strategies =
+                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy());
+        MessageLogRepository messageLogRepository = new MessageLogRepository(database);
+        CommunicationService communicationService = new CommunicationService(messageLogRepository);
+        // Donor notification starts attached (CR5); the Donations screen checkbox can detach it.
+        DonorNotificationObserver donorNotifier = new DonorNotificationObserver(communicationService, strategies);
+        donationService.attach(donorNotifier);
 
         // ---- Controllers ----
         // Section 1: LookupController
@@ -113,6 +127,9 @@ public final class Main {
         EventController eventController = new EventController(eventRepository, volunteerRepository);
         BeneficiaryController beneficiaryController = new BeneficiaryController(beneficiaryRepository);
         // Section 5: CommunicationController
+        CommunicationController communicationController = new CommunicationController(communicationService,
+                strategies, donorRepository, volunteerRepository, beneficiaryRepository, eventRepository,
+                messageLogRepository);
         // Section 6: DashboardController
 
         // Swing is not thread-safe: every UI object must be created on the
@@ -133,6 +150,8 @@ public final class Main {
             frame.addScreen(MainFrame.BENEFICIARIES,
                     new BeneficiariesPanel(beneficiaryController, frame.getStatusBar()));
             // Section 5: COMMUNICATION -> CommunicationPanel
+            frame.addScreen(MainFrame.COMMUNICATION,
+                    new CommunicationPanel(communicationController, eventController, frame.getStatusBar()));
             // Section 6: DASHBOARD     -> DashboardPanel
             frame.setVisible(true);
         });

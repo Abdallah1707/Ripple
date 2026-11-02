@@ -2,7 +2,7 @@
 
 Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory and Singleton**.
 
-> **Status:** Sections 1–4 of 6 are done: database, lookup tables (Lookup Management screen), Singleton, Factory, donations with Observer, receipts with Decorator, and the Volunteers, Events and Beneficiaries screens. Screens not built yet say which section of [PHASE1.md](PHASE1.md) builds them.
+> **Status:** Sections 1–5 of 6 are done: database, lookup tables (Lookup Management screen), Singleton, Factory, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, and the Communication screen with Strategy (simulated Email / SMS and automatic donor thank-yous). Screens not built yet say which section of [PHASE1.md](PHASE1.md) builds them.
 
 **Stack:** Java 21 · Swing · SQLite · Maven · JUnit 5
 

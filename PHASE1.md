@@ -15,7 +15,7 @@ Ripple is a desktop app (Java + Swing) that helps a charity manage its **donatio
 | 2 | Donations + Observer |Sandra |Done |
 | 3 | Receipts + Decorator | Nouran Mokhtar | Done |
 | 4 | Volunteers, Events, Beneficiaries | | Done |
-| 5 | Messages + Strategy | | Not started |
+| 5 | Messages + Strategy | | Done |
 | 6 | Dashboard + final polish | | Not started |
 
 Status values: Not started, In progress, Done.
@@ -291,35 +291,35 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 ### Steps
 
 **1. Strategy pattern**
-- [ ] `CommunicationStrategy`: an interface for "a way of sending a message".
-- [ ] `EmailStrategy`: uses the person's email.
-- [ ] `SmsStrategy`: uses the phone number and rejects messages over 160 characters.
-- [ ] `CommunicationService`: holds the current strategy and lets you change it with `setStrategy(...)`. It must **not** contain any "if email… else if SMS…" code.
-- [ ] Every attempt, sent or skipped, is saved in a message log.
+- [x] `CommunicationStrategy`: an interface for "a way of sending a message".
+- [x] `EmailStrategy`: uses the person's email.
+- [x] `SmsStrategy`: uses the phone number and rejects messages over 160 characters.
+- [x] `CommunicationService`: holds the current strategy and lets you change it with `setStrategy(...)`. It must **not** contain any "if email… else if SMS…" code.
+- [x] Every attempt, sent or skipped, is saved in a message log.
 
 **2. Automatic thank-you**
-- [ ] `DonorNotificationObserver`: a third observer. When a donation is recorded, it picks the donor's preferred channel and sends a short thank-you.
-- [ ] Add a **"Notify donors"** checkbox to the Donations screen. Unticking it detaches this observer; ticking it re-attaches it.
+- [x] `DonorNotificationObserver`: a third observer. When a donation is recorded, it picks the donor's preferred channel and sends a short thank-you.
+- [x] Add a **"Notify donors"** checkbox to the Donations screen. Unticking it detaches this observer; ticking it re-attaches it.
 
 **3. Communication screen**
-- [ ] Choose who to send to: all donors, all volunteers, all beneficiaries, or the attendees of one event.
-- [ ] Choose Email or SMS, write a subject and message, then **Send**.
-- [ ] Show a result like *"Sent 4, skipped 2 (no valid phone)"*.
-- [ ] Show a table of the message log.
-- [ ] Show a visible note: *"Simulated — no real email or SMS is sent."*
-- [ ] Plug the screen in from `Main.java` and attach the observer.
+- [x] Choose who to send to: all donors, all volunteers, all beneficiaries, or the attendees of one event.
+- [x] Choose Email or SMS, write a subject and message, then **Send**.
+- [x] Show a result like *"Sent 4, skipped 2 (no valid phone)"*.
+- [x] Show a table of the message log.
+- [x] Show a visible note: *"Simulated — no real email or SMS is sent."*
+- [x] Plug the screen in from `Main.java` and attach the observer.
 
 **4. Tests**
-- [ ] Switching from Email to SMS changes which address is used.
-- [ ] People without a valid address are skipped and logged.
-- [ ] The thank-you uses each donor's preferred channel, and stops after the observer is detached.
+- [x] Switching from Email to SMS changes which address is used.
+- [x] People without a valid address are skipped and logged.
+- [x] The thank-you uses each donor's preferred channel, and stops after the observer is detached.
 
 **5. Docs**
-- [ ] Under the Strategy diagram in [class-diagram.md](docs/class-diagram.md), write 2–3 lines: where it is in the code, how to demo it, and which test proves it.
+- [x] Under the Strategy diagram in [class-diagram.md](docs/class-diagram.md), write 2–3 lines: where it is in the code, how to demo it, and which test proves it.
 
 ### It works when…
-- [ ] Sending to each group works with both channels, and the log updates.
-- [ ] Recording a donation creates a thank-you in the log, unless "Notify donors" is unticked.
+- [x] Sending to each group works with both channels, and the log updates.
+- [x] Recording a donation creates a thank-you in the log, unless "Notify donors" is unticked.
 
 ### Demo for the instructor
 Send a message to donors by Email → send the same by SMS (different addresses used) → record a donation and show the automatic thank-you → untick "Notify donors", record again, and show no thank-you.

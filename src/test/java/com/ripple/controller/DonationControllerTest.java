@@ -1,6 +1,9 @@
 package com.ripple.controller;
 
 import com.ripple.TestDatabase;
+import com.ripple.communication.CommunicationService;
+import com.ripple.communication.EmailStrategy;
+import com.ripple.communication.SmsStrategy;
 import com.ripple.factory.DonationFactory;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Donation;
@@ -11,6 +14,7 @@ import com.ripple.repository.Database;
 import com.ripple.repository.DonationRepository;
 import com.ripple.repository.DonationTypeRepository;
 import com.ripple.repository.DonorRepository;
+import com.ripple.repository.MessageLogRepository;
 import com.ripple.repository.ReceiptRepository;
 import com.ripple.service.DonationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -42,7 +47,9 @@ class DonationControllerTest {
         types = new DonationTypeRepository(db);
         DonationService service = new DonationService(factory, new DonorRepository(db),
                 new DonationRepository(db, factory), types);
-        DonorNotificationObserver notifier = new DonorNotificationObserver();
+        DonorNotificationObserver notifier = new DonorNotificationObserver(
+                new CommunicationService(new MessageLogRepository(db)),
+                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy()));
         service.attach(notifier); // like Main: notifications start on
         ReceiptRepository receiptRepository = new ReceiptRepository(db);
         service.attach(new ReceiptObserver(receiptRepository));
