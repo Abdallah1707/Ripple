@@ -408,6 +408,8 @@ namespace service {
         +requireText(String value, String field, int min, int max)$ String
         +isValidEmail(String value)$ boolean
         +isValidPhone(String value)$ boolean
+        +optionalEmail(String value)$ String
+        +optionalPhone(String value)$ String
         +parseDouble(String value, String field)$ double
         +parseInt(String value, String field)$ int
     }

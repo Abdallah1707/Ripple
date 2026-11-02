@@ -1,7 +1,10 @@
 package com.ripple.app;
 
+import com.ripple.controller.BeneficiaryController;
 import com.ripple.controller.DonationController;
+import com.ripple.controller.EventController;
 import com.ripple.controller.LookupController;
+import com.ripple.controller.VolunteerController;
 import com.ripple.factory.DonationFactory;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.DonationType;
@@ -9,17 +12,23 @@ import com.ripple.model.EventCategory;
 import com.ripple.observer.DonationLogObserver;
 import com.ripple.observer.DonorNotificationObserver;
 import com.ripple.observer.ReceiptObserver;
+import com.ripple.repository.BeneficiaryRepository;
 import com.ripple.repository.Database;
 import com.ripple.repository.DonationRepository;
 import com.ripple.repository.DonationTypeRepository;
 import com.ripple.repository.DonorRepository;
 import com.ripple.repository.EventCategoryRepository;
+import com.ripple.repository.EventRepository;
 import com.ripple.repository.ReceiptRepository;
+import com.ripple.repository.VolunteerRepository;
 import com.ripple.service.DonationService;
 import com.ripple.service.LookupService;
+import com.ripple.view.BeneficiariesPanel;
 import com.ripple.view.DonationsPanel;
+import com.ripple.view.EventsPanel;
 import com.ripple.view.LookupPanel;
 import com.ripple.view.MainFrame;
+import com.ripple.view.VolunteersPanel;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -88,6 +97,9 @@ public final class Main {
         ReceiptRepository receiptRepository = new ReceiptRepository(database);
         donationService.attach(new ReceiptObserver(receiptRepository));
         // Section 4: VolunteerRepository, EventRepository, BeneficiaryRepository
+        VolunteerRepository volunteerRepository = new VolunteerRepository(database);
+        EventRepository eventRepository = new EventRepository(database);
+        BeneficiaryRepository beneficiaryRepository = new BeneficiaryRepository(database);
         // Section 5: strategies map, MessageLogRepository, CommunicationService, DonorNotificationObserver
 
         // ---- Controllers ----
@@ -97,6 +109,9 @@ public final class Main {
         DonationController donationController =
                 new DonationController(donationService, receiptRepository, donorNotifier);
         // Section 4: VolunteerController, EventController, BeneficiaryController
+        VolunteerController volunteerController = new VolunteerController(volunteerRepository);
+        EventController eventController = new EventController(eventRepository, volunteerRepository);
+        BeneficiaryController beneficiaryController = new BeneficiaryController(beneficiaryRepository);
         // Section 5: CommunicationController
         // Section 6: DashboardController
 
@@ -111,6 +126,12 @@ public final class Main {
             frame.addScreen(MainFrame.DONATIONS,
                     new DonationsPanel(donationController, lookupController, frame.getStatusBar()));
             // Section 4: VOLUNTEERS, EVENTS, BENEFICIARIES
+            frame.addScreen(MainFrame.VOLUNTEERS,
+                    new VolunteersPanel(volunteerController, eventController, frame.getStatusBar()));
+            frame.addScreen(MainFrame.EVENTS,
+                    new EventsPanel(eventController, lookupController, frame.getStatusBar()));
+            frame.addScreen(MainFrame.BENEFICIARIES,
+                    new BeneficiariesPanel(beneficiaryController, frame.getStatusBar()));
             // Section 5: COMMUNICATION -> CommunicationPanel
             // Section 6: DASHBOARD     -> DashboardPanel
             frame.setVisible(true);
