@@ -67,6 +67,7 @@ namespace model {
         <<enumeration>>
         EMAIL
         SMS
+        +getAddressLabel() String
     }
     class DonationMethod {
         <<enumeration>>
@@ -260,6 +261,7 @@ namespace communication {
     }
     class SmsStrategy {
         <<Strategy>>
+        +int MAX_LENGTH$
         +getChannel() ContactChannel
         +addressOf(Contactable recipient) String
         +isValidAddress(String address) boolean
@@ -472,6 +474,7 @@ namespace controller {
         VOLUNTEERS
         BENEFICIARIES
         EVENT_ATTENDEES
+        +getLabel() String
     }
     class LookupController {
         -LookupService~DonationType~ donationTypes
@@ -927,6 +930,10 @@ DonorNotificationObserver --> CommunicationService : setStrategy() + send()
 **How it works:** the user picks "SMS" in the Communication screen → the controller calls `communicationService.setStrategy(strategies.get(SMS))` → `sendToAll(...)` asks the *current* strategy for each recipient's address (`addressOf`), validates it (`isValidAddress`) and sends (`send`). `CommunicationService` never mentions `EmailStrategy` or `SmsStrategy` by name.
 **Honesty note:** both strategies are simulations; they print to the console and return status `SIMULATED`.
 **Extending:** a real provider (e.g. WhatsApp) = one new class implementing `CommunicationStrategy`; nothing else changes.
+
+- **In the code:** [CommunicationStrategy.java](../src/main/java/com/ripple/communication/CommunicationStrategy.java), [EmailStrategy.java](../src/main/java/com/ripple/communication/EmailStrategy.java), [SmsStrategy.java](../src/main/java/com/ripple/communication/SmsStrategy.java) and the context [CommunicationService.java](../src/main/java/com/ripple/communication/CommunicationService.java) (`setStrategy(...)`, `send(...)`; no channel `if/else`). The clients pick a strategy from a `Map<ContactChannel, CommunicationStrategy>` built in `Main`: [CommunicationController.java](../src/main/java/com/ripple/controller/CommunicationController.java) and [DonorNotificationObserver.java](../src/main/java/com/ripple/observer/DonorNotificationObserver.java).
+- **Demo:** on the Communication screen send a message to *All donors* by Email, then the same by SMS: the message log shows email addresses the first time and phone numbers the second, and people without one are logged as `FAILED: no valid ...`. Record a donation and its thank-you appears in the log on the donor's preferred channel; untick "Notify donors on new donation" and record again: no thank-you.
+- **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, and the 160-character SMS limit; `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel and stops after `detach`.
 
 ---
 
