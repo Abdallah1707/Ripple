@@ -18,28 +18,34 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * The Donations screen: register a donor, record a donation, and see all donations.
+ * The Donations screen, in two tabs:
+ * <ul>
+ *   <li><b>Donations</b>: record a donation, see all donations and open a receipt;</li>
+ *   <li><b>Donors</b>: add, update and delete donors (Add / Update / Delete / Clear).</li>
+ * </ul>
+ * Together they are the complete Donations module (see {@code docs/crud-matrix.md}).
  *
  * <p>A <b>View</b> in MVC: it only shows things and calls {@link DonationController}
  * (and {@link LookupController} for the donation type list). The outcome of every action
  * is shown in the status bar.
  *
  * <p>The "Notify donors on new donation" checkbox is the visible part of the Observer
- * pattern: ticking it attaches the donor notification observer, unticking it detaches it.
+ * pattern: ticking it registers the donor notification observer, unticking it removes it.
  */
 public class DonationsPanel extends JPanel implements Refreshable {
 
@@ -49,13 +55,17 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final LookupController lookupController;
     private final StatusBar statusBar;
 
-    // --- donor form ---
-    private final JTextField donorNameField = new JTextField(15);
-    private final JTextField donorEmailField = new JTextField(15);
-    private final JTextField donorPhoneField = new JTextField(15);
+    // --- Donors tab ---
+    private final JTextField donorNameField = new JTextField(18);
+    private final JTextField donorEmailField = new JTextField(18);
+    private final JTextField donorPhoneField = new JTextField(14);
     private final JComboBox<ContactChannel> channelBox = new JComboBox<>(ContactChannel.values());
+    private final DefaultTableModel donorTableModel;
+    private final JTable donorTable;
+    /** The donors currently shown, in the same order as the donor table rows. */
+    private List<Donor> donors = List.of();
 
-    // --- donation form ---
+    // --- Donations tab ---
     private final JComboBox<Donor> donorBox = new JComboBox<>();
     private final JComboBox<DonationType> typeBox = new JComboBox<>();
     private final JComboBox<DonationMethod> methodBox = new JComboBox<>(DonationMethod.values());
@@ -85,19 +95,11 @@ public class DonationsPanel extends JPanel implements Refreshable {
      */
     public DonationsPanel(DonationController donationController, LookupController lookupController,
                           StatusBar statusBar) {
-        super(new BorderLayout(0, 8));
+        super(new BorderLayout());
         this.donationController = donationController;
         this.lookupController = lookupController;
         this.statusBar = statusBar;
-        setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        // Top: the two forms side by side.
-        JPanel forms = new JPanel(new GridLayout(1, 2, 12, 0));
-        forms.add(buildDonorForm());
-        forms.add(buildDonationForm());
-        add(forms, BorderLayout.NORTH);
-
-        // Centre: the donations table.
         tableModel = new DefaultTableModel(
                 new String[]{"Receipt no.", "Date", "Donor", "Type", "Method", "Value"}, 0) {
             @Override
@@ -108,7 +110,38 @@ public class DonationsPanel extends JPanel implements Refreshable {
         table = new JTable(tableModel);
         table.setRowHeight(24);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        donorTableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Preferred channel"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // editing happens in the form, not in the table
+            }
+        };
+        donorTable = new JTable(donorTableModel);
+        donorTable.setRowHeight(24);
+        donorTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        donorTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                fillDonorFormFromSelection();
+            }
+        });
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Donations", buildDonationsTab());
+        tabs.addTab("Donors", buildDonorsTab());
+        add(tabs, BorderLayout.CENTER);
+
+        methodBox.addActionListener(e -> showFieldsForMethod());
+        showFieldsForMethod();
+    }
+
+    // ---------------- Donations tab ----------------
+
+    private JPanel buildDonationsTab() {
+        JPanel tab = new JPanel(new BorderLayout(0, 8));
+        tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        tab.add(buildDonationForm(), BorderLayout.NORTH);
+        tab.add(new JScrollPane(table), BorderLayout.CENTER);
 
         // Ticked when the screen first opens: donors are notified by default.
         notifyCheckBox.setSelected(donationController.isDonorNotificationsEnabled());
@@ -123,24 +156,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.add(notifyCheckBox, BorderLayout.WEST);
         bottom.add(viewReceiptButton, BorderLayout.EAST);
-        add(bottom, BorderLayout.SOUTH);
-
-        methodBox.addActionListener(e -> showFieldsForMethod());
-        showFieldsForMethod();
-    }
-
-    /** The small form to register a donor. */
-    private JPanel buildDonorForm() {
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBorder(BorderFactory.createTitledBorder("Register donor"));
-        addRow(form, 0, new JLabel("Name"), donorNameField);
-        addRow(form, 1, new JLabel("Email"), donorEmailField);
-        addRow(form, 2, new JLabel("Phone"), donorPhoneField);
-        addRow(form, 3, new JLabel("Preferred channel"), channelBox);
-        JButton registerButton = new JButton("Register donor");
-        registerButton.addActionListener(e -> registerDonor());
-        addRow(form, 4, new JLabel(), registerButton);
-        return form;
+        tab.add(bottom, BorderLayout.SOUTH);
+        return tab;
     }
 
     /** The form to record a donation. Only the fields for the chosen method are visible. */
@@ -159,20 +176,6 @@ public class DonationsPanel extends JPanel implements Refreshable {
         recordButton.addActionListener(e -> recordDonation());
         addRow(form, 8, new JLabel(), recordButton);
         return form;
-    }
-
-    /** Adds one "label + field" row to a form that uses GridBagLayout. */
-    private void addRow(JPanel form, int row, JLabel label, JComponent field) {
-        GridBagConstraints c = new GridBagConstraints();
-        c.insets = new Insets(3, 4, 3, 4);
-        c.gridy = row;
-        c.anchor = GridBagConstraints.WEST;
-        c.gridx = 0;
-        form.add(label, c);
-        c.gridx = 1;
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.weightx = 1;
-        form.add(field, c);
     }
 
     /** Shows only the fields that the chosen donation method needs. */
@@ -194,20 +197,6 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private void setVisible(boolean visible, JComponent... components) {
         for (JComponent component : components) {
             component.setVisible(visible);
-        }
-    }
-
-    private void registerDonor() {
-        ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
-        Result result = donationController.registerDonor(donorNameField.getText(),
-                donorEmailField.getText(), donorPhoneField.getText(),
-                channel == null ? null : channel.name());
-        statusBar.showResult(result);
-        if (result.success()) {
-            donorNameField.setText("");
-            donorEmailField.setText("");
-            donorPhoneField.setText("");
-            refresh(); // the new donor appears in the donor combo box
         }
     }
 
@@ -245,14 +234,134 @@ public class DonationsPanel extends JPanel implements Refreshable {
                 JOptionPane.PLAIN_MESSAGE);
     }
 
-    /** Reloads the donors, the donation types and the table. */
+    // ---------------- Donors tab ----------------
+
+    private JPanel buildDonorsTab() {
+        JPanel tab = new JPanel(new BorderLayout(0, 8));
+        tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        tab.add(new JScrollPane(donorTable), BorderLayout.CENTER);
+        tab.add(buildDonorForm(), BorderLayout.SOUTH);
+        return tab;
+    }
+
+    /** The form to add or edit a donor, with Add / Update / Delete / Clear. */
+    private JPanel buildDonorForm() {
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createTitledBorder("Add or edit a donor"));
+        addRow(form, 0, new JLabel("Name"), donorNameField);
+        addRow(form, 1, new JLabel("Email"), donorEmailField);
+        addRow(form, 2, new JLabel("Phone"), donorPhoneField);
+        addRow(form, 3, new JLabel("Preferred channel"), channelBox);
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        buttons.add(button("Add", this::onAddDonor));
+        buttons.add(button("Update", this::onUpdateDonor));
+        buttons.add(button("Delete", this::onDeleteDonor));
+        buttons.add(button("Clear", this::clearDonorForm));
+        addRow(form, 4, new JLabel(), buttons);
+        return form;
+    }
+
+    private void onAddDonor() {
+        showDonorResult(donationController.saveDonor(null, donorNameField.getText(), donorEmailField.getText(),
+                donorPhoneField.getText(), selectedChannelName()));
+    }
+
+    private void onUpdateDonor() {
+        Donor selected = selectedDonor();
+        if (selected == null) {
+            statusBar.showResult(Result.fail("Select a donor to update first."));
+            return;
+        }
+        showDonorResult(donationController.saveDonor(selected.getId(), donorNameField.getText(),
+                donorEmailField.getText(), donorPhoneField.getText(), selectedChannelName()));
+    }
+
+    private void onDeleteDonor() {
+        Donor selected = selectedDonor();
+        if (selected == null) {
+            statusBar.showResult(Result.fail("Select a donor to delete first."));
+            return;
+        }
+        int answer = JOptionPane.showConfirmDialog(this, "Delete donor '" + selected.getName() + "'?",
+                "Confirm delete", JOptionPane.YES_NO_OPTION);
+        if (answer == JOptionPane.YES_OPTION) {
+            showDonorResult(donationController.deleteDonor(selected.getId()));
+        }
+    }
+
+    /** Shows the result; on success clears the form and reloads, so the donor lists match the database. */
+    private void showDonorResult(Result result) {
+        statusBar.showResult(result);
+        if (result.success()) {
+            clearDonorForm();
+            refresh(); // the donor table and the donor combo box on the Donations tab
+        }
+    }
+
+    private String selectedChannelName() {
+        ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
+        return channel == null ? null : channel.name();
+    }
+
+    private Donor selectedDonor() {
+        int row = donorTable.getSelectedRow();
+        return row < 0 || row >= donors.size() ? null : donors.get(row);
+    }
+
+    private void fillDonorFormFromSelection() {
+        Donor selected = selectedDonor();
+        if (selected == null) {
+            return;
+        }
+        donorNameField.setText(selected.getName());
+        donorEmailField.setText(selected.getEmail());
+        donorPhoneField.setText(selected.getPhone());
+        channelBox.setSelectedItem(selected.getPreferredChannel());
+    }
+
+    private void clearDonorForm() {
+        donorTable.clearSelection();
+        donorNameField.setText("");
+        donorEmailField.setText("");
+        donorPhoneField.setText("");
+        channelBox.setSelectedIndex(0);
+    }
+
+    // ---------------- shared ----------------
+
+    /** Adds one "label + field" row to a form that uses GridBagLayout. */
+    private void addRow(JPanel form, int row, JLabel label, JComponent field) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.insets = new Insets(3, 4, 3, 4);
+        c.gridy = row;
+        c.anchor = GridBagConstraints.WEST;
+        c.gridx = 0;
+        form.add(label, c);
+        c.gridx = 1;
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        form.add(field, c);
+    }
+
+    private static JButton button(String text, Runnable action) {
+        JButton button = new JButton(text);
+        button.addActionListener(e -> action.run());
+        return button;
+    }
+
+    /** Reloads the donors (table and combo box), the donation types and the donations table. */
     @Override
     public void refresh() {
         Donor selectedDonor = (Donor) donorBox.getSelectedItem();
         DonationType selectedType = (DonationType) typeBox.getSelectedItem();
 
+        donors = donationController.listDonors();
+        donorTableModel.setRowCount(0);
         donorBox.removeAllItems();
-        for (Donor donor : donationController.listDonors()) {
+        for (Donor donor : donors) {
+            donorTableModel.addRow(new Object[]{donor.getName(), donor.getEmail(), donor.getPhone(),
+                    donor.getPreferredChannel()});
             donorBox.addItem(donor);
             if (selectedDonor != null && donor.getId() == selectedDonor.getId()) {
                 donorBox.setSelectedItem(donor); // keep the previous choice

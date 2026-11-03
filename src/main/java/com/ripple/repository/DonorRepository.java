@@ -90,6 +90,59 @@ public class DonorRepository {
     }
 
     /**
+     * Saves the changed details of an existing donor.
+     *
+     * @param donor the donor with its id and new details
+     */
+    public void update(Donor donor) {
+        String sql = "UPDATE donors SET name = ?, email = ?, phone = ?, preferred_channel = ? WHERE id = ?";
+        try (Connection c = database.getConnection();
+             PreparedStatement statement = c.prepareStatement(sql)) {
+            statement.setString(1, donor.getName());
+            statement.setString(2, donor.getEmail());
+            statement.setString(3, donor.getPhone());
+            statement.setString(4, donor.getPreferredChannel().name());
+            statement.setInt(5, donor.getId());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Database error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Deletes a donor. The service checks first that the donor has no donations.
+     *
+     * @param id the donor's id
+     */
+    public void delete(int id) {
+        try (Connection c = database.getConnection();
+             PreparedStatement statement = c.prepareStatement("DELETE FROM donors WHERE id = ?")) {
+            statement.setInt(1, id);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Database error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Counts the donations a donor has given (a donor with donations cannot be deleted).
+     *
+     * @param donorId the donor's id
+     * @return the number of donations
+     */
+    public int countDonations(int donorId) {
+        try (Connection c = database.getConnection();
+             PreparedStatement statement = c.prepareStatement("SELECT COUNT(*) FROM donations WHERE donor_id = ?")) {
+            statement.setInt(1, donorId);
+            try (ResultSet rows = statement.executeQuery()) {
+                return rows.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Database error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Counts the donors (used by the Dashboard).
      *
      * @return the number of donors

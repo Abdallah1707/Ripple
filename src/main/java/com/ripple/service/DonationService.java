@@ -103,6 +103,54 @@ public class DonationService implements DonationSubject {
      * @throws ValidationException if a rule is broken
      */
     public Donor registerDonor(String name, String email, String phone, ContactChannel channel) {
+        return donorRepository.insert(validateDonor(0, name, email, phone, channel));
+    }
+
+    /**
+     * Checks and saves new details for an existing donor. The same rules as
+     * {@link #registerDonor} apply.
+     *
+     * @param id      the donor's id
+     * @param name    the new name
+     * @param email   the new email
+     * @param phone   the new phone number
+     * @param channel the new preferred channel
+     * @return the updated donor
+     * @throws ValidationException if the donor does not exist or a rule is broken
+     */
+    public Donor updateDonor(int id, String name, String email, String phone, ContactChannel channel) {
+        requireExistingDonor(id);
+        Donor donor = validateDonor(id, name, email, phone, channel);
+        donorRepository.update(donor);
+        return donor;
+    }
+
+    /**
+     * Deletes a donor who has no donations. A donor with donations is kept, so receipts and
+     * the donation history stay complete.
+     *
+     * @param id the donor's id
+     * @return the deleted donor
+     * @throws ValidationException if the donor does not exist or has donations
+     */
+    public Donor deleteDonor(int id) {
+        Donor donor = requireExistingDonor(id);
+        int donations = donorRepository.countDonations(id);
+        if (donations > 0) {
+            throw new ValidationException("'" + donor.getName() + "' has " + donations
+                    + " donation(s) and cannot be deleted");
+        }
+        donorRepository.delete(id);
+        return donor;
+    }
+
+    private Donor requireExistingDonor(int id) {
+        return donorRepository.findById(id)
+                .orElseThrow(() -> new ValidationException("Please choose a donor"));
+    }
+
+    /** The donor rules, shared by register and update. Returns a clean donor with the given id. */
+    private static Donor validateDonor(int id, String name, String email, String phone, ContactChannel channel) {
         String cleanName = InputValidator.requireText(name, "Donor name", 1, 100);
         String cleanEmail = email == null ? "" : email.trim();
         String cleanPhone = phone == null ? "" : phone.trim();
@@ -119,7 +167,7 @@ public class DonationService implements DonationSubject {
         if (channel == ContactChannel.SMS && !InputValidator.isValidPhone(cleanPhone)) {
             throw new ValidationException("A valid phone number is required when the donor prefers SMS");
         }
-        return donorRepository.insert(new Donor(0, cleanName, cleanEmail, cleanPhone, channel));
+        return new Donor(id, cleanName, cleanEmail, cleanPhone, channel);
     }
 
     /**

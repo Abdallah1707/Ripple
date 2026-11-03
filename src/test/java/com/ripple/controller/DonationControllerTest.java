@@ -133,10 +133,38 @@ class DonationControllerTest {
     }
 
     @Test
-    void registerDonorChecksChannelRules() {
-        assertTrue(controller.registerDonor("Omar", "omar@example.com", "", "EMAIL").success());
-        assertFalse(controller.registerDonor("Sara", "", "", "SMS").success());
-        assertFalse(controller.registerDonor("Sara", "sara@example.com", "", "FAX").success());
+    void saveDonorWithoutIdRegistersAndChecksChannelRules() {
+        assertTrue(controller.saveDonor(null, "Omar", "omar@example.com", "", "EMAIL").success());
+        assertFalse(controller.saveDonor(null, "Sara", "", "", "SMS").success());
+        assertFalse(controller.saveDonor(null, "Sara", "sara@example.com", "", "FAX").success());
         assertEquals(2, controller.listDonors().size()); // Mona (setUp) + Omar
+    }
+
+    @Test
+    void saveDonorWithIdUpdatesTheDonor() {
+        Result result = controller.saveDonor(donor.getId(), "Mona A. Ali", "", "01012345678", "SMS");
+        assertTrue(result.success(), result.message());
+        assertEquals("Donor 'Mona A. Ali' updated", result.message());
+        Donor updated = controller.listDonors().get(0);
+        assertEquals("Mona A. Ali", updated.getName());
+        assertEquals(ContactChannel.SMS, updated.getPreferredChannel());
+    }
+
+    @Test
+    void deleteDonorIsBlockedWhileTheDonorHasDonations() {
+        controller.recordDonation(donor.getId(), typeId, "CASH", "500", "", "", "", "");
+
+        Result blocked = controller.deleteDonor(donor.getId());
+        assertFalse(blocked.success());
+        assertEquals("'Mona Ali' has 1 donation(s) and cannot be deleted", blocked.message());
+        assertEquals(1, controller.listDonors().size());
+    }
+
+    @Test
+    void deleteDonorRemovesADonorWithoutDonations() {
+        Result result = controller.deleteDonor(donor.getId());
+        assertTrue(result.success(), result.message());
+        assertTrue(controller.listDonors().isEmpty());
+        assertFalse(controller.deleteDonor(donor.getId()).success()); // already gone
     }
 }

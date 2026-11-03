@@ -54,18 +54,23 @@ public class DonationController {
     }
 
     /**
-     * Registers a new donor.
+     * Adds a new donor ({@code id == null}) or updates an existing one.
      *
+     * @param id      {@code null} to add, or the id of the donor to update
      * @param name    the name typed by the user
      * @param email   the email typed by the user
      * @param phone   the phone typed by the user
      * @param channel {@code "EMAIL"} or {@code "SMS"}
      * @return what happened, for the status bar
      */
-    public Result registerDonor(String name, String email, String phone, String channel) {
+    public Result saveDonor(Integer id, String name, String email, String phone, String channel) {
+        boolean adding = id == null;
         try {
-            Donor donor = donationService.registerDonor(name, email, phone, parseChannel(channel));
-            String message = "Donor '" + donor.getName() + "' registered";
+            ContactChannel preferred = parseChannel(channel);
+            Donor donor = adding
+                    ? donationService.registerDonor(name, email, phone, preferred)
+                    : donationService.updateDonor(id, name, email, phone, preferred);
+            String message = "Donor '" + donor.getName() + "' " + (adding ? "registered" : "updated");
             ApplicationLogger.getInstance().info(message);
             return Result.ok(message);
         } catch (ValidationException e) {
@@ -73,6 +78,26 @@ public class DonationController {
         } catch (IllegalStateException e) {
             ApplicationLogger.getInstance().error(e.getMessage());
             return Result.fail("Could not save the donor because of a database error. Details are in logs/ripple.log.");
+        }
+    }
+
+    /**
+     * Deletes a donor. A donor who has donations cannot be deleted (red message).
+     *
+     * @param id the donor's id
+     * @return what happened, for the status bar
+     */
+    public Result deleteDonor(int id) {
+        try {
+            Donor donor = donationService.deleteDonor(id);
+            String message = "Donor '" + donor.getName() + "' deleted";
+            ApplicationLogger.getInstance().info(message);
+            return Result.ok(message);
+        } catch (ValidationException e) {
+            return Result.fail(e.getMessage());
+        } catch (IllegalStateException e) {
+            ApplicationLogger.getInstance().error(e.getMessage());
+            return Result.fail("Could not delete the donor because of a database error. Details are in logs/ripple.log.");
         }
     }
 

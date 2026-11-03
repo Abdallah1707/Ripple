@@ -375,6 +375,9 @@ namespace repository {
         +findAll() List~Donor~
         +findById(int id) Optional~Donor~
         +insert(Donor donor) Donor
+        +update(Donor donor) void
+        +delete(int id) void
+        +countDonations(int donorId) int
         +count() int
     }
     class DonationRepository {
@@ -461,6 +464,9 @@ namespace service {
         +notifyObservers(Donation donation) void
         +isRegistered(DonationObserver observer) boolean
         +registerDonor(String name, String email, String phone, ContactChannel channel) Donor
+        +updateDonor(int id, String name, String email, String phone, ContactChannel channel) Donor
+        +deleteDonor(int id) Donor
+        -validateDonor(int id, String name, String email, String phone, ContactChannel channel)$ Donor
         +findAllDonors() List~Donor~
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
         +findAllDonations() List~Donation~
@@ -515,7 +521,8 @@ namespace controller {
         -ReceiptRepository receiptRepository
         -DonorNotificationObserver donorNotifier
         +listDonors() List~Donor~
-        +registerDonor(String name, String email, String phone, String channel) Result
+        +saveDonor(Integer id, String name, String email, String phone, String channel) Result
+        +deleteDonor(int id) Result
         +recordDonation(int donorId, int typeId, String method, String amount, String transactionRef, String item, String quantity, String estimatedValue) Result
         +listDonations() List~Donation~
         +getReceipt(int donationId) String

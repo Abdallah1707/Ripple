@@ -123,6 +123,45 @@ class DonationServiceTest {
         assertTrue(service.registerDonor("Omar", "", "010-1234-5678", ContactChannel.SMS).getId() > 0);
     }
 
+    // ---------------- update and delete donors ----------------
+
+    @Test
+    void updateDonorSavesTheNewDetails() {
+        service.updateDonor(donor.getId(), "Mona A. Ali", "", "01012345678", ContactChannel.SMS);
+
+        Donor updated = service.findAllDonors().get(0);
+        assertEquals(donor.getId(), updated.getId());
+        assertEquals("Mona A. Ali", updated.getName());
+        assertEquals(ContactChannel.SMS, updated.getPreferredChannel());
+    }
+
+    @Test
+    void updateDonorUsesTheSameRulesAsRegister() {
+        assertThrows(ValidationException.class,
+                () -> service.updateDonor(donor.getId(), " ", "mona@example.com", "", ContactChannel.EMAIL));
+        assertThrows(ValidationException.class,
+                () -> service.updateDonor(donor.getId(), "Mona", "", "", ContactChannel.SMS));
+        assertThrows(ValidationException.class,
+                () -> service.updateDonor(9999, "Ghost", "ghost@example.com", "", ContactChannel.EMAIL));
+        assertEquals("Mona Ali", service.findAllDonors().get(0).getName()); // unchanged
+    }
+
+    @Test
+    void deleteDonorWithoutDonationsRemovesThem() {
+        assertEquals("Mona Ali", service.deleteDonor(donor.getId()).getName());
+        assertTrue(service.findAllDonors().isEmpty());
+    }
+
+    @Test
+    void deleteDonorWithDonationsIsBlocked() {
+        service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(100));
+        service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(200));
+
+        ValidationException e = assertThrows(ValidationException.class, () -> service.deleteDonor(donor.getId()));
+        assertEquals("'Mona Ali' has 2 donation(s) and cannot be deleted", e.getMessage());
+        assertEquals(1, service.findAllDonors().size());
+    }
+
     // ---------------- recording each kind of donation ----------------
 
     @Test
