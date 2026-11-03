@@ -23,7 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>The "complete diagram" in section 2 of the document is the team contract, so:
  * <ul>
  *   <li>every class drawn in it must exist in the code;</li>
- *   <li>every class in the code must be drawn in it, except the {@code app} package;</li>
+ *   <li>every class in the code must be drawn in it, except the {@code app} package and the
+ *       implementation helpers in {@link #NOT_DRAWN_HELPERS} (the diagram is at design level);</li>
  *   <li>each class must sit in the diagram namespace that matches its Java package;</li>
  *   <li>the small per-pattern diagrams may only use classes of the complete diagram.</li>
  * </ul>
@@ -39,6 +40,11 @@ class DiagramConsistencyTest {
      * objects together (rule 8 of the course's "Common Mistakes in Class Diagram").
      */
     private static final String NOT_DRAWN_PACKAGE = "app";
+    /**
+     * Small utilities added while coding, not part of the design. They are listed in the
+     * "Implementation helpers" table of section 3 instead of being drawn.
+     */
+    private static final Set<String> NOT_DRAWN_HELPERS = Set.of("InputValidator", "ValidationException", "FormHelper");
     private static final Pattern MERMAID_BLOCK = Pattern.compile("(?s)```mermaid\\R(.*?)```");
 
     @Test
@@ -54,9 +60,29 @@ class DiagramConsistencyTest {
     void everyClassInTheCodeIsInTheDiagram() throws IOException {
         Set<String> undrawn = new TreeSet<>(codeClasses().keySet());
         undrawn.removeAll(diagramClasses().keySet());
+        undrawn.removeAll(NOT_DRAWN_HELPERS);
 
         assertTrue(undrawn.isEmpty(), "In src/main/java but missing from the complete diagram in "
                 + "docs/class-diagram.md: " + undrawn + ". Add it to the diagram (and to the class tables).");
+    }
+
+    @Test
+    void theHelpersLeftOutOfTheDiagramAreStillDocumented() throws IOException {
+        String markdown = read();
+        int table = markdown.indexOf("### Implementation helpers");
+        assertTrue(table >= 0, "docs/class-diagram.md must have the '### Implementation helpers' table");
+        String section = markdown.substring(table);
+        Set<String> undocumented = new TreeSet<>();
+        for (String helper : NOT_DRAWN_HELPERS) {
+            if (!section.contains("| `" + helper + "` |")) {
+                undocumented.add(helper);
+            }
+        }
+
+        assertTrue(undocumented.isEmpty(), "Left out of the diagram but missing from the "
+                + "'Implementation helpers' table: " + undocumented);
+        assertTrue(codeClasses().keySet().containsAll(NOT_DRAWN_HELPERS),
+                "A helper in NOT_DRAWN_HELPERS no longer exists in the code; remove it from the list");
     }
 
     @Test

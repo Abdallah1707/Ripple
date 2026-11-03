@@ -39,14 +39,14 @@ COLUMNS = [
     ["view"],
     ["controller"],
     ["service", "logging"],
-    ["observer", "factory", "repository"],
-    ["communication", "receipt"],
+    ["observer", "repository"],
+    ["communication", "receipt", "factory"],
     ["model"],
 ]
 
 # Small classes used by many others. Drawing every dashed "uses" arrow into them would cross the
 # whole picture, so only the first one is drawn; the legend says so.
-HELPERS = {"ApplicationLogger", "Result", "InputValidator", "ValidationException", "FormHelper"}
+HELPERS = {"ApplicationLogger", "Result"}
 
 
 def generic(text):

@@ -1,10 +1,10 @@
 # Ripple — Class Diagram
 
-> The complete UML class diagram of **Ripple**, Phase 1, plus one focused diagram per design pattern (section 5).
+> The complete UML class diagram of **Ripple**, Phase 1, plus one focused diagram per design pattern (section 5). It is drawn at **design level**: what each class is for and how the classes connect, not every coding detail (see "What is left out on purpose").
 
-**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart.
+**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with these names and public methods**, and keep the relationships the arrows show. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart; the only code classes allowed to be missing here are the implementation helpers listed in section 3.
 
-**Printable picture:** [images/class-diagram.svg](images/class-diagram.svg) (zoomable vector) and [images/class-diagram.png](images/class-diagram.png) show the complete diagram below as one UML picture, grouped and coloured by layer and pattern, with the packages in left-to-right columns like the MVC layers. To keep it readable, a dashed "uses" arrow into the shared helpers (`ApplicationLogger`, `Result`, `InputValidator`, `ValidationException`, `FormHelper`) is drawn only once; section 2 below lists all of them. They are generated from section 2 by [tools/render_class_diagram.py](tools/render_class_diagram.py) (Python 3 + Graphviz, no other dependencies); regenerate them whenever section 2 changes, from the project root:
+**Printable picture:** [images/class-diagram.svg](images/class-diagram.svg) (zoomable vector) and [images/class-diagram.png](images/class-diagram.png) show the complete diagram below as one UML picture, grouped and coloured by layer and pattern, with the packages in left-to-right columns like the MVC layers. To keep it readable, a dashed "uses" arrow into the shared `ApplicationLogger` and `Result` is drawn only once; section 2 below lists all of them. They are generated from section 2 by [tools/render_class_diagram.py](tools/render_class_diagram.py) (Python 3 + Graphviz, no other dependencies); regenerate them whenever section 2 changes, from the project root:
 
 ```bash
 python docs/tools/render_class_diagram.py docs/class-diagram.md docs/images/class-diagram.dot
@@ -50,7 +50,10 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 - **Plain getters and setters** (`getName()`, `setName(...)`) for the attributes shown — they would double the diagram's size and add nothing. Getters with real logic (e.g. `getReceiptNumber()`) **are** shown.
 - **Constructors**, except where the constructor is part of the pattern (the Singleton's private constructor, the decorator's protected constructor) and for `EventCategory`, whose constructor is its only own member (no empty classes).
 - **`Main`**, the composition root that only creates and wires objects. It is a "system" class, so it is described in [architecture.md §4](architecture.md#4-composition-root-object-wiring) instead of drawn (common-mistakes rule 8).
-- **Swing widget fields inside views** (text fields, tables, buttons) and their small private helper methods. Views show only the controllers and status bar they depend on.
+- **Fields that only point to another drawn class** (e.g. a controller's `-eventRepository: EventRepository`). The arrow already shows that relationship, and UML draws it as an attribute *or* an arrow, not both. Fields that hold data (`-amount: double`) or that *are* the pattern (`observers`, `strategy`, `wrapped`, `uniqueInstance`) are shown, and entities keep all their fields.
+- **Private helper methods** (e.g. `validateDonor`, `describeChange`), which are coding decisions, not design.
+- **View internals:** Swing widget fields (text fields, tables, buttons) and the views' references. Views show their public methods; arrows show the controllers they call.
+- **Implementation helpers** `InputValidator`, `ValidationException` and `FormHelper`: small utilities added while coding. They are described in section 3 but not drawn.
 - **`toString()` overrides** that only return a display name for combo boxes (`Person`, `DonationMethod`).
 - **Swing and JDK classes** (`JPanel`, `JFrame`, `RuntimeException`). Inheritance from them is stated in the class tables below.
 
@@ -67,7 +70,7 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 7 arrows above 5 are aggregations and are listed in section 4. |
 | 8 | No "system" class | `Main` (the composition root) is not drawn. |
 | 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
-| 10 | Real diagrams are large | 84 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
+| 10 | Real diagrams are large | 81 classes in 10 packages, every one of them in the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -243,19 +246,15 @@ namespace observer {
     }
     class DonationLogObserver {
         <<Observer>>
-        -ApplicationLogger logger
         +update(Donation donation) void
     }
     class ReceiptObserver {
         <<Observer>>
-        -ReceiptRepository receiptRepository
         +update(Donation donation) void
         +buildReceipt(Donation donation) Receipt
     }
     class DonorNotificationObserver {
         <<Observer>>
-        -CommunicationService communicationService
-        -Map~ContactChannel, CommunicationStrategy~ strategies
         +update(Donation donation) void
     }
     class EventSubject {
@@ -270,11 +269,7 @@ namespace observer {
     }
     class AttendeeNotificationObserver {
         <<Observer>>
-        -EventRepository eventRepository
-        -CommunicationService communicationService
-        -List~CommunicationStrategy~ strategies
         +update(Event event, String change) void
-        -strategyFor(Attendee attendee) CommunicationStrategy
     }
 }
 
@@ -342,7 +337,6 @@ namespace communication {
     class CommunicationService {
         <<Context>>
         -CommunicationStrategy strategy
-        -MessageLogRepository messageLog
         +setStrategy(CommunicationStrategy strategy) void
         +getStrategy() CommunicationStrategy
         +send(Contactable recipient, String subject, String body) DeliveryResult
@@ -387,7 +381,6 @@ namespace logging {
         +info(String message) void
         +error(String message) void
         +getRecentEntries(int limit) List~String~
-        -write(String level, String message) void
     }
 }
 
@@ -399,7 +392,6 @@ namespace repository {
         +fromEnvironment()$ Database
         +getConnection() Connection
         +initialize() void
-        -seedIfEmpty(Connection, String table, String insertSql, Object[][] rows) void
     }
     class LookupRepository~T~ {
         <<interface>>
@@ -412,13 +404,12 @@ namespace repository {
         +countUsages(int id) int
     }
     class DonationTypeRepository {
-        -Database database
+        +countUsages(int id) int
     }
     class EventCategoryRepository {
-        -Database database
+        +countUsages(int id) int
     }
     class DonorRepository {
-        -Database database
         +findAll() List~Donor~
         +findById(int id) Optional~Donor~
         +insert(Donor donor) Donor
@@ -428,20 +419,16 @@ namespace repository {
         +count() int
     }
     class DonationRepository {
-        -Database database
-        -Map~DonationMethod, DonationFactory~ factories
         +insert(Donation donation) Donation
         +findAll() List~Donation~
         +count() int
         +totalValue() double
     }
     class ReceiptRepository {
-        -Database database
         +save(int donationId, String content) void
         +findByDonationId(int donationId) Optional~String~
     }
     class VolunteerRepository {
-        -Database database
         +findAll() List~Volunteer~
         +insert(Volunteer volunteer) Volunteer
         +update(Volunteer volunteer) void
@@ -451,7 +438,6 @@ namespace repository {
         +findByEvent(int eventId) List~Volunteer~
     }
     class EventRepository {
-        -Database database
         +findAll() List~Event~
         +findById(int id) Optional~Event~
         +insert(Event event) Event
@@ -462,7 +448,6 @@ namespace repository {
         +findAttendees(int eventId) List~Attendee~
     }
     class BeneficiaryRepository {
-        -Database database
         +findAll() List~Beneficiary~
         +insert(Beneficiary beneficiary) Beneficiary
         +update(Beneficiary beneficiary) void
@@ -470,7 +455,6 @@ namespace repository {
         +count() int
     }
     class MessageLogRepository {
-        -Database database
         +save(ContactChannel channel, Message message, DeliveryResult result) void
         +findAll() List~MessageLogEntry~
     }
@@ -478,35 +462,16 @@ namespace repository {
 
 %% ===================== service =====================
 namespace service {
-    class ValidationException {
-        +ValidationException(String message)
-    }
-    class InputValidator {
-        +requireText(String value, String field, int min, int max)$ String
-        +isValidEmail(String value)$ boolean
-        +isValidPhone(String value)$ boolean
-        +isValidSocialHandle(String value)$ boolean
-        +optionalEmail(String value)$ String
-        +optionalPhone(String value)$ String
-        +parseDouble(String value, String field)$ double
-        +parseInt(String value, String field)$ int
-    }
     class LookupService~T~ {
-        -LookupRepository~T~ repository
         -String entityLabel
         +findAll() List~T~
         +add(T entry) T
         +update(T entry) void
         +delete(int id) void
-        -validate(T entry) void
     }
     class DonationService {
         <<Subject>>
         -List~DonationObserver~ observers
-        -Map~DonationMethod, DonationFactory~ factories
-        -DonorRepository donorRepository
-        -DonationRepository donationRepository
-        -LookupRepository~DonationType~ donationTypeRepository
         +registerObserver(DonationObserver observer) void
         +removeObserver(DonationObserver observer) void
         +notifyObservers(Donation donation) void
@@ -514,7 +479,6 @@ namespace service {
         +registerDonor(String name, String email, String phone, String socialHandle, ContactChannel channel) Donor
         +updateDonor(int id, String name, String email, String phone, String socialHandle, ContactChannel channel) Donor
         +deleteDonor(int id) Donor
-        -validateDonor(int id, String name, String email, String phone, String socialHandle, ContactChannel channel)$ Donor
         +findAllDonors() List~Donor~
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
         +findAllDonations() List~Donation~
@@ -522,14 +486,12 @@ namespace service {
     class EventService {
         <<Subject>>
         -List~EventObserver~ observers
-        -EventRepository eventRepository
         +registerObserver(EventObserver observer) void
         +removeObserver(EventObserver observer) void
         +notifyObservers(Event event, String change) void
         +isRegistered(EventObserver observer) boolean
         +addEvent(Event event) Event
         +updateEvent(Event event) boolean
-        -describeChange(Event before, Event after)$ String
     }
 }
 
@@ -568,8 +530,6 @@ namespace controller {
         +getLabel() String
     }
     class LookupController {
-        -LookupService~DonationType~ donationTypes
-        -LookupService~EventCategory~ eventCategories
         +list(LookupKind kind) List~LookupEntry~
         +listDonationTypes() List~DonationType~
         +listEventCategories() List~EventCategory~
@@ -577,9 +537,6 @@ namespace controller {
         +delete(LookupKind kind, int id) Result
     }
     class DonationController {
-        -DonationService donationService
-        -ReceiptRepository receiptRepository
-        -DonorNotificationObserver donorNotifier
         +listDonors() List~Donor~
         +saveDonor(Integer id, String name, String email, String phone, String socialHandle, String channel) Result
         +deleteDonor(int id) Result
@@ -590,16 +547,12 @@ namespace controller {
         +isDonorNotificationsEnabled() boolean
     }
     class VolunteerController {
-        -VolunteerRepository volunteerRepository
         +listVolunteers() List~Volunteer~
         +saveVolunteer(Integer id, String name, String email, String phone, String skills, String availability) Result
         +deleteVolunteer(int id) Result
         +assignToEvent(int volunteerId, int eventId) Result
     }
     class EventController {
-        -EventService eventService
-        -EventRepository eventRepository
-        -VolunteerRepository volunteerRepository
         +listEvents() List~Event~
         +saveEvent(Integer id, String name, int categoryId, String date, String location, String description) Result
         +deleteEvent(int id) Result
@@ -608,29 +561,15 @@ namespace controller {
         +listVolunteers(int eventId) List~Volunteer~
     }
     class BeneficiaryController {
-        -BeneficiaryRepository beneficiaryRepository
         +listBeneficiaries() List~Beneficiary~
         +saveBeneficiary(Integer id, String name, String email, String phone, String address, String needs) Result
         +deleteBeneficiary(int id) Result
     }
     class CommunicationController {
-        -CommunicationService communicationService
-        -Map~ContactChannel, CommunicationStrategy~ strategies
-        -DonorRepository donorRepository
-        -VolunteerRepository volunteerRepository
-        -BeneficiaryRepository beneficiaryRepository
-        -EventRepository eventRepository
-        -MessageLogRepository messageLogRepository
         +sendToGroup(Audience audience, Integer eventId, String channel, String subject, String body) Result
         +listMessageLog() List~MessageLogEntry~
     }
     class DashboardController {
-        -DonorRepository donorRepository
-        -DonationRepository donationRepository
-        -VolunteerRepository volunteerRepository
-        -EventRepository eventRepository
-        -BeneficiaryRepository beneficiaryRepository
-        -ApplicationLogger logger
         +getSummary() DashboardSummary
     }
 }
@@ -644,69 +583,32 @@ namespace view {
     class StatusBar {
         +showResult(Result result) void
     }
-    class FormHelper {
-        +placeholder(JTextField field, String hint)$ void
-        +button(String text, String tooltip, Runnable action)$ JButton
-        +tableWithSearch(JTable table)$ JPanel
-        +searchField(JTable table)$ JTextField
-        +selectedModelRow(JTable table)$ int
-        +onDoubleClick(JTable table, Runnable action)$ void
-        +onEnter(Runnable action, JTextField... fields)$ void
-        +confirmDelete(Component parent, String message)$ boolean
-    }
     class MainFrame {
-        -CardLayout cards
-        -JPanel content
-        -StatusBar statusBar
-        -Map~String, JPanel~ cardsByName
-        -Map~String, Refreshable~ screens
-        -String currentScreen
         +addScreen(String name, JPanel screen) void
         +getStatusBar() StatusBar
-        -showScreen(String name) void
     }
     class DashboardPanel {
-        -DashboardController controller
         +refresh() void
     }
     class DonationsPanel {
-        -DonationController donationController
-        -LookupController lookupController
-        -StatusBar statusBar
         +refresh() void
     }
     class VolunteersPanel {
-        -VolunteerController volunteerController
-        -EventController eventController
-        -StatusBar statusBar
         +refresh() void
     }
     class EventsPanel {
-        -EventController eventController
-        -LookupController lookupController
-        -StatusBar statusBar
         +refresh() void
     }
     class BeneficiariesPanel {
-        -BeneficiaryController controller
-        -StatusBar statusBar
         +refresh() void
     }
     class CommunicationPanel {
-        -CommunicationController communicationController
-        -EventController eventController
-        -StatusBar statusBar
         +refresh() void
     }
     class LookupPanel {
-        -LookupTablePanel donationTypesTab
-        -LookupTablePanel eventCategoriesTab
         +refresh() void
     }
     class LookupTablePanel {
-        -LookupController controller
-        -LookupKind kind
-        -StatusBar statusBar
         +refresh() void
     }
 }
@@ -742,7 +644,6 @@ CashDonationFactory ..> CashDonation : «create»
 OnlineDonationFactory ..> OnlineDonation : «create»
 InKindDonationFactory ..> InKindDonation : «create»
 ChequeDonationFactory ..> ChequeDonation : «create»
-DonationFactory ..> ValidationException : throws
 
 %% ---------- Observer ----------
 DonationService ..|> DonationSubject
@@ -753,7 +654,7 @@ DonationService "1" o-- "0..*" DonationObserver : observers
 DonationLogObserver --> "1" ApplicationLogger
 ReceiptObserver --> "1" ReceiptRepository
 DonorNotificationObserver --> "1" CommunicationService
-DonorNotificationObserver --> "2" CommunicationStrategy : strategies
+DonorNotificationObserver --> "3" CommunicationStrategy : strategies
 EventService ..|> EventSubject
 EventService "1" o-- "0..*" EventObserver : observers
 AttendeeNotificationObserver ..|> EventObserver
@@ -803,13 +704,10 @@ MessageLogRepository ..> MessageLogEntry
 
 %% ---------- services ----------
 LookupService o-- "1" LookupRepository
-LookupService ..> InputValidator
-LookupService ..> ValidationException : throws
 DonationService --> "4" DonationFactory : factories
 DonationService o-- "1" DonorRepository
 DonationService --> "1" DonationRepository
 DonationService --> "1" LookupRepository : donation types
-DonationService ..> InputValidator
 DonationService ..> ApplicationLogger : failing observer
 
 %% ---------- controllers ----------
@@ -825,7 +723,7 @@ EventController --> "1" EventRepository
 EventController --> "1" VolunteerRepository
 BeneficiaryController --> "1" BeneficiaryRepository
 CommunicationController --> "1" CommunicationService
-CommunicationController --> "2" CommunicationStrategy : strategies
+CommunicationController --> "3" CommunicationStrategy : strategies
 CommunicationController --> "1" MessageLogRepository
 CommunicationController ..> Audience
 DonationController ..> ApplicationLogger : logs changes
@@ -872,12 +770,6 @@ CommunicationPanel --> CommunicationController
 CommunicationPanel --> EventController
 LookupTablePanel --> LookupController
 StatusBar ..> Result
-DonationsPanel ..> FormHelper
-VolunteersPanel ..> FormHelper
-EventsPanel ..> FormHelper
-BeneficiariesPanel ..> FormHelper
-CommunicationPanel ..> FormHelper
-LookupTablePanel ..> FormHelper
 
 ```
 
@@ -958,8 +850,6 @@ LookupTablePanel ..> FormHelper
 | `LookupService<T>` | One implementation of the lookup rules (CR1, CR2) used for both tables. |
 | `DonationService` | Registers donors, records donations through the creator for the chosen method, and is the Observer **Subject** for donations. |
 | `EventService` | Saves events and is the Observer **Subject** for events: notifies its observers when an event's date or location changes. |
-| `InputValidator` | Shared static checks and parsing (text length, email, phone, numbers). |
-| `ValidationException` | `extends RuntimeException`; carries a message meant for the user. |
 
 ### `com.ripple.controller` — Controllers
 | Class | Responsibility |
@@ -976,13 +866,21 @@ LookupTablePanel ..> FormHelper
 | `DashboardPanel`, `DonationsPanel`, `VolunteersPanel`, `EventsPanel`, `BeneficiariesPanel`, `CommunicationPanel`, `LookupPanel` | `extends JPanel`. One screen each. |
 | `LookupTablePanel` | `extends JPanel`. Reusable list/add/edit/delete table, used once per `LookupKind`. |
 | `StatusBar` | `extends JLabel`. Shows a `Result` in green or red. |
-| `FormHelper` | Static helpers shared by the screens: hints in empty fields, a search box and sorting for each table (`selectedModelRow` keeps the selection correct when sorted or filtered), double-click to edit, Enter to save, tooltips and the delete confirmation. |
 | `Refreshable` | Implemented by every screen so `MainFrame` can reload data when a screen is shown. |
 
 ### `com.ripple.app`
 | Class | Responsibility |
 |---|---|
 | `Main` | Composition root (see [architecture.md §4](architecture.md#4-composition-root-object-wiring)). **Not drawn** in the diagram: it is a "system" class that only wires objects together (common-mistakes rule 8). |
+
+### Implementation helpers (in the code, not in the diagram)
+Small utilities added while coding. They are not part of the design, so they are not drawn; `DiagramConsistencyTest` allows exactly these three to be missing from the diagram.
+
+| Class | Package | Responsibility |
+|---|---|---|
+| `InputValidator` | `service` | Shared static checks and parsing (text length, email, phone, numbers). |
+| `ValidationException` | `service` | `extends RuntimeException`; carries a message meant for the user. |
+| `FormHelper` | `view` | Static helpers shared by the screens: hints in empty fields, a search box and sorting for each table (`selectedModelRow` keeps the selection correct when sorted or filtered), double-click to edit, Enter to save, tooltips and the delete confirmation. |
 
 ---
 
@@ -1030,7 +928,6 @@ direction LR
 class CommunicationService {
     <<Context>>
     -CommunicationStrategy strategy
-    -MessageLogRepository messageLog
     +setStrategy(CommunicationStrategy strategy) void
     +send(Contactable recipient, String subject, String body) DeliveryResult
     +sendToAll(List~? extends Contactable~ recipients, String subject, String body) List~DeliveryResult~
@@ -1061,11 +958,9 @@ class SocialMediaStrategy {
     +send(Message message) DeliveryResult
 }
 class CommunicationController {
-    -Map~ContactChannel, CommunicationStrategy~ strategies
     +sendToGroup(Audience audience, Integer eventId, String channel, String subject, String body) Result
 }
 class DonorNotificationObserver {
-    -Map~ContactChannel, CommunicationStrategy~ strategies
     +update(Donation donation) void
 }
 CommunicationService o-- "0..1" CommunicationStrategy : strategy
@@ -1118,17 +1013,16 @@ class DonationObserver {
 }
 class DonationLogObserver {
     <<Observer>>
-    -ApplicationLogger logger
+    +update(Donation donation) void
 }
 class ReceiptObserver {
     <<Observer>>
-    -ReceiptRepository receiptRepository
+    +update(Donation donation) void
     +buildReceipt(Donation donation) Receipt
 }
 class DonorNotificationObserver {
     <<Observer>>
-    -CommunicationService communicationService
-    -Map~ContactChannel, CommunicationStrategy~ strategies
+    +update(Donation donation) void
 }
 DonationService ..|> DonationSubject
 DonationService "1" o-- "0..*" DonationObserver : observers
@@ -1152,7 +1046,7 @@ class EventObserver {
 }
 class AttendeeNotificationObserver {
     <<Observer>>
-    -List~CommunicationStrategy~ strategies
+    +update(Event event, String change) void
 }
 EventService ..|> EventSubject
 EventService "1" o-- "0..*" EventObserver : observers
@@ -1295,11 +1189,9 @@ class ChequeDonation {
     -String chequeNumber
 }
 class DonationService {
-    -Map~DonationMethod, DonationFactory~ factories
     +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
 }
 class DonationRepository {
-    -Map~DonationMethod, DonationFactory~ factories
     +findAll() List~Donation~
 }
 CashDonationFactory --|> DonationFactory
@@ -1353,11 +1245,9 @@ class ApplicationLogger {
     +getRecentEntries(int limit) List~String~
 }
 class DonationLogObserver {
-    -ApplicationLogger logger
     +update(Donation donation) void
 }
 class DashboardController {
-    -ApplicationLogger logger
     +getSummary() DashboardSummary
 }
 ApplicationLogger --> ApplicationLogger : uniqueInstance
@@ -1388,12 +1278,10 @@ classDiagram
 direction LR
 class DonationsPanel {
     <<View>>
-    -DonationController donationController
     +refresh() void
 }
 class LookupTablePanel {
     <<View>>
-    -LookupController controller
     +refresh() void
 }
 class DonationController {
