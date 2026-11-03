@@ -45,7 +45,7 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 - **Constructors**, except where the constructor is part of the pattern (the Singleton's private constructor, the decorator's protected constructor) and for `EventCategory`, whose constructor is its only own member (no empty classes).
 - **`Main`**, the composition root that only creates and wires objects. It is a "system" class, so it is described in [architecture.md §4](architecture.md#4-composition-root-object-wiring) instead of drawn (common-mistakes rule 8).
 - **Swing widget fields inside views** (text fields, tables, buttons) and their small private helper methods. Views show only the controllers and status bar they depend on.
-- **`toString()` overrides** that only return a display name for combo boxes (`Donor`, `DonationMethod`).
+- **`toString()` overrides** that only return a display name for combo boxes (`Person`, `DonationMethod`).
 - **Swing and JDK classes** (`JPanel`, `JFrame`, `RuntimeException`). Inheritance from them is stated in the class tables below.
 
 ### Checked against the course's "Common Mistakes in Class Diagram"
@@ -56,12 +56,12 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | 2 | No stand-alone class | Every class has at least one relationship. |
 | 3 | No inheritance cycles | All generalizations point one way (e.g. `CashDonation → Donation`, `ThankYouMessageDecorator → ReceiptDecorator`). |
 | 4 | Balance the relationship types | Generalization, realization, association, aggregation, composition and dependency are all used, each for its own meaning (table above). |
-| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 4, `DonationFactory` 4, `LookupEntry` 2, `ReceiptDecorator` 2). The one interface with a single implementer, `DonationSubject`, is the slides' Subject/WeatherData shape (see section 4). |
+| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 4, `DonationFactory` 4, `Person` 4, `LookupEntry` 2, `ReceiptDecorator` 2). The one interface with a single implementer, `DonationSubject`, is the slides' Subject/WeatherData shape (see section 4). |
 | 6 | Use interfaces where possible | `Contactable`, `CommunicationStrategy`, `DonationSubject`, `DonationObserver`, `Receipt`, `LookupRepository<T>`, `Refreshable`. |
 | 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 8 arrows above 5 are aggregations and are listed in section 4. |
 | 8 | No "system" class | `Main` (the composition root) is not drawn. |
 | 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
-| 10 | Real diagrams are large | 78 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
+| 10 | Real diagrams are large | 79 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -81,6 +81,13 @@ namespace model {
         +getEmail() String
         +getPhone() String
     }
+    class Person {
+        <<abstract>>
+        -int id
+        -String name
+        -String email
+        -String phone
+    }
     class ContactChannel {
         <<enumeration>>
         EMAIL
@@ -96,10 +103,6 @@ namespace model {
         +getLabel() String
     }
     class Donor {
-        -int id
-        -String name
-        -String email
-        -String phone
         -ContactChannel preferredChannel
     }
     class Donation {
@@ -156,10 +159,6 @@ namespace model {
         +EventCategory(int id, String name, String description)
     }
     class Volunteer {
-        -int id
-        -String name
-        -String email
-        -String phone
         -String skills
         -String availability
     }
@@ -172,17 +171,9 @@ namespace model {
         -String description
     }
     class Attendee {
-        -int id
         -int eventId
-        -String name
-        -String email
-        -String phone
     }
     class Beneficiary {
-        -int id
-        -String name
-        -String email
-        -String phone
         -String address
         -String needs
     }
@@ -671,10 +662,11 @@ namespace view {
 }
 
 %% ---------- model relationships ----------
-Donor ..|> Contactable
-Volunteer ..|> Contactable
-Attendee ..|> Contactable
-Beneficiary ..|> Contactable
+Person ..|> Contactable
+Donor --|> Person
+Volunteer --|> Person
+Attendee --|> Person
+Beneficiary --|> Person
 Donor "*" --> "1" ContactChannel : preferredChannel
 CashDonation --|> Donation
 OnlineDonation --|> Donation
@@ -839,15 +831,17 @@ LookupTablePanel ..> FormHelper
 | Class | Kind | Responsibility |
 |---|---|---|
 | `Contactable` | interface | Anything Ripple can message: name, email, phone. Lets communication treat donors, volunteers, attendees and beneficiaries the same way (polymorphism). |
+| `Person` | abstract class | The fields every person shares (id, name, email, phone) and their getters; implements `Contactable`. `Donor`, `Volunteer`, `Attendee` and `Beneficiary` extend it instead of repeating them. |
 | `ContactChannel` | enum | `EMAIL`, `SMS`. |
 | `DonationMethod` | enum | `CASH`, `ONLINE`, `IN_KIND`, `CHEQUE` — the key of the creators map built in `Main`. |
-| `Donor` | class | A person or company that donates; has a preferred channel (CR5). |
+| `Donor` | class | `extends Person`. A person or company that donates; has a preferred channel (CR5). |
 | `Donation` | abstract class | Common donation data (donor, type, timestamp — CR3) and the abstract operations each kind must define. |
 | `CashDonation`, `OnlineDonation`, `InKindDonation`, `ChequeDonation` | classes | The four concrete donation kinds (Concrete Products); each computes its own `getValue()` and `describe()`. |
 | `LookupEntry` | abstract class | Shared shape of lookup rows: id, name, description. |
 | `DonationType` | class | Lookup row, plus the tax-deductible flag (CR4). |
 | `EventCategory` | class | Lookup row. |
-| `Volunteer`, `Event`, `Attendee`, `Beneficiary` | classes | Entities of the other modules. |
+| `Volunteer`, `Attendee`, `Beneficiary` | classes | `extend Person`. The people of the other modules, each adding only its own fields. |
+| `Event` | class | An event of the Events module. |
 
 ### `com.ripple.factory` — Factory Method pattern
 | Class | Kind | Responsibility |
@@ -934,6 +928,7 @@ LookupTablePanel ..> FormHelper
 |---|---|
 | `Donation "*" --> "1" Donor` | Each donation object keeps a reference to its donor; one donor makes many donations. |
 | `Donation "*" --> "1" DonationType` | Each donation is classified by exactly one lookup value — this is what makes CR2 (no delete while in use) necessary. |
+| `Donor --\|> Person` (and `Volunteer`, `Attendee`, `Beneficiary`), `Person ..\|> Contactable` | **Generalization** for the shared fields, so they are written once (the project's *reusability* goal). The interface stays: communication code depends on `Contactable` (what it needs to send), not on `Person` (how people are stored). |
 | `Event "*" -- "*" Volunteer` | Many-to-many, stored in the `event_volunteers` join table. Neither class holds a list of the other; the repositories query the link. |
 | `Attendee "*" --> "1" Event` | An attendee row belongs to one event (`eventId`). |
 | `DonationService "1" o-- "0..*" DonationObserver` | **Aggregation**, as in the Observer UML of the lab slides: observers are created in `Main` and registered; the service only holds them. Zero observers is valid. |

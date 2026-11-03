@@ -109,7 +109,7 @@ flowchart TD
 | Package | Purpose |
 |---|---|
 | `com.ripple.app` | `Main` — the **composition root**: builds every object once and wires them together. It is described here and not drawn in the class diagram (common-mistakes rule 8: no "system" class). |
-| `com.ripple.model` | Entities (`Donor`, `Donation` hierarchy, `Volunteer`, `Event`, ...), lookup entities, enums, the `Contactable` interface. |
+| `com.ripple.model` | Entities (the `Person` hierarchy: `Donor`, `Volunteer`, `Attendee`, `Beneficiary`; the `Donation` hierarchy; `Event`, ...), lookup entities, enums, the `Contactable` interface. |
 | `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
 | `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers. |
 | `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
