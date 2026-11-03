@@ -2,7 +2,7 @@ package com.ripple.model;
 
 import java.time.LocalDate;
 
-/** An activity organised by the NGO, classified by an {@link EventCategory} (a lookup value). */
+/** An NGO event. */
 public class Event {
 
     private int id;
@@ -12,16 +12,7 @@ public class Event {
     private final String location;
     private final String description;
 
-    /**
-     * Creates an event.
-     *
-     * @param id          database id, or 0 if not saved yet
-     * @param name        the event's name
-     * @param category    the event category (never {@code null})
-     * @param eventDate   the day the event takes place
-     * @param location    where it takes place (free text)
-     * @param description what it is about (free text)
-     */
+    /** Creates an event. */
     public Event(int id, String name, EventCategory category, LocalDate eventDate, String location,
                  String description) {
         this.id = id;
@@ -36,11 +27,7 @@ public class Event {
         return id;
     }
 
-    /**
-     * Sets the id given by the database after the event is saved.
-     *
-     * @param id the generated id
-     */
+    /** Sets the id after saving. */
     public void setId(int id) {
         this.id = id;
     }

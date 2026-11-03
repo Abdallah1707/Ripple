@@ -1,12 +1,15 @@
 package com.ripple.observer;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
+import com.ripple.extras.AnonymousDonation;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Donation;
 import com.ripple.model.DonationMethod;
+import com.ripple.model.DonationType;
 import com.ripple.model.Donor;
 import com.ripple.repository.Database;
 import com.ripple.repository.DonationRepository;
@@ -17,11 +20,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that DonationLogObserver writes a line to the application log. */
+/** Tests for DonationLogObserver. */
 class DonationLogObserverTest {
 
     @TempDir
@@ -30,12 +35,12 @@ class DonationLogObserverTest {
     @Test
     void writesOneLineWithTheReceiptNumber() {
         Donor donor = new Donor(1, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
-        Donation donation = new DonationFactory().create(DonationMethod.CASH, donor,
+        Donation donation = TestFactories.create(DonationMethod.CASH, donor,
                 new com.ripple.model.DonationType(1, "Zakat", "", true),
                 new DonationRequest(500, null, null, 0, 0, null));
         donation.setId(7);
 
-        new DonationLogObserver().onDonationRecorded(donation);
+        new DonationLogObserver().update(donation);
 
         String latest = ApplicationLogger.getInstance().getRecentEntries(1).get(0);
         assertTrue(latest.contains(donation.getReceiptNumber()));
@@ -43,14 +48,28 @@ class DonationLogObserverTest {
     }
 
     @Test
+    void anAnonymousDonationIsLoggedWithoutTheDonorsName() {
+        Donor donor = new Donor(3, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        Donation donation = new AnonymousDonation(TestFactories.create(DonationMethod.CASH, donor,
+                new DonationType(1, "Zakat", "", true), new DonationRequest(50, null, null, 0, 0, null)));
+        donation.setId(42);
+
+        new DonationLogObserver().update(donation);
+
+        String latest = ApplicationLogger.getInstance().getRecentEntries(1).get(0);
+        assertTrue(latest.contains("Anonymous donor"), latest);
+        assertFalse(latest.contains("Mona Ali"), latest);
+    }
+
+    @Test
     void recordingADonationLogsItWhenTheObserverIsAttached() {
         Database db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonationTypeRepository types = new DonationTypeRepository(db);
-        DonationService service = new DonationService(factory, new DonorRepository(db),
-                new DonationRepository(db, factory), types);
-        service.attach(new DonationLogObserver());
-        Donor donor = service.registerDonor("Omar", "omar@example.com", "", ContactChannel.EMAIL);
+        DonationService service = new DonationService(factories, new DonorRepository(db),
+                new DonationRepository(db, factories), types);
+        service.registerObserver(new DonationLogObserver());
+        Donor donor = service.registerDonor("Omar", "omar@example.com", "", "", ContactChannel.EMAIL);
 
         Donation donation = service.recordDonation(DonationMethod.CASH, donor.getId(),
                 types.findAll().get(0).getId(), new DonationRequest(75, null, null, 0, 0, null));

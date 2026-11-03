@@ -1,10 +1,12 @@
 package com.ripple.observer;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.communication.CommunicationService;
 import com.ripple.communication.EmailStrategy;
 import com.ripple.communication.MessageLogEntry;
 import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.ContactChannel;
@@ -28,7 +30,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that donors get an automatic thank-you on their preferred channel (CR5). */
+/** Tests that donors get a thank-you on their preferred channel (CR5). */
 class DonorNotificationObserverTest {
 
     @TempDir
@@ -42,13 +44,14 @@ class DonorNotificationObserverTest {
     @BeforeEach
     void setUp() {
         Database db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonationTypeRepository types = new DonationTypeRepository(db);
-        service = new DonationService(factory, new DonorRepository(db), new DonationRepository(db, factory), types);
+        service = new DonationService(factories, new DonorRepository(db), new DonationRepository(db, factories), types);
         log = new MessageLogRepository(db);
         notifier = new DonorNotificationObserver(new CommunicationService(log),
-                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy()));
-        service.attach(notifier);
+                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy(),
+                        ContactChannel.SOCIAL, new SocialMediaStrategy()));
+        service.registerObserver(notifier);
         typeId = types.findAll().get(0).getId();
     }
 
@@ -59,8 +62,8 @@ class DonorNotificationObserverTest {
 
     @Test
     void thankYouUsesEachDonorsPreferredChannel() {
-        Donor byEmail = service.registerDonor("Mona Ali", "mona@example.com", "01012345678", ContactChannel.EMAIL);
-        Donor bySms = service.registerDonor("Omar Samy", "omar@example.com", "01198765432", ContactChannel.SMS);
+        Donor byEmail = service.registerDonor("Mona Ali", "mona@example.com", "01012345678", "", ContactChannel.EMAIL);
+        Donor bySms = service.registerDonor("Omar Samy", "omar@example.com", "01198765432", "", ContactChannel.SMS);
 
         Donation first = donate(byEmail);
         donate(bySms);
@@ -76,16 +79,28 @@ class DonorNotificationObserverTest {
     }
 
     @Test
+    void socialDonorIsThankedOnSocialMediaWithNoChangeToTheObserver() {
+        Donor donor = service.registerDonor("Sara", "", "", "@sara_s", ContactChannel.SOCIAL);
+
+        donate(donor);
+
+        MessageLogEntry entry = log.findAll().get(0);
+        assertEquals(ContactChannel.SOCIAL, entry.channel());
+        assertEquals("Sara <@sara_s>", entry.recipient());
+        assertEquals("SIMULATED", entry.status());
+    }
+
+    @Test
     void noThankYouIsSentAfterTheObserverIsDetached() {
-        Donor donor = service.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        Donor donor = service.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
         donate(donor);
         assertEquals(1, log.findAll().size());
 
-        service.detach(notifier);
+        service.removeObserver(notifier);
         donate(donor);
         assertEquals(1, log.findAll().size());
 
-        service.attach(notifier);
+        service.registerObserver(notifier);
         donate(donor);
         assertEquals(2, log.findAll().size());
     }

@@ -2,6 +2,7 @@ package com.ripple.view;
 
 import com.ripple.communication.MessageLogEntry;
 import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.controller.Audience;
 import com.ripple.controller.CommunicationController;
 import com.ripple.controller.EventController;
@@ -10,7 +11,6 @@ import com.ripple.model.ContactChannel;
 import com.ripple.model.Event;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -32,12 +32,7 @@ import java.awt.Insets;
 import java.time.format.DateTimeFormatter;
 
 /**
- * The Communication screen: send a message to a whole group by Email or SMS, and see the
- * message log.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link CommunicationController}
- * (and {@link EventController} for the list of events). The outcome of every send is shown
- * in the status bar. Sending is simulated, and the screen says so.
+ * The Communication screen: send a message to a group and see the message log.
  */
 public class CommunicationPanel extends JPanel implements Refreshable {
 
@@ -55,13 +50,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
     private final JLabel lengthLabel = new JLabel();
     private final DefaultTableModel tableModel;
 
-    /**
-     * Builds the screen.
-     *
-     * @param communicationController the communication controller
-     * @param eventController         gives the list of events for "Attendees of one event"
-     * @param statusBar               where to show the outcome of each send
-     */
+    /** Builds the screen. */
     public CommunicationPanel(CommunicationController communicationController, EventController eventController,
                               StatusBar statusBar) {
         super(new BorderLayout(0, 8));
@@ -84,7 +73,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JPanel logPanel = new JPanel(new BorderLayout());
         logPanel.setBorder(BorderFactory.createTitledBorder("Message log"));
-        logPanel.add(new JScrollPane(table), BorderLayout.CENTER);
+        logPanel.add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
         add(logPanel, BorderLayout.CENTER);
 
         audienceBox.addActionListener(e -> eventBox.setEnabled(audienceBox.getSelectedItem() == Audience.EVENT_ATTENDEES));
@@ -109,7 +98,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         updateLengthLabel();
     }
 
-    /** The form: who, which channel, subject and message, the Send button and the "simulated" note. */
+    /** The send form. */
     private JPanel buildForm() {
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Send a message to a group"));
@@ -123,9 +112,13 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         addRow(form, 4, new JLabel("Message"), new JScrollPane(bodyArea));
         addRow(form, 5, new JLabel(), lengthLabel);
 
-        JButton sendButton = new JButton("Send");
-        sendButton.addActionListener(e -> send());
-        addRow(form, 6, new JLabel(), sendButton);
+        FormHelper.placeholder(subjectField, "e.g. Thank you for your support");
+        subjectField.setToolTipText("Used for email; SMS messages have no subject");
+        channelBox.setToolTipText("SMS messages are limited to " + SmsStrategy.MAX_LENGTH + " characters, social media "
+                + "messages to " + SocialMediaStrategy.MAX_LENGTH + "; only donors have a social handle");
+        FormHelper.onEnter(this::send, subjectField);
+        addRow(form, 6, new JLabel(), FormHelper.button("Send",
+                "Send this message to everyone in the chosen group", this::send));
 
         JLabel simulatedNote = new JLabel("Simulated — no real email or SMS is sent.");
         simulatedNote.setForeground(new Color(180, 90, 0));
@@ -134,7 +127,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         return form;
     }
 
-    /** Adds one "label + field" row to a form that uses GridBagLayout. */
+    /** Adds a label and field row. */
     private void addRow(JPanel form, int row, JLabel label, JComponent field) {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(3, 4, 3, 4);
@@ -148,13 +141,20 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         form.add(field, c);
     }
 
-    /** Shows how long the message is, and the SMS limit when SMS is chosen. */
+    /** Shows the message length and the limit for SMS or Social. */
     private void updateLengthLabel() {
         int length = bodyArea.getText().length();
-        boolean sms = channelBox.getSelectedItem() == ContactChannel.SMS;
-        lengthLabel.setText(sms ? length + " / " + SmsStrategy.MAX_LENGTH + " characters (SMS limit)"
-                : length + " characters");
-        lengthLabel.setForeground(sms && length > SmsStrategy.MAX_LENGTH ? Color.RED : Color.DARK_GRAY);
+        ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
+        int limit = channel == ContactChannel.SMS ? SmsStrategy.MAX_LENGTH
+                : channel == ContactChannel.SOCIAL ? SocialMediaStrategy.MAX_LENGTH
+                : 0; // no limit for email
+        String text = limit == 0 ? length + " characters"
+                : length + " / " + limit + " characters (" + channel + " limit)";
+        if (channel == ContactChannel.SOCIAL) {
+            text += " · only donors with a social handle receive it";
+        }
+        lengthLabel.setText(text);
+        lengthLabel.setForeground(limit > 0 && length > limit ? Color.RED : Color.DARK_GRAY);
     }
 
     private void send() {
@@ -166,10 +166,10 @@ public class CommunicationPanel extends JPanel implements Refreshable {
                 channel == null ? null : channel.name(),
                 subjectField.getText(), bodyArea.getText());
         statusBar.showResult(result);
-        refresh(); // skipped attempts are logged too, so reload the log either way
+        refresh(); // skipped messages are logged too
     }
 
-    /** Reloads the events and the message log. */
+    /** Reloads the events and message log. */
     @Override
     public void refresh() {
         Event selectedEvent = (Event) eventBox.getSelectedItem();
@@ -177,7 +177,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         for (Event event : eventController.listEvents()) {
             eventBox.addItem(event);
             if (selectedEvent != null && event.getId() == selectedEvent.getId()) {
-                eventBox.setSelectedItem(event); // keep the previous choice
+                eventBox.setSelectedItem(event); // keep the old selection
             }
         }
 

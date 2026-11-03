@@ -1,6 +1,7 @@
 package com.ripple.controller;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
@@ -16,17 +17,19 @@ import com.ripple.repository.EventCategoryRepository;
 import com.ripple.repository.EventRepository;
 import com.ripple.repository.VolunteerRepository;
 import com.ripple.service.DonationService;
+import com.ripple.service.EventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that the Dashboard's numbers follow the data and that its activity list comes from the logger. */
+/** Tests the dashboard numbers and recent activity. */
 class DashboardControllerTest {
 
     @TempDir
@@ -43,18 +46,18 @@ class DashboardControllerTest {
     @BeforeEach
     void setUp() {
         db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonorRepository donors = new DonorRepository(db);
-        DonationRepository donations = new DonationRepository(db, factory);
+        DonationRepository donations = new DonationRepository(db, factories);
         VolunteerRepository volunteers = new VolunteerRepository(db);
         EventRepository events = new EventRepository(db);
         BeneficiaryRepository beneficiaries = new BeneficiaryRepository(db);
         donationTypes = new DonationTypeRepository(db);
 
         dashboard = new DashboardController(donors, donations, volunteers, events, beneficiaries);
-        donationService = new DonationService(factory, donors, donations, donationTypes);
+        donationService = new DonationService(factories, donors, donations, donationTypes);
         volunteerController = new VolunteerController(volunteers);
-        eventController = new EventController(events, volunteers);
+        eventController = new EventController(new EventService(events), events, volunteers);
         beneficiaryController = new BeneficiaryController(beneficiaries);
     }
 
@@ -72,7 +75,7 @@ class DashboardControllerTest {
 
     @Test
     void numbersChangeAfterRecordingADonation() {
-        Donor donor = donationService.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        Donor donor = donationService.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
         int typeId = donationTypes.findAll().get(0).getId();
         assertEquals(1, dashboard.getSummary().donors());
         assertEquals(0, dashboard.getSummary().donations());
@@ -89,7 +92,7 @@ class DashboardControllerTest {
                 new DonationRequest(0, null, "Blankets", 5, 25.0, null));
         DashboardSummary afterThree = dashboard.getSummary();
         assertEquals(3, afterThree.donations());
-        // 100 cash + 50 online + 25 estimated value of the in-kind gift
+        // 100 + 50 + 25
         assertEquals(175.0, afterThree.totalDonationValue(), 0.0001);
     }
 
@@ -134,10 +137,10 @@ class DashboardControllerTest {
 
     @Test
     void aDatabaseProblemGivesZerosAndAnExplanationInsteadOfAnException() {
-        // A database file that was never initialized has no tables, so every count fails.
+        // no tables, so every count fails
         Database broken = new Database(tempDir.resolve("broken.db").toString());
         DashboardController brokenDashboard = new DashboardController(new DonorRepository(broken),
-                new DonationRepository(broken, new DonationFactory()), new VolunteerRepository(broken),
+                new DonationRepository(broken, TestFactories.all()), new VolunteerRepository(broken),
                 new EventRepository(broken), new BeneficiaryRepository(broken));
 
         DashboardSummary summary = brokenDashboard.getSummary();

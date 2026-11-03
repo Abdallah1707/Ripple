@@ -1,14 +1,10 @@
 package com.ripple.receipt;
 
 /**
- * Component in the Decorator pattern: anything that can render a donation receipt as text.
+ * A receipt that can be shown as text.
  */
 public interface Receipt {
 
-    /**
-     * Renders the receipt.
-     *
-     * @return the receipt text
-     */
+    /** The receipt text. */
     String render();
 }

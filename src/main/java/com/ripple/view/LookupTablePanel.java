@@ -7,12 +7,9 @@ import com.ripple.model.DonationType;
 import com.ripple.model.LookupEntry;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -26,12 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * One lookup table on screen: a table of entries, a small form and
- * Add / Update / Delete / Clear buttons.
- *
- * <p>The same class is used twice (once per {@link LookupKind}); the tax-deductible column
- * and checkbox only appear for donation types. Like every view, it only calls the
- * controller and shows the {@link Result} it gets back.
+ * One lookup table with its form and buttons. Used for both lookup tables.
+ * The tax column and checkbox only show for donation types.
  */
 public class LookupTablePanel extends JPanel implements Refreshable {
 
@@ -44,16 +37,10 @@ public class LookupTablePanel extends JPanel implements Refreshable {
     private final JTextField nameField = new JTextField(20);
     private final JTextField descriptionField = new JTextField(30);
     private final JCheckBox taxCheckBox = new JCheckBox("Tax deductible");
-    /** The entries currently shown, in the same order as the table rows. */
+    /** Entries in the same order as the table. */
     private List<LookupEntry> entries = new ArrayList<>();
 
-    /**
-     * Builds the panel.
-     *
-     * @param controller the lookup controller
-     * @param kind       which lookup table this panel shows
-     * @param statusBar  where to show the outcome of each action
-     */
+    /** Builds the panel. */
     public LookupTablePanel(LookupController controller, LookupKind kind, StatusBar statusBar) {
         super(new BorderLayout(0, 8));
         this.controller = controller;
@@ -67,7 +54,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // editing happens in the form, not in the table
+                return false; // edit in the form, not the table
             }
         };
         table = new JTable(tableModel);
@@ -78,8 +65,14 @@ public class LookupTablePanel extends JPanel implements Refreshable {
                 fillFormFromSelection();
             }
         });
+        FormHelper.onDoubleClick(table, nameField::requestFocusInWindow); // edit the row in the form
 
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        FormHelper.placeholder(nameField, "2-50 characters");
+        FormHelper.placeholder(descriptionField, "Optional");
+        nameField.setToolTipText("2-50 characters; two entries cannot have the same name");
+        FormHelper.onEnter(this::onSave, nameField, descriptionField);
+
+        add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
         add(buildForm(), BorderLayout.SOUTH);
     }
 
@@ -124,10 +117,10 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         }
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.add(button("Add", this::onAdd));
-        buttons.add(button("Update", this::onUpdate));
-        buttons.add(button("Delete", this::onDelete));
-        buttons.add(button("Clear", this::clearForm));
+        buttons.add(FormHelper.button("Add", "Save the form as a new entry", this::onAdd));
+        buttons.add(FormHelper.button("Update", "Save the form over the selected row", this::onUpdate));
+        buttons.add(FormHelper.button("Delete", "Delete the selected row", this::onDelete));
+        buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearForm));
         c.gridx = 0;
         c.gridy = 1;
         c.gridwidth = 5;
@@ -135,10 +128,13 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         return form;
     }
 
-    private static JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.addActionListener(e -> action.run());
-        return button;
+    /** Updates the selected row, or adds a new one if nothing is selected. */
+    private void onSave() {
+        if (selectedEntry() == null) {
+            onAdd();
+        } else {
+            onUpdate();
+        }
     }
 
     private void onAdd() {
@@ -164,14 +160,12 @@ public class LookupTablePanel extends JPanel implements Refreshable {
             statusBar.showResult(Result.fail("Select a row to delete first."));
             return;
         }
-        int answer = JOptionPane.showConfirmDialog(this, "Delete '" + selected.getName() + "'?",
-                "Confirm delete", JOptionPane.YES_NO_OPTION);
-        if (answer == JOptionPane.YES_OPTION) {
+        if (FormHelper.confirmDelete(this, "Delete '" + selected.getName() + "'?")) {
             showAndRefresh(controller.delete(kind, selected.getId()));
         }
     }
 
-    /** Shows the result; on success reloads the table so it matches the database. */
+    /** Shows the result and reloads the table if it worked. */
     private void showAndRefresh(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
@@ -180,7 +174,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
     }
 
     private LookupEntry selectedEntry() {
-        int row = table.getSelectedRow();
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
         return row < 0 ? null : entries.get(row);
     }
 

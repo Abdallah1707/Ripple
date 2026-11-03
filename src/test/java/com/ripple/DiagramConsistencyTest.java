@@ -18,22 +18,19 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Fails the build if {@code docs/class-diagram.md} and the code drift apart (Phase 1, Section 6).
- *
- * <p>The "complete diagram" in section 2 of the document is the team contract, so:
- * <ul>
- *   <li>every class drawn in it must exist in the code;</li>
- *   <li>every class in the code must be drawn in it;</li>
- *   <li>each class must sit in the diagram namespace that matches its Java package;</li>
- *   <li>the small per-pattern diagrams may only use classes of the complete diagram.</li>
- * </ul>
- * It compares class names and packages, not every field and method.
+ * Checks that docs/class-diagram.md matches the code.
+ * Every class in the diagram must exist in the code and the other way around,
+ * and each class must be in the right package.
  */
 class DiagramConsistencyTest {
 
     private static final Path DIAGRAM = Path.of("docs", "class-diagram.md");
     private static final Pattern CLASS_LINE = Pattern.compile("(?m)^\\s*class\\s+(\\w+)");
     private static final Pattern NAMESPACE_BLOCK = Pattern.compile("(?ms)^namespace\\s+(\\w+)\\s*\\{(.*?)^\\}");
+    /** Main is not in the diagram. */
+    private static final String NOT_DRAWN_PACKAGE = "app";
+    /** Helper classes that aren't in the diagram. */
+    private static final Set<String> NOT_DRAWN_HELPERS = Set.of("InputValidator", "ValidationException", "FormHelper");
     private static final Pattern MERMAID_BLOCK = Pattern.compile("(?s)```mermaid\\R(.*?)```");
 
     @Test
@@ -49,9 +46,29 @@ class DiagramConsistencyTest {
     void everyClassInTheCodeIsInTheDiagram() throws IOException {
         Set<String> undrawn = new TreeSet<>(codeClasses().keySet());
         undrawn.removeAll(diagramClasses().keySet());
+        undrawn.removeAll(NOT_DRAWN_HELPERS);
 
         assertTrue(undrawn.isEmpty(), "In src/main/java but missing from the complete diagram in "
                 + "docs/class-diagram.md: " + undrawn + ". Add it to the diagram (and to the class tables).");
+    }
+
+    @Test
+    void theHelpersLeftOutOfTheDiagramAreStillDocumented() throws IOException {
+        String markdown = read();
+        int table = markdown.indexOf("### Implementation helpers");
+        assertTrue(table >= 0, "docs/class-diagram.md must have the '### Implementation helpers' table");
+        String section = markdown.substring(table);
+        Set<String> undocumented = new TreeSet<>();
+        for (String helper : NOT_DRAWN_HELPERS) {
+            if (!section.contains("| `" + helper + "` |")) {
+                undocumented.add(helper);
+            }
+        }
+
+        assertTrue(undocumented.isEmpty(), "Left out of the diagram but missing from the "
+                + "'Implementation helpers' table: " + undocumented);
+        assertTrue(codeClasses().keySet().containsAll(NOT_DRAWN_HELPERS),
+                "A helper in NOT_DRAWN_HELPERS no longer exists in the code; remove it from the list");
     }
 
     @Test
@@ -85,7 +102,7 @@ class DiagramConsistencyTest {
         assertTrue(unknown.isEmpty(), "Used in a pattern diagram but not in the complete diagram: " + unknown);
     }
 
-    /** Class name -> namespace, for every class in section 2 ("Complete diagram") of the document. */
+    /** Class name to namespace, from the diagram. */
     private static Map<String, String> diagramClasses() throws IOException {
         String markdown = read();
         int start = markdown.indexOf("## 2. Complete diagram");
@@ -104,11 +121,13 @@ class DiagramConsistencyTest {
         return classes;
     }
 
-    /** Class name -> package folder, for every Java file in {@code src/main/java}. */
+    /** Class name to package, from the code. */
     private static Map<String, String> codeClasses() {
         Map<String, String> classes = new TreeMap<>();
         for (Path source : MainSources.all()) {
-            classes.put(MainSources.classNameOf(source), MainSources.packageOf(source));
+            if (!MainSources.packageOf(source).equals(NOT_DRAWN_PACKAGE)) {
+                classes.put(MainSources.classNameOf(source), MainSources.packageOf(source));
+            }
         }
         return classes;
     }

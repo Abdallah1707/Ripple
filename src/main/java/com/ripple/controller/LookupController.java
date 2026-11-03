@@ -11,35 +11,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Controller for the Lookup Management screen (and for screens that fill combo boxes
- * from lookups).
- *
- * <p>It turns the screen's input into lookup objects, passes them to the right
- * {@link LookupService}, and turns the outcome into a {@link Result} for the status bar.
- * It never throws to the view.
+ * Controller for the Lookup Management screen.
  */
 public class LookupController {
 
     private final LookupService<DonationType> donationTypes;
     private final LookupService<EventCategory> eventCategories;
 
-    /**
-     * Creates the controller.
-     *
-     * @param donationTypes   service for the Donation Types table
-     * @param eventCategories service for the Event Categories table
-     */
+    /** Creates the controller. */
     public LookupController(LookupService<DonationType> donationTypes, LookupService<EventCategory> eventCategories) {
         this.donationTypes = donationTypes;
         this.eventCategories = eventCategories;
     }
 
-    /**
-     * Returns all entries of one table, sorted by name.
-     *
-     * @param kind which table
-     * @return the entries
-     */
+    /** All entries of a table, sorted by name. */
     public List<LookupEntry> list(LookupKind kind) {
         return switch (kind) {
             case DONATION_TYPE -> new ArrayList<>(donationTypes.findAll());
@@ -47,34 +32,17 @@ public class LookupController {
         };
     }
 
-    /**
-     * Returns all donation types, e.g. for the Donations screen's combo box.
-     *
-     * @return the donation types sorted by name
-     */
+    /** All donation types. */
     public List<DonationType> listDonationTypes() {
         return donationTypes.findAll();
     }
 
-    /**
-     * Returns all event categories, e.g. for the Events screen's combo box.
-     *
-     * @return the event categories sorted by name
-     */
+    /** All event categories. */
     public List<EventCategory> listEventCategories() {
         return eventCategories.findAll();
     }
 
-    /**
-     * Adds a new entry ({@code id == null}) or updates an existing one.
-     *
-     * @param kind          which table
-     * @param id            the entry's id, or {@code null} to add a new entry
-     * @param name          the name typed by the user
-     * @param description   the description typed by the user
-     * @param taxDeductible the tax checkbox (ignored for event categories)
-     * @return what happened, for the status bar
-     */
+    /** Adds an entry if id is null, otherwise updates it. */
     public Result save(LookupKind kind, Integer id, String name, String description, boolean taxDeductible) {
         boolean adding = id == null;
         int entryId = adding ? 0 : id;
@@ -111,16 +79,10 @@ public class LookupController {
         }
     }
 
-    /**
-     * Deletes an entry, unless it is in use (CR2).
-     *
-     * @param kind which table
-     * @param id   the entry's id
-     * @return what happened, for the status bar
-     */
+    /** Deletes an entry unless it is in use (CR2). */
     public Result delete(LookupKind kind, int id) {
         try {
-            // Look the name up first, only so the message can say what was deleted.
+            // get the name for the message
             String name = list(kind).stream().filter(entry -> entry.getId() == id)
                     .map(LookupEntry::getName).findFirst().orElse("");
             String label;

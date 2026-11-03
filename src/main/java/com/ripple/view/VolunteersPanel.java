@@ -7,12 +7,9 @@ import com.ripple.model.Event;
 import com.ripple.model.Volunteer;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -26,13 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Volunteers screen: a table of volunteers, a small form with
- * Add / Update / Delete / Clear buttons, and an "Assign to event" option for the
- * selected volunteer.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link VolunteerController}
- * (and {@link EventController} for the list of events). The outcome of every action is
- * shown in the status bar.
+ * The Volunteers screen: table, form, and assigning to events.
  */
 public class VolunteersPanel extends JPanel implements Refreshable {
 
@@ -48,16 +39,10 @@ public class VolunteersPanel extends JPanel implements Refreshable {
     private final JTextField skillsField = new JTextField(24);
     private final JTextField availabilityField = new JTextField(24);
     private final JComboBox<Event> eventBox = new JComboBox<>();
-    /** The volunteers currently shown, in the same order as the table rows. */
+    /** Volunteers in the same order as the table. */
     private List<Volunteer> volunteers = new ArrayList<>();
 
-    /**
-     * Builds the screen.
-     *
-     * @param volunteerController the volunteer controller
-     * @param eventController     the event controller (fills the "assign to event" list)
-     * @param statusBar           where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public VolunteersPanel(VolunteerController volunteerController, EventController eventController,
                            StatusBar statusBar) {
         super(new BorderLayout(0, 8));
@@ -69,7 +54,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         tableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Skills", "Availability"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // editing happens in the form, not in the table
+                return false; // edit in the form, not the table
             }
         };
         table = new JTable(tableModel);
@@ -80,11 +65,20 @@ public class VolunteersPanel extends JPanel implements Refreshable {
                 fillFormFromSelection();
             }
         });
+        FormHelper.onDoubleClick(table, nameField::requestFocusInWindow); // edit the row in the form
+
+        FormHelper.placeholder(nameField, "Full name");
+        FormHelper.placeholder(emailField, "name@example.com");
+        FormHelper.placeholder(phoneField, "01012345678");
+        FormHelper.placeholder(skillsField, "e.g. First aid, driving");
+        FormHelper.placeholder(availabilityField, "e.g. Weekends");
+        phoneField.setToolTipText("Optional; 8-15 digits");
+        FormHelper.onEnter(this::onSave, nameField, emailField, phoneField, skillsField, availabilityField);
 
         JPanel south = new JPanel(new BorderLayout(0, 8));
         south.add(buildForm(), BorderLayout.CENTER);
         south.add(buildAssignPanel(), BorderLayout.SOUTH);
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
         add(south, BorderLayout.SOUTH);
     }
 
@@ -115,10 +109,10 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         addRow(form, c, 2, "Availability:", availabilityField, null, null);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.add(button("Add", this::onAdd));
-        buttons.add(button("Update", this::onUpdate));
-        buttons.add(button("Delete", this::onDelete));
-        buttons.add(button("Clear", this::clearForm));
+        buttons.add(FormHelper.button("Add", "Save the form as a new volunteer", this::onAdd));
+        buttons.add(FormHelper.button("Update", "Save the form over the selected volunteer", this::onUpdate));
+        buttons.add(FormHelper.button("Delete", "Delete the selected volunteer", this::onDelete));
+        buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearForm));
         c.gridx = 0;
         c.gridy = 3;
         c.gridwidth = 4;
@@ -131,7 +125,8 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         panel.setBorder(BorderFactory.createTitledBorder("Assign the selected volunteer to an event"));
         panel.add(new JLabel("Event:"));
         panel.add(eventBox);
-        panel.add(button("Assign to event", this::onAssign));
+        panel.add(FormHelper.button("Assign to event", "Assign the selected volunteer to the chosen event",
+                this::onAssign));
         return panel;
     }
 
@@ -142,19 +137,31 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         c.gridx = 0;
         form.add(new JLabel(label1), c);
         c.gridx = 1;
-        form.add(field1, c);
+        addStretched(form, c, field1);
         if (label2 != null) {
             c.gridx = 2;
             form.add(new JLabel(label2), c);
             c.gridx = 3;
-            form.add(field2, c);
+            addStretched(form, c, field2);
         }
     }
 
-    private static JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.addActionListener(e -> action.run());
-        return button;
+    /** Adds a field that stretches with the form. */
+    private static void addStretched(JPanel form, GridBagConstraints c, JTextField field) {
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        form.add(field, c);
+        c.fill = GridBagConstraints.NONE;
+        c.weightx = 0;
+    }
+
+    /** Updates the selected row, or adds a new one if nothing is selected. */
+    private void onSave() {
+        if (selectedVolunteer() == null) {
+            onAdd();
+        } else {
+            onUpdate();
+        }
     }
 
     private void onAdd() {
@@ -178,10 +185,8 @@ public class VolunteersPanel extends JPanel implements Refreshable {
             statusBar.showResult(Result.fail("Select a row to delete first."));
             return;
         }
-        int answer = JOptionPane.showConfirmDialog(this,
-                "Delete '" + selected.getName() + "'? Their event assignments are removed too.",
-                "Confirm delete", JOptionPane.YES_NO_OPTION);
-        if (answer == JOptionPane.YES_OPTION) {
+        if (FormHelper.confirmDelete(this,
+                "Delete '" + selected.getName() + "'? Their event assignments are removed too.")) {
             showAndRefresh(volunteerController.deleteVolunteer(selected.getId()));
         }
     }
@@ -196,7 +201,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         statusBar.showResult(volunteerController.assignToEvent(selected.getId(), event == null ? 0 : event.getId()));
     }
 
-    /** Shows the result; on success reloads the table so it matches the database. */
+    /** Shows the result and reloads the table if it worked. */
     private void showAndRefresh(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
@@ -205,7 +210,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
     }
 
     private Volunteer selectedVolunteer() {
-        int row = table.getSelectedRow();
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
         return row < 0 ? null : volunteers.get(row);
     }
 

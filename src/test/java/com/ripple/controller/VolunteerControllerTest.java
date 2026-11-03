@@ -7,6 +7,7 @@ import com.ripple.repository.Database;
 import com.ripple.repository.EventCategoryRepository;
 import com.ripple.repository.EventRepository;
 import com.ripple.repository.VolunteerRepository;
+import com.ripple.service.EventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Volunteers screen's rules: validation, add / edit / delete, and event assignment. */
+/** Tests for VolunteerController. */
 class VolunteerControllerTest {
 
     @TempDir
@@ -34,7 +35,7 @@ class VolunteerControllerTest {
         volunteers = new VolunteerRepository(db);
         EventRepository eventRepository = new EventRepository(db);
         controller = new VolunteerController(volunteers);
-        events = new EventController(eventRepository, volunteers);
+        events = new EventController(new EventService(eventRepository), eventRepository, volunteers);
         int categoryId = new EventCategoryRepository(db).findAll().get(0).getId();
         assertTrue(events.saveEvent(null, "Food drive", categoryId, "2026-12-15", "Cairo", "").success());
         eventId = events.listEvents().get(0).getId();
@@ -84,7 +85,7 @@ class VolunteerControllerTest {
 
         assertFalse(second.success());
         assertEquals(1, events.listVolunteers(eventId).size());
-        // Even if the repository is called directly, the primary key keeps it to one row.
+        // still one row even when calling the repository directly
         volunteers.assignToEvent(volunteerId, eventId);
         assertEquals(1, events.listVolunteers(eventId).size());
     }
@@ -105,6 +106,6 @@ class VolunteerControllerTest {
 
         assertTrue(events.listVolunteers(eventId).isEmpty());
         Event stillThere = events.listEvents().get(0);
-        assertEquals("Food drive", stillThere.getName()); // the event itself is untouched
+        assertEquals("Food drive", stillThere.getName()); // the event is still there
     }
 }

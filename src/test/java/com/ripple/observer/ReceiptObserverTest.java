@@ -1,6 +1,7 @@
 package com.ripple.observer;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.ContactChannel;
@@ -18,11 +19,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that ReceiptObserver builds the right decorator chain and saves it. */
+/** Tests for ReceiptObserver. */
 class ReceiptObserverTest {
 
     @TempDir
@@ -32,12 +34,12 @@ class ReceiptObserverTest {
     void buildReceiptAddsTaxInformationOnlyForATaxDeductibleType() {
         ReceiptObserver observer = new ReceiptObserver(new ReceiptRepository(TestDatabase.create(tempDir)));
         Donor donor = new Donor(1, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
 
-        Donation zakat = factory.create(DonationMethod.CASH, donor, new DonationType(1, "Zakat", "", true),
+        Donation zakat = TestFactories.create(DonationMethod.CASH, donor, new DonationType(1, "Zakat", "", true),
                 new DonationRequest(500, null, null, 0, 0, null));
         zakat.setId(1);
-        Donation foodSupplies = factory.create(DonationMethod.CASH, donor,
+        Donation foodSupplies = TestFactories.create(DonationMethod.CASH, donor,
                 new DonationType(2, "Food Supplies", "", false),
                 new DonationRequest(200, null, null, 0, 0, null));
         foodSupplies.setId(2);
@@ -54,13 +56,13 @@ class ReceiptObserverTest {
     @Test
     void recordingADonationSavesItsReceiptWhenTheObserverIsAttached() {
         Database db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonationTypeRepository types = new DonationTypeRepository(db);
-        DonationService service = new DonationService(factory, new DonorRepository(db),
-                new DonationRepository(db, factory), types);
+        DonationService service = new DonationService(factories, new DonorRepository(db),
+                new DonationRepository(db, factories), types);
         ReceiptRepository receiptRepository = new ReceiptRepository(db);
-        service.attach(new ReceiptObserver(receiptRepository));
-        Donor donor = service.registerDonor("Omar", "omar@example.com", "", ContactChannel.EMAIL);
+        service.registerObserver(new ReceiptObserver(receiptRepository));
+        Donor donor = service.registerDonor("Omar", "omar@example.com", "", "", ContactChannel.EMAIL);
         DonationType zakat = types.findAll().stream()
                 .filter(t -> t.getName().equals("Zakat")).findFirst().orElseThrow();
 

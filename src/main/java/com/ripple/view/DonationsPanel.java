@@ -17,29 +17,23 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * The Donations screen: register a donor, record a donation, and see all donations.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link DonationController}
- * (and {@link LookupController} for the donation type list). The outcome of every action
- * is shown in the status bar.
- *
- * <p>The "Notify donors on new donation" checkbox is the visible part of the Observer
- * pattern: ticking it attaches the donor notification observer, unticking it detaches it.
+ * The Donations screen with two tabs: Donations and Donors.
+ * The notify checkbox adds or removes the donor notification observer.
  */
 public class DonationsPanel extends JPanel implements Refreshable {
 
@@ -49,13 +43,18 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final LookupController lookupController;
     private final StatusBar statusBar;
 
-    // --- donor form ---
-    private final JTextField donorNameField = new JTextField(15);
-    private final JTextField donorEmailField = new JTextField(15);
-    private final JTextField donorPhoneField = new JTextField(15);
+    // donors tab
+    private final JTextField donorNameField = new JTextField(18);
+    private final JTextField donorEmailField = new JTextField(18);
+    private final JTextField donorPhoneField = new JTextField(14);
+    private final JTextField donorSocialField = new JTextField(14);
     private final JComboBox<ContactChannel> channelBox = new JComboBox<>(ContactChannel.values());
+    private final DefaultTableModel donorTableModel;
+    private final JTable donorTable;
+    /** Donors in the same order as the table. */
+    private List<Donor> donors = List.of();
 
-    // --- donation form ---
+    // donations tab
     private final JComboBox<Donor> donorBox = new JComboBox<>();
     private final JComboBox<DonationType> typeBox = new JComboBox<>();
     private final JComboBox<DonationMethod> methodBox = new JComboBox<>(DonationMethod.values());
@@ -69,6 +68,10 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JLabel itemLabel = new JLabel("Item");
     private final JLabel quantityLabel = new JLabel("Quantity");
     private final JLabel valueLabel = new JLabel("Estimated value (EGP)");
+    // extras, each one becomes a decorator
+    private final JCheckBox urgentCheckBox = new JCheckBox("Urgent need");
+    private final JCheckBox anonymousCheckBox = new JCheckBox("Anonymous (hide the donor's name in lists)");
+    private final JTextField honoreeField = new JTextField(12);
 
     private final JCheckBox notifyCheckBox = new JCheckBox("Notify donors on new donation");
     private final JButton viewReceiptButton = new JButton("View receipt");
@@ -76,30 +79,16 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JTable table;
     private List<Donation> currentDonations = List.of();
 
-    /**
-     * Builds the screen.
-     *
-     * @param donationController the donations controller
-     * @param lookupController   gives the list of donation types
-     * @param statusBar          where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public DonationsPanel(DonationController donationController, LookupController lookupController,
                           StatusBar statusBar) {
-        super(new BorderLayout(0, 8));
+        super(new BorderLayout());
         this.donationController = donationController;
         this.lookupController = lookupController;
         this.statusBar = statusBar;
-        setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
 
-        // Top: the two forms side by side.
-        JPanel forms = new JPanel(new GridLayout(1, 2, 12, 0));
-        forms.add(buildDonorForm());
-        forms.add(buildDonationForm());
-        add(forms, BorderLayout.NORTH);
-
-        // Centre: the donations table.
         tableModel = new DefaultTableModel(
-                new String[]{"Receipt no.", "Date", "Donor", "Type", "Method", "Value"}, 0) {
+                new String[]{"Receipt no.", "Date", "Donor", "Type", "Method", "Value", "Extras"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -108,9 +97,60 @@ public class DonationsPanel extends JPanel implements Refreshable {
         table = new JTable(tableModel);
         table.setRowHeight(24);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Ticked when the screen first opens: donors are notified by default.
+        donorTableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Social handle", "Preferred channel"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // edit in the form, not the table
+            }
+        };
+        donorTable = new JTable(donorTableModel);
+        donorTable.setRowHeight(24);
+        donorTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        donorTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                fillDonorFormFromSelection();
+            }
+        });
+        FormHelper.onDoubleClick(donorTable, donorNameField::requestFocusInWindow); // edit the row in the form
+        FormHelper.onDoubleClick(table, this::viewReceipt);
+
+        FormHelper.placeholder(donorNameField, "Full name");
+        FormHelper.placeholder(donorEmailField, "name@example.com");
+        FormHelper.placeholder(donorPhoneField, "01012345678");
+        FormHelper.placeholder(donorSocialField, "@handle");
+        FormHelper.placeholder(amountField, "e.g. 500");
+        FormHelper.placeholder(itemField, "e.g. Blankets");
+        FormHelper.placeholder(quantityField, "e.g. 20");
+        FormHelper.placeholder(valueField, "e.g. 4000");
+        FormHelper.placeholder(honoreeField, "optional, e.g. Hana Ali");
+        honoreeField.setToolTipText("Fill in to make this donation a gift in honor of someone");
+        urgentCheckBox.setToolTipText("Urgent donations are listed first");
+        donorPhoneField.setToolTipText("Exactly 11 digits; required if the donor prefers SMS");
+        donorEmailField.setToolTipText("Required if the donor prefers Email");
+        donorSocialField.setToolTipText("Starts with @; required if the donor prefers Social");
+        FormHelper.onEnter(this::onSaveDonor, donorNameField, donorEmailField, donorPhoneField, donorSocialField);
+        FormHelper.onEnter(this::recordDonation, amountField, referenceField, itemField, quantityField, valueField,
+                honoreeField);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Donations", buildDonationsTab());
+        tabs.addTab("Donors", buildDonorsTab());
+        add(tabs, BorderLayout.CENTER);
+
+        methodBox.addActionListener(e -> showFieldsForMethod());
+        showFieldsForMethod();
+    }
+
+    // ---- donations tab ----
+
+    private JPanel buildDonationsTab() {
+        JPanel tab = new JPanel(new BorderLayout(0, 8));
+        tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        tab.add(buildDonationForm(), BorderLayout.NORTH);
+        tab.add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
+
+        // on by default
         notifyCheckBox.setSelected(donationController.isDonorNotificationsEnabled());
         notifyCheckBox.addActionListener(e -> {
             boolean enabled = notifyCheckBox.isSelected();
@@ -119,31 +159,16 @@ public class DonationsPanel extends JPanel implements Refreshable {
                     ? "Donors will be notified about new donations"
                     : "Donor notifications are turned off"));
         });
+        viewReceiptButton.setToolTipText("Show the receipt of the selected donation (or double-click a row)");
         viewReceiptButton.addActionListener(e -> viewReceipt());
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.add(notifyCheckBox, BorderLayout.WEST);
         bottom.add(viewReceiptButton, BorderLayout.EAST);
-        add(bottom, BorderLayout.SOUTH);
-
-        methodBox.addActionListener(e -> showFieldsForMethod());
-        showFieldsForMethod();
+        tab.add(bottom, BorderLayout.SOUTH);
+        return tab;
     }
 
-    /** The small form to register a donor. */
-    private JPanel buildDonorForm() {
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBorder(BorderFactory.createTitledBorder("Register donor"));
-        addRow(form, 0, new JLabel("Name"), donorNameField);
-        addRow(form, 1, new JLabel("Email"), donorEmailField);
-        addRow(form, 2, new JLabel("Phone"), donorPhoneField);
-        addRow(form, 3, new JLabel("Preferred channel"), channelBox);
-        JButton registerButton = new JButton("Register donor");
-        registerButton.addActionListener(e -> registerDonor());
-        addRow(form, 4, new JLabel(), registerButton);
-        return form;
-    }
-
-    /** The form to record a donation. Only the fields for the chosen method are visible. */
+    /** Form for recording a donation. Only shows fields for the chosen method. */
     private JPanel buildDonationForm() {
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Record donation"));
@@ -155,13 +180,184 @@ public class DonationsPanel extends JPanel implements Refreshable {
         addRow(form, 5, itemLabel, itemField);
         addRow(form, 6, quantityLabel, quantityField);
         addRow(form, 7, valueLabel, valueField);
-        JButton recordButton = new JButton("Record donation");
-        recordButton.addActionListener(e -> recordDonation());
-        addRow(form, 8, new JLabel(), recordButton);
+        addRow(form, 8, new JLabel("In honor of"), honoreeField);
+        addRow(form, 9, new JLabel("Extras"), urgentCheckBox);
+        addRow(form, 10, new JLabel(), anonymousCheckBox);
+        addRow(form, 11, new JLabel(), FormHelper.button("Record donation",
+                "Save this donation; its receipt is created automatically", this::recordDonation));
         return form;
     }
 
-    /** Adds one "label + field" row to a form that uses GridBagLayout. */
+    /** Shows only the fields the chosen method needs. */
+    private void showFieldsForMethod() {
+        DonationMethod method = (DonationMethod) methodBox.getSelectedItem();
+        boolean cash = method == DonationMethod.CASH;
+        boolean online = method == DonationMethod.ONLINE;
+        boolean inKind = method == DonationMethod.IN_KIND;
+        boolean cheque = method == DonationMethod.CHEQUE;
+        setVisible(cash || online || cheque, amountLabel, amountField);
+        // online and cheque share this field, only the label changes
+        referenceLabel.setText(cheque ? "Cheque no." : "Transaction reference");
+        FormHelper.placeholder(referenceField, cheque ? "e.g. 000123" : "e.g. TX-1001");
+        setVisible(online || cheque, referenceLabel, referenceField);
+        setVisible(inKind, itemLabel, itemField, quantityLabel, quantityField, valueLabel, valueField);
+        revalidate();
+        repaint();
+    }
+
+    private void setVisible(boolean visible, JComponent... components) {
+        for (JComponent component : components) {
+            component.setVisible(visible);
+        }
+    }
+
+    private void recordDonation() {
+        Donor donor = (Donor) donorBox.getSelectedItem();
+        DonationType type = (DonationType) typeBox.getSelectedItem();
+        DonationMethod method = (DonationMethod) methodBox.getSelectedItem();
+        Result result = donationController.recordDonation(
+                donor == null ? 0 : donor.getId(),
+                type == null ? 0 : type.getId(),
+                method == null ? null : method.name(),
+                amountField.getText(), referenceField.getText(),
+                itemField.getText(), quantityField.getText(), valueField.getText(),
+                urgentCheckBox.isSelected(), honoreeField.getText(), anonymousCheckBox.isSelected());
+        statusBar.showResult(result);
+        if (result.success()) {
+            amountField.setText("");
+            referenceField.setText("");
+            itemField.setText("");
+            quantityField.setText("");
+            valueField.setText("");
+            honoreeField.setText("");
+            urgentCheckBox.setSelected(false);
+            anonymousCheckBox.setSelected(false);
+            refresh();
+        }
+    }
+
+    /** Shows the selected donation's receipt in a popup. */
+    private void viewReceipt() {
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
+        if (row < 0 || row >= currentDonations.size()) {
+            statusBar.showResult(Result.fail("Select a donation first"));
+            return;
+        }
+        Donation donation = currentDonations.get(row);
+        String receipt = donationController.getReceipt(donation.getId());
+        JOptionPane.showMessageDialog(this, receipt, "Receipt " + donation.getReceiptNumber(),
+                JOptionPane.PLAIN_MESSAGE);
+    }
+
+    // ---- donors tab ----
+
+    private JPanel buildDonorsTab() {
+        JPanel tab = new JPanel(new BorderLayout(0, 8));
+        tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        tab.add(FormHelper.tableWithSearch(donorTable), BorderLayout.CENTER);
+        tab.add(buildDonorForm(), BorderLayout.SOUTH);
+        return tab;
+    }
+
+    /** Form for adding or editing a donor. */
+    private JPanel buildDonorForm() {
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createTitledBorder("Add or edit a donor"));
+        addRow(form, 0, new JLabel("Name"), donorNameField);
+        addRow(form, 1, new JLabel("Email"), donorEmailField);
+        addRow(form, 2, new JLabel("Phone"), donorPhoneField);
+        addRow(form, 3, new JLabel("Social handle"), donorSocialField);
+        addRow(form, 4, new JLabel("Preferred channel"), channelBox);
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        buttons.add(FormHelper.button("Add", "Save the form as a new donor", this::onAddDonor));
+        buttons.add(FormHelper.button("Update", "Save the form over the selected donor", this::onUpdateDonor));
+        buttons.add(FormHelper.button("Delete", "Delete the selected donor (not possible once they have donations)",
+                this::onDeleteDonor));
+        buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearDonorForm));
+        addRow(form, 5, new JLabel(), buttons);
+        return form;
+    }
+
+    /** Updates the selected donor, or adds a new one if nothing is selected. */
+    private void onSaveDonor() {
+        if (selectedDonor() == null) {
+            onAddDonor();
+        } else {
+            onUpdateDonor();
+        }
+    }
+
+    private void onAddDonor() {
+        showDonorResult(donationController.saveDonor(null, donorNameField.getText(), donorEmailField.getText(),
+                donorPhoneField.getText(), donorSocialField.getText(), selectedChannelName()));
+    }
+
+    private void onUpdateDonor() {
+        Donor selected = selectedDonor();
+        if (selected == null) {
+            statusBar.showResult(Result.fail("Select a donor to update first."));
+            return;
+        }
+        showDonorResult(donationController.saveDonor(selected.getId(), donorNameField.getText(),
+                donorEmailField.getText(), donorPhoneField.getText(), donorSocialField.getText(),
+                selectedChannelName()));
+    }
+
+    private void onDeleteDonor() {
+        Donor selected = selectedDonor();
+        if (selected == null) {
+            statusBar.showResult(Result.fail("Select a donor to delete first."));
+            return;
+        }
+        if (FormHelper.confirmDelete(this, "Delete donor '" + selected.getName() + "'?")) {
+            showDonorResult(donationController.deleteDonor(selected.getId()));
+        }
+    }
+
+    /** Shows the result. If it worked, clears the form and reloads. */
+    private void showDonorResult(Result result) {
+        statusBar.showResult(result);
+        if (result.success()) {
+            clearDonorForm();
+            refresh(); // reloads the donor table and combo box
+        }
+    }
+
+    private String selectedChannelName() {
+        ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
+        return channel == null ? null : channel.name();
+    }
+
+    private Donor selectedDonor() {
+        int row = FormHelper.selectedModelRow(donorTable); // works with sorting and filtering
+        return row < 0 || row >= donors.size() ? null : donors.get(row);
+    }
+
+    private void fillDonorFormFromSelection() {
+        Donor selected = selectedDonor();
+        if (selected == null) {
+            return;
+        }
+        donorNameField.setText(selected.getName());
+        donorEmailField.setText(selected.getEmail());
+        donorPhoneField.setText(selected.getPhone());
+        donorSocialField.setText(selected.getSocialHandle());
+        channelBox.setSelectedItem(selected.getPreferredChannel());
+    }
+
+    private void clearDonorForm() {
+        donorTable.clearSelection();
+        donorNameField.setText("");
+        donorEmailField.setText("");
+        donorPhoneField.setText("");
+        donorSocialField.setText("");
+        channelBox.setSelectedIndex(0);
+    }
+
+    // ---- shared ----
+
+    /** Adds a label and field row. */
     private void addRow(JPanel form, int row, JLabel label, JComponent field) {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(3, 4, 3, 4);
@@ -175,84 +371,21 @@ public class DonationsPanel extends JPanel implements Refreshable {
         form.add(field, c);
     }
 
-    /** Shows only the fields that the chosen donation method needs. */
-    private void showFieldsForMethod() {
-        DonationMethod method = (DonationMethod) methodBox.getSelectedItem();
-        boolean cash = method == DonationMethod.CASH;
-        boolean online = method == DonationMethod.ONLINE;
-        boolean inKind = method == DonationMethod.IN_KIND;
-        setVisible(cash || online, amountLabel, amountField);
-        setVisible(online, referenceLabel, referenceField);
-        setVisible(inKind, itemLabel, itemField, quantityLabel, quantityField, valueLabel, valueField);
-        revalidate();
-        repaint();
-    }
-
-    private void setVisible(boolean visible, JComponent... components) {
-        for (JComponent component : components) {
-            component.setVisible(visible);
-        }
-    }
-
-    private void registerDonor() {
-        ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
-        Result result = donationController.registerDonor(donorNameField.getText(),
-                donorEmailField.getText(), donorPhoneField.getText(),
-                channel == null ? null : channel.name());
-        statusBar.showResult(result);
-        if (result.success()) {
-            donorNameField.setText("");
-            donorEmailField.setText("");
-            donorPhoneField.setText("");
-            refresh(); // the new donor appears in the donor combo box
-        }
-    }
-
-    private void recordDonation() {
-        Donor donor = (Donor) donorBox.getSelectedItem();
-        DonationType type = (DonationType) typeBox.getSelectedItem();
-        DonationMethod method = (DonationMethod) methodBox.getSelectedItem();
-        Result result = donationController.recordDonation(
-                donor == null ? 0 : donor.getId(),
-                type == null ? 0 : type.getId(),
-                method == null ? null : method.name(),
-                amountField.getText(), referenceField.getText(),
-                itemField.getText(), quantityField.getText(), valueField.getText());
-        statusBar.showResult(result);
-        if (result.success()) {
-            amountField.setText("");
-            referenceField.setText("");
-            itemField.setText("");
-            quantityField.setText("");
-            valueField.setText("");
-            refresh();
-        }
-    }
-
-    /** Opens the selected donation's receipt (basic + thank-you + tax if applicable) in a pop-up. */
-    private void viewReceipt() {
-        int row = table.getSelectedRow();
-        if (row < 0 || row >= currentDonations.size()) {
-            statusBar.showResult(Result.fail("Select a donation first"));
-            return;
-        }
-        Donation donation = currentDonations.get(row);
-        String receipt = donationController.getReceipt(donation.getId());
-        JOptionPane.showMessageDialog(this, receipt, "Receipt " + donation.getReceiptNumber(),
-                JOptionPane.PLAIN_MESSAGE);
-    }
-
-    /** Reloads the donors, the donation types and the table. */
+    /** Reloads donors, donation types and donations. */
     @Override
     public void refresh() {
         Donor selectedDonor = (Donor) donorBox.getSelectedItem();
         DonationType selectedType = (DonationType) typeBox.getSelectedItem();
 
+        donors = donationController.listDonors();
+        donorTableModel.setRowCount(0);
         donorBox.removeAllItems();
-        for (Donor donor : donationController.listDonors()) {
+        for (Donor donor : donors) {
+            donorTableModel.addRow(new Object[]{donor.getName(), donor.getEmail(), donor.getPhone(),
+                    donor.getSocialHandle(), donor.getPreferredChannel()});
             donorBox.addItem(donor);
             if (selectedDonor != null && donor.getId() == selectedDonor.getId()) {
-                donorBox.setSelectedItem(donor); // keep the previous choice
+                donorBox.setSelectedItem(donor); // keep the old selection
             }
         }
         typeBox.removeAllItems();
@@ -269,10 +402,11 @@ public class DonationsPanel extends JPanel implements Refreshable {
             tableModel.addRow(new Object[]{
                     donation.getReceiptNumber(),
                     donation.getCreatedAt().format(DATE_FORMAT),
-                    donation.getDonor().getName(),
+                    donation.getDonorDisplayName(), // hidden if anonymous
                     donation.getDonationType().getName(),
                     donation.getMethod().getLabel(),
-                    String.format(Locale.US, "EGP %,.2f", donation.getValue())});
+                    String.format(Locale.US, "EGP %,.2f", donation.getValue()),
+                    String.join(", ", donation.getOptions())});
         }
         notifyCheckBox.setSelected(donationController.isDonorNotificationsEnabled());
     }

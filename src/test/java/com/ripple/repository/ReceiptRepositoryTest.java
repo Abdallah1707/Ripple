@@ -1,6 +1,7 @@
 package com.ripple.repository;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.ContactChannel;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,11 +32,11 @@ class ReceiptRepositoryTest {
     void setUp() {
         Database db = TestDatabase.create(tempDir);
         repository = new ReceiptRepository(db);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         Donor donor = new DonorRepository(db).insert(new Donor(0, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
         DonationType type = new DonationTypeRepository(db).findAll().get(0);
-        Donation donation = new DonationRepository(db, factory).insert(
-                factory.create(DonationMethod.CASH, donor, type, new DonationRequest(500, null, null, 0, 0, null)));
+        Donation donation = new DonationRepository(db, factories).insert(
+                TestFactories.create(DonationMethod.CASH, donor, type, new DonationRequest(500, null, null, 0, 0, null)));
         donationId = donation.getId();
     }
 

@@ -4,24 +4,20 @@ import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.Donation;
 
 /**
- * Concrete observer in the Observer pattern: writes one line to the application log
- * every time a donation is recorded.
- *
- * <p>It uses the {@link ApplicationLogger} Singleton, so the line ends up in
- * {@code logs/ripple.log} and in the Dashboard's recent activity.
+ * Logs a line every time a donation is recorded.
  */
 public class DonationLogObserver implements DonationObserver {
 
     private final ApplicationLogger logger;
 
-    /** Creates the observer. The logger is the shared Singleton instance. */
+    /** Creates the observer. */
     public DonationLogObserver() {
         this.logger = ApplicationLogger.getInstance();
     }
 
     @Override
-    public void onDonationRecorded(Donation donation) {
+    public void update(Donation donation) {
         logger.info("Donation " + donation.getReceiptNumber() + " recorded: "
-                + donation.describe() + " from " + donation.getDonor().getName());
+                + donation.describe() + " from " + donation.getDonorDisplayName()); // hides the name if anonymous
     }
 }

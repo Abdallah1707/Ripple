@@ -30,6 +30,16 @@ class InputValidatorTest {
     }
 
     @Test
+    void socialHandleChecks() {
+        assertTrue(InputValidator.isValidSocialHandle("@mona_ali"));
+        assertTrue(InputValidator.isValidSocialHandle(" @ripple.ngo "));
+        assertFalse(InputValidator.isValidSocialHandle("mona_ali"));   // the @ is required
+        assertFalse(InputValidator.isValidSocialHandle("@m"));         // too short
+        assertFalse(InputValidator.isValidSocialHandle("@mona ali"));  // no spaces
+        assertFalse(InputValidator.isValidSocialHandle(null));
+    }
+
+    @Test
     void numberParsing() {
         assertEquals(12.5, InputValidator.parseDouble(" 12.5 ", "Amount"));
         assertEquals("Amount must be a number",

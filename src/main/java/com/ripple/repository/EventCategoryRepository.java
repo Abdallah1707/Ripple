@@ -11,16 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** Reads and writes the {@code event_categories} lookup table. */
+/** Database access for event categories. */
 public class EventCategoryRepository implements LookupRepository<EventCategory> {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public EventCategoryRepository(Database database) {
         this.database = database;
     }

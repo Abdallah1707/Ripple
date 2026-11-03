@@ -10,44 +10,22 @@ import java.util.List;
 
 /**
  * Controller for the Beneficiaries screen.
- *
- * <p>Checks the typed values (a name is required; an email or phone must be valid if it is
- * filled in), calls {@link BeneficiaryRepository}, and turns the outcome into a
- * {@link Result} for the status bar. It never throws to the view.
  */
 public class BeneficiaryController {
 
     private final BeneficiaryRepository beneficiaryRepository;
 
-    /**
-     * Creates the controller.
-     *
-     * @param beneficiaryRepository where beneficiaries are stored
-     */
+    /** Creates the controller. */
     public BeneficiaryController(BeneficiaryRepository beneficiaryRepository) {
         this.beneficiaryRepository = beneficiaryRepository;
     }
 
-    /**
-     * Returns all beneficiaries.
-     *
-     * @return the beneficiaries sorted by name
-     */
+    /** All beneficiaries sorted by name. */
     public List<Beneficiary> listBeneficiaries() {
         return beneficiaryRepository.findAll();
     }
 
-    /**
-     * Adds a new beneficiary ({@code id == null}) or updates an existing one.
-     *
-     * @param id      the beneficiary's id, or {@code null} to add a new one
-     * @param name    the name typed by the user (required)
-     * @param email   the email typed by the user (optional, must be valid if filled in)
-     * @param phone   the phone typed by the user (optional, must be valid if filled in)
-     * @param address the address typed by the user
-     * @param needs   the needs typed by the user
-     * @return what happened, for the status bar
-     */
+    /** Adds a beneficiary if id is null, otherwise updates it. */
     public Result saveBeneficiary(Integer id, String name, String email, String phone, String address,
                                   String needs) {
         boolean adding = id == null;
@@ -73,12 +51,7 @@ public class BeneficiaryController {
         }
     }
 
-    /**
-     * Deletes a beneficiary.
-     *
-     * @param id the beneficiary's id
-     * @return what happened, for the status bar
-     */
+    /** Deletes a beneficiary. */
     public Result deleteBeneficiary(int id) {
         try {
             String name = beneficiaryRepository.findAll().stream().filter(b -> b.getId() == id)

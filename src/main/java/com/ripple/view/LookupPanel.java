@@ -8,20 +8,14 @@ import javax.swing.JTabbedPane;
 import java.awt.BorderLayout;
 
 /**
- * The Lookup Management screen: two tabs, Donation Types and Event Categories,
- * each showing a {@link LookupTablePanel}.
+ * The Lookup Management screen with a tab for donation types and one for event categories.
  */
 public class LookupPanel extends JPanel implements Refreshable {
 
     private final LookupTablePanel donationTypesTab;
     private final LookupTablePanel eventCategoriesTab;
 
-    /**
-     * Builds the screen.
-     *
-     * @param controller the lookup controller
-     * @param statusBar  where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public LookupPanel(LookupController controller, StatusBar statusBar) {
         super(new BorderLayout());
         donationTypesTab = new LookupTablePanel(controller, LookupKind.DONATION_TYPE, statusBar);

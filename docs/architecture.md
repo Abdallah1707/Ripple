@@ -35,7 +35,7 @@ flowchart LR
     end
     subgraph Model["Model"]
         S[Services<br/>com.ripple.service]
-        P[Pattern packages<br/>factory · observer · receipt · communication · logging]
+        P[Pattern packages<br/>factory · observer · receipt · extras · communication · logging]
         R[Repositories<br/>com.ripple.repository]
         E[Entities<br/>com.ripple.model]
     end
@@ -58,8 +58,8 @@ flowchart LR
 |---|---|---|---|
 | **View** | `view` | Builds widgets, reads form fields, calls one controller method, shows the returned data or `Result` message. | SQL, validation rules, creating domain objects with business meaning, talking to repositories. |
 | **Controller** | `controller` | Converts UI strings into typed values, calls the right service or repository, catches `ValidationException` and returns a `Result`. | Build widgets, write SQL. |
-| **Service** (Model) | `service` | Business rules: lookup uniqueness and in-use checks, donor validation, recording donations and notifying observers. | Know about Swing. |
-| **Pattern packages** (Model) | `factory`, `observer`, `receipt`, `communication`, `logging` | The five design patterns. | Know about Swing. |
+| **Service** (Model) | `service` | Business rules: lookup uniqueness and in-use checks, donor validation, recording donations, saving events, and notifying observers. | Know about Swing. |
+| **Pattern packages** (Model) | `factory`, `observer`, `receipt`, `extras`, `communication`, `logging` | The five design patterns (Decorator twice: receipts and donation extras). | Know about Swing. |
 | **Repository** (Model) | `repository` | The **only** place with SQL. Turns rows into entities and back. | Business rules. |
 | **Entity** (Model) | `model` | Domain data and small behaviour (`Donation.getValue()`, `getReceiptNumber()`). | Know about the database or the UI. |
 
@@ -89,17 +89,21 @@ flowchart TD
     controller --> service
     controller --> repository
     controller --> communication
+    controller --> extras
     controller --> model
     service --> factory
     service --> observer
     service --> repository
+    service --> extras
     service --> model
     observer --> receipt
     observer --> communication
     observer --> logging
     observer --> repository
     repository --> factory
+    repository --> extras
     repository --> model
+    extras --> model
     factory --> model
     receipt --> model
     communication --> model
@@ -108,15 +112,16 @@ flowchart TD
 
 | Package | Purpose |
 |---|---|
-| `com.ripple.app` | `Main` — the **composition root**: builds every object once and wires them together. |
-| `com.ripple.model` | Entities (`Donor`, `Donation` hierarchy, `Volunteer`, `Event`, ...), lookup entities, enums, the `Contactable` interface. |
-| `com.ripple.factory` | **Factory**: `DonationFactory`, `DonationRequest`. |
-| `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers. |
+| `com.ripple.app` | `Main` — the **composition root**: builds every object once and wires them together. It is described here and not drawn in the class diagram (common-mistakes rule 8: no "system" class). |
+| `com.ripple.model` | Entities (the `Person` hierarchy: `Donor`, `Volunteer`, `Attendee`, `Beneficiary`; the `Donation` hierarchy; `Event`, ...), lookup entities, enums, the `Contactable` interface. |
+| `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
+| `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers; `EventSubject`, `EventObserver` and `AttendeeNotificationObserver` for event changes. |
 | `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
-| `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, context `CommunicationService`. |
+| `com.ripple.extras` | **Decorator** on the donation itself: `DonationDecorator` and `UrgentDonation`, `GiftDonation`, `AnonymousDonation`; `DonationOptions` applies them. |
+| `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy`, context `CommunicationService`. |
 | `com.ripple.logging` | **Singleton**: `ApplicationLogger`. |
 | `com.ripple.repository` | `Database` and one repository per table group. |
-| `com.ripple.service` | `LookupService`, `DonationService`, `InputValidator`, `ValidationException`. |
+| `com.ripple.service` | `LookupService`, `DonationService`, `EventService`, `InputValidator`, `ValidationException`. |
 | `com.ripple.controller` | One controller per screen, plus `Result` and `DashboardSummary`. |
 | `com.ripple.view` | `MainFrame` (the control panel), one panel per screen, `StatusBar`, `Refreshable`. |
 
@@ -127,10 +132,10 @@ flowchart TD
 `Main` creates everything once, in this order, and passes objects through constructors. Apart from the logger Singleton there is **no global state**, so every class can be tested with its own inputs.
 
 1. `Database` (reads `RIPPLE_DB_PATH`, default `data/ripple.db`) → `initialize()` creates tables and seed data.
-2. `DonationFactory`, then repositories (the donation repository gets the factory so it can rebuild donations from rows).
-3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy())`.
+2. The donation creators, one `DonationFactory` subclass per method, in a `Map<DonationMethod, DonationFactory>` keyed by `getMethod()`; then repositories (the donation repository gets the map so it can rebuild donations from rows).
+3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy(), SOCIAL, new SocialMediaStrategy())`.
 4. Services: `LookupService` ×2, `DonationService`.
-5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
+5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`. Attached to `EventService`: `AttendeeNotificationObserver` (Email then SMS, with its own `CommunicationService`).
 6. Controllers, including `DashboardController` (it gets the five repositories it counts).
 7. On the Swing event thread: `MainFrame`, then each of the seven screens plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`.
 
@@ -140,7 +145,7 @@ flowchart TD
 
 ## 5. Request flows
 
-### 5.1 Record a donation (uses Factory, Observer, Decorator, Strategy, Singleton)
+### 5.1 Record a donation (uses Factory Method, Observer, Decorator, Strategy, Singleton)
 
 ```mermaid
 sequenceDiagram
@@ -148,29 +153,31 @@ sequenceDiagram
     participant V as DonationsPanel (View)
     participant C as DonationController
     participant S as DonationService (Subject)
-    participant F as DonationFactory
+    participant F as OnlineDonationFactory (creator)
     participant DR as DonationRepository
     participant LO as DonationLogObserver
     participant RO as ReceiptObserver
     participant NO as DonorNotificationObserver
     participant CS as CommunicationService
-    participant ST as EmailStrategy / SmsStrategy
+    participant ST as EmailStrategy / SmsStrategy / SocialMediaStrategy
 
     Staff->>V: fill form, click "Record donation"
     V->>C: recordDonation(donorId, typeId, "ONLINE", "500", "TX-991", ...)
     C->>C: parse strings → DonationRequest
     C->>S: recordDonation(method, request)
-    S->>F: create(method, donor, type, request)
+    S->>S: factory = factories.get(ONLINE)
+    S->>F: orderDonation(donor, type, request)
+    F->>F: shared checks + time stamp, then createDonation(...)
     F-->>S: OnlineDonation (validated)
     S->>DR: insert(donation)
     DR-->>S: donation with id + createdAt
     S->>S: notifyObservers(donation)
-    S->>LO: onDonationRecorded(donation)
+    S->>LO: update(donation)
     LO->>LO: ApplicationLogger.getInstance().info(...)
-    S->>RO: onDonationRecorded(donation)
+    S->>RO: update(donation)
     RO->>RO: new TaxInformationDecorator(new ThankYouMessageDecorator(new BasicReceipt(d)))
     RO->>RO: receipt.render() → save to receipts table
-    S->>NO: onDonationRecorded(donation)
+    S->>NO: update(donation)
     NO->>CS: setStrategy(strategy for donor.preferredChannel)
     NO->>CS: send(donor, subject, body)
     CS->>ST: send(message)
@@ -181,7 +188,7 @@ sequenceDiagram
     V->>Staff: green status message, table refreshed
 ```
 
-If the factory rejects the input (e.g. online donation without a transaction reference), it throws `ValidationException`; nothing is saved, no observer runs, and the controller returns `Result.fail(message)`.
+If the creator rejects the input (e.g. online donation without a transaction reference), it throws `ValidationException`; nothing is saved, no observer runs, and the controller returns `Result.fail(message)`.
 
 ### 5.2 Delete a lookup value that is in use (CR2)
 
@@ -257,15 +264,16 @@ erDiagram
         TEXT name
         TEXT email
         TEXT phone
-        TEXT preferred_channel "EMAIL or SMS"
+        TEXT social_handle "e.g. @mona_ali, optional"
+        TEXT preferred_channel "EMAIL, SMS or SOCIAL"
     }
     DONATIONS {
         INTEGER id PK
         INTEGER donor_id FK
         INTEGER donation_type_id FK
-        TEXT method "CASH, ONLINE, IN_KIND"
-        REAL amount "cash, online"
-        TEXT transaction_ref "online"
+        TEXT method "CASH, ONLINE, IN_KIND, CHEQUE"
+        REAL amount "cash, online, cheque"
+        TEXT transaction_ref "online ref or cheque no."
         TEXT item_description "in-kind"
         INTEGER quantity "in-kind"
         REAL estimated_value "in-kind"
@@ -323,7 +331,7 @@ erDiagram
     }
 ```
 
-**Single-table donations.** The three donation kinds share one `donations` table with nullable method-specific columns. This keeps queries and the "total value" dashboard number simple. `DonationRepository` reads `method` and passes the row to `DonationFactory`, so the **same factory** builds the right subclass when loading from the database.
+**Single-table donations.** The four donation kinds share one `donations` table with nullable method-specific columns (a cheque's number is stored in `transaction_ref`). This keeps queries and the "total value" dashboard number simple. `DonationRepository` reads `method` and passes the row to the creator for that method, so the **same creators** build the right subclass when loading from the database.
 
 Foreign keys are switched on (`PRAGMA foreign_keys = ON`) as a safety net under the service-level in-use check. Seed data: donation types *General Fund* (tax), *Zakat* (tax), *Education* (tax), *Food Supplies* (no tax); event categories *Fundraiser*, *Workshop*, *Outreach*.
 

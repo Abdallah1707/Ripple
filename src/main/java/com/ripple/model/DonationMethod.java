@@ -1,13 +1,13 @@
 package com.ripple.model;
 
 /**
- * How a donation was given. {@link com.ripple.factory.DonationFactory} uses this value to
- * decide which {@link Donation} subclass to create.
+ * How a donation was given. Each method has its own factory.
  */
 public enum DonationMethod {
     CASH("Cash"),
     ONLINE("Online"),
-    IN_KIND("In-kind");
+    IN_KIND("In-kind"),
+    CHEQUE("Cheque");
 
     private final String label;
 
@@ -15,17 +15,13 @@ public enum DonationMethod {
         this.label = label;
     }
 
-    /**
-     * Returns the name shown to the user.
-     *
-     * @return e.g. {@code "In-kind"}
-     */
+    /** Name shown to the user. */
     public String getLabel() {
         return label;
     }
 
     @Override
     public String toString() {
-        return label; // so combo boxes show "In-kind" instead of "IN_KIND"
+        return label; // show "In-kind" not "IN_KIND"
     }
 }

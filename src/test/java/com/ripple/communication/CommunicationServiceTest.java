@@ -4,6 +4,7 @@ import com.ripple.TestDatabase;
 import com.ripple.model.Beneficiary;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Contactable;
+import com.ripple.model.Donor;
 import com.ripple.repository.MessageLogRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Strategy pattern: swapping Email / SMS, skipping bad addresses and the message log. */
+/** Tests for the communication strategies and the message log. */
 class CommunicationServiceTest {
 
     @TempDir
@@ -78,6 +79,31 @@ class CommunicationServiceTest {
         assertTrue(sms.detail().contains("160"));
         assertTrue(email.success());
         assertTrue(new SmsStrategy().send(new Message("Mona", "01012345678", "", "x".repeat(160))).success());
+    }
+
+    @Test
+    void socialMediaReachesDonorsWithAHandleAndSkipsEveryoneElse() {
+        Contactable donor = new Donor(3, "Sara", "", "", "@sara_s", ContactChannel.SOCIAL);
+        service.setStrategy(new SocialMediaStrategy());
+
+        List<DeliveryResult> results = service.sendToAll(List.of(donor, mona), "Hello", "Thank you!");
+
+        assertTrue(results.get(0).success());
+        assertFalse(results.get(1).success()); // beneficiaries have no handle
+        assertEquals("no valid social media handle", results.get(1).detail());
+        List<MessageLogEntry> entries = log.findAll(); // newest first
+        assertEquals(ContactChannel.SOCIAL, entries.get(1).channel());
+        assertTrue(entries.get(1).recipient().contains("@sara_s"));
+        assertEquals(DeliveryResult.SIMULATED, entries.get(1).status());
+    }
+
+    @Test
+    void socialMediaRejectsMessagesOver280Characters() {
+        SocialMediaStrategy social = new SocialMediaStrategy();
+        assertTrue(social.send(new Message("Sara", "@sara_s", "", "x".repeat(280))).success());
+        DeliveryResult tooLong = social.send(new Message("Sara", "@sara_s", "", "x".repeat(281)));
+        assertFalse(tooLong.success());
+        assertTrue(tooLong.detail().contains("280"));
     }
 
     @Test

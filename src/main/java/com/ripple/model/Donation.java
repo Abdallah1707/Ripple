@@ -1,15 +1,11 @@
 package com.ripple.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * A donation: who gave it, its type, and when it was recorded.
- *
- * <p>This is the <b>Product</b> in the Factory pattern. The three kinds of donation
- * ({@link CashDonation}, {@link OnlineDonation}, {@link InKindDonation}) are created only by
- * {@code DonationFactory}. The rest of the app works with {@code Donation} and calls
- * {@link #getValue()} and {@link #describe()} without knowing which kind it has
- * (polymorphism).
+ * Base class for donations (cash, online, in-kind, cheque).
+ * Created by the factories. Also the component that the decorators wrap.
  */
 public abstract class Donation {
 
@@ -18,13 +14,7 @@ public abstract class Donation {
     private final DonationType donationType;
     private final LocalDateTime createdAt;
 
-    /**
-     * Creates a donation.
-     *
-     * @param donor        who gave it
-     * @param donationType its lookup type
-     * @param createdAt    when it was recorded (CR3)
-     */
+    /** Creates a donation. */
     protected Donation(Donor donor, DonationType donationType, LocalDateTime createdAt) {
         this.donor = donor;
         this.donationType = donationType;
@@ -35,11 +25,7 @@ public abstract class Donation {
         return id;
     }
 
-    /**
-     * Sets the id given by the database after the donation is saved.
-     *
-     * @param id the generated id
-     */
+    /** Sets the id after saving. */
     public void setId(int id) {
         this.id = id;
     }
@@ -56,42 +42,54 @@ public abstract class Donation {
         return createdAt;
     }
 
-    /**
-     * Returns how this donation was given.
-     *
-     * @return the donation method
-     */
+    /** How the donation was given. */
     public abstract DonationMethod getMethod();
 
-    /**
-     * Returns the donation's value in EGP: the amount for money, the estimated value for goods.
-     *
-     * @return the value in EGP
-     */
+    /** Value in EGP. */
     public abstract double getValue();
 
-    /**
-     * Returns a one-line description for tables and receipts.
-     *
-     * @return e.g. {@code "Cash donation of EGP 500.00"}
-     */
+    /** Short description for tables and receipts. */
     public abstract String describe();
 
-    /**
-     * Returns the receipt number, built from the year and the id (CR3).
-     *
-     * @return e.g. {@code "RCP-2026-0007"}
-     */
+    /** Receipt number like RCP-2026-0007 (CR3). */
     public String getReceiptNumber() {
         return String.format("RCP-%d-%04d", createdAt.getYear(), id);
     }
 
-    /**
-     * Tells whether this donation is tax-deductible, which depends on its donation type (CR4).
-     *
-     * @return {@code true} if the donation type is tax-deductible
-     */
+    /** True if the donation type is tax-deductible (CR4). */
     public boolean isTaxDeductible() {
         return donationType.isTaxDeductible();
+    }
+
+    // ---- methods the decorators override ----
+
+    /** The plain donation without decorators. Needed for saving. */
+    public Donation getBase() {
+        return this;
+    }
+
+    /** Name shown to others. Anonymous donations hide it. */
+    public String getDonorDisplayName() {
+        return getDonor().getName();
+    }
+
+    /** True if marked urgent. */
+    public boolean isUrgent() {
+        return false;
+    }
+
+    /** Who the gift is for, or empty. */
+    public String getHonoree() {
+        return "";
+    }
+
+    /** True if anonymous. */
+    public boolean isAnonymous() {
+        return false;
+    }
+
+    /** Options added by decorators, like Gift or Urgent. */
+    public List<String> getOptions() {
+        return List.of();
     }
 }

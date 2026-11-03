@@ -1,6 +1,6 @@
 package com.ripple.controller;
 
-/** Which lookup table the user is working with in Lookup Management. */
+/** The lookup table being edited. */
 public enum LookupKind {
     DONATION_TYPE("Donation Types", true),
     EVENT_CATEGORY("Event Categories", false);
@@ -13,20 +13,12 @@ public enum LookupKind {
         this.taxFlag = taxFlag;
     }
 
-    /**
-     * Returns the tab title.
-     *
-     * @return e.g. {@code "Donation Types"}
-     */
+    /** Tab title. */
     public String getTitle() {
         return title;
     }
 
-    /**
-     * Tells whether entries of this table have a tax-deductible flag.
-     *
-     * @return {@code true} only for donation types
-     */
+    /** True only for donation types. */
     public boolean hasTaxFlag() {
         return taxFlag;
     }

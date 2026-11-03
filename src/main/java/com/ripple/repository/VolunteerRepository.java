@@ -11,8 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Reads and writes the {@code volunteers} table and its link table {@code event_volunteers}.
- * Contains SQL only, no business rules.
+ * Database access for volunteers and their event assignments.
  */
 public class VolunteerRepository {
 
@@ -20,30 +19,17 @@ public class VolunteerRepository {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public VolunteerRepository(Database database) {
         this.database = database;
     }
 
-    /**
-     * Returns all volunteers sorted by name.
-     *
-     * @return all volunteers
-     */
+    /** All volunteers sorted by name. */
     public List<Volunteer> findAll() {
         return query("SELECT " + COLUMNS + " FROM volunteers ORDER BY name COLLATE NOCASE", null);
     }
 
-    /**
-     * Saves a new volunteer and sets its generated id.
-     *
-     * @param volunteer the volunteer to save (its id is ignored)
-     * @return the same volunteer, now with its id
-     */
+    /** Saves a new volunteer and sets its id. */
     public Volunteer insert(Volunteer volunteer) {
         String sql = "INSERT INTO volunteers (name, email, phone, skills, availability) VALUES (?, ?, ?, ?, ?)";
         try (Connection c = database.getConnection();
@@ -63,11 +49,7 @@ public class VolunteerRepository {
         }
     }
 
-    /**
-     * Updates an existing volunteer (matched by id).
-     *
-     * @param volunteer the volunteer with its new values
-     */
+    /** Updates a volunteer. */
     public void update(Volunteer volunteer) {
         String sql = "UPDATE volunteers SET name = ?, email = ?, phone = ?, skills = ?, availability = ? WHERE id = ?";
         try (Connection c = database.getConnection();
@@ -84,11 +66,7 @@ public class VolunteerRepository {
         }
     }
 
-    /**
-     * Deletes a volunteer. Their event assignments are removed too (ON DELETE CASCADE).
-     *
-     * @param id the volunteer's id
-     */
+    /** Deletes a volunteer and their event assignments. */
     public void delete(int id) {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement("DELETE FROM volunteers WHERE id = ?")) {
@@ -99,11 +77,7 @@ public class VolunteerRepository {
         }
     }
 
-    /**
-     * Counts the volunteers (used by the Dashboard).
-     *
-     * @return the number of volunteers
-     */
+    /** Number of volunteers. */
     public int count() {
         try (Connection c = database.getConnection();
              Statement statement = c.createStatement();
@@ -114,13 +88,7 @@ public class VolunteerRepository {
         }
     }
 
-    /**
-     * Assigns a volunteer to an event. Assigning the same pair twice does nothing, so no
-     * duplicate row is created ({@code INSERT OR IGNORE} on the primary key).
-     *
-     * @param volunteerId the volunteer's id
-     * @param eventId     the event's id
-     */
+    /** Assigns a volunteer to an event. Doing it twice does nothing. */
     public void assignToEvent(int volunteerId, int eventId) {
         String sql = "INSERT OR IGNORE INTO event_volunteers (event_id, volunteer_id) VALUES (?, ?)";
         try (Connection c = database.getConnection();
@@ -133,12 +101,7 @@ public class VolunteerRepository {
         }
     }
 
-    /**
-     * Returns the volunteers assigned to an event, sorted by name.
-     *
-     * @param eventId the event's id
-     * @return the assigned volunteers (empty if none)
-     */
+    /** Volunteers assigned to an event, sorted by name. */
     public List<Volunteer> findByEvent(int eventId) {
         String sql = "SELECT v.id, v.name, v.email, v.phone, v.skills, v.availability FROM volunteers v "
                 + "JOIN event_volunteers ev ON ev.volunteer_id = v.id WHERE ev.event_id = ? "

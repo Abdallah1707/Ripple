@@ -10,10 +10,8 @@ import com.ripple.model.Volunteer;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
@@ -31,15 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Events screen.
- *
- * <p>Left: a table of events and a form with Add / Update / Delete / Clear buttons (the
- * category is picked from the Event Categories lookup). Right: for the selected event, its
- * attendees (with a small form to register one) and the volunteers assigned to it.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link EventController}
- * (and {@link LookupController} for the category list). The outcome of every action is
- * shown in the status bar.
+ * The Events screen. Left side has the events table and form.
+ * Right side shows the attendees and volunteers of the selected event.
  */
 public class EventsPanel extends JPanel implements Refreshable {
 
@@ -47,7 +38,7 @@ public class EventsPanel extends JPanel implements Refreshable {
     private final LookupController lookupController;
     private final StatusBar statusBar;
 
-    // --- events table and form ---
+    // events table and form
     private final DefaultTableModel eventsModel;
     private final JTable eventsTable;
     private final JTextField nameField = new JTextField(16);
@@ -55,10 +46,10 @@ public class EventsPanel extends JPanel implements Refreshable {
     private final JTextField dateField = new JTextField(10);
     private final JTextField locationField = new JTextField(16);
     private final JTextField descriptionField = new JTextField(16);
-    /** The events currently shown, in the same order as the table rows. */
+    /** Events in the same order as the table. */
     private List<Event> events = new ArrayList<>();
 
-    // --- details of the selected event ---
+    // selected event details
     private final JLabel detailsTitle = new JLabel("Select an event to see its attendees and volunteers.");
     private final DefaultTableModel attendeesModel;
     private final DefaultTableModel volunteersModel;
@@ -66,13 +57,7 @@ public class EventsPanel extends JPanel implements Refreshable {
     private final JTextField attendeeEmailField = new JTextField(10);
     private final JTextField attendeePhoneField = new JTextField(9);
 
-    /**
-     * Builds the screen.
-     *
-     * @param eventController  the event controller
-     * @param lookupController the lookup controller (fills the category list)
-     * @param statusBar        where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public EventsPanel(EventController eventController, LookupController lookupController, StatusBar statusBar) {
         super(new BorderLayout());
         this.eventController = eventController;
@@ -90,11 +75,22 @@ public class EventsPanel extends JPanel implements Refreshable {
                 showDetails();
             }
         });
+        FormHelper.onDoubleClick(eventsTable, nameField::requestFocusInWindow); // edit the row in the form
+
+        FormHelper.placeholder(nameField, "e.g. Winter clothes drive");
+        FormHelper.placeholder(dateField, "2026-12-15");
+        FormHelper.placeholder(locationField, "e.g. Nasr City hall");
+        FormHelper.placeholder(descriptionField, "Optional");
+        FormHelper.placeholder(attendeeNameField, "Full name");
+        FormHelper.placeholder(attendeeEmailField, "name@example.com");
+        FormHelper.placeholder(attendeePhoneField, "01012345678");
+        FormHelper.onEnter(this::onSave, nameField, dateField, locationField, descriptionField);
+        FormHelper.onEnter(this::onRegisterAttendee, attendeeNameField, attendeeEmailField, attendeePhoneField);
         attendeesModel = readOnlyModel("Name", "Email", "Phone");
         volunteersModel = readOnlyModel("Name", "Email", "Phone");
 
         JPanel left = new JPanel(new BorderLayout(0, 8));
-        left.add(new JScrollPane(eventsTable), BorderLayout.CENTER);
+        left.add(FormHelper.tableWithSearch(eventsTable), BorderLayout.CENTER);
         left.add(buildEventForm(), BorderLayout.SOUTH);
 
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, left, buildDetailsPanel());
@@ -118,7 +114,7 @@ public class EventsPanel extends JPanel implements Refreshable {
         clearForm();
     }
 
-    // ---------------- layout ----------------
+    // ---- layout ----
 
     private JPanel buildEventForm() {
         JPanel form = new JPanel(new GridBagLayout());
@@ -128,18 +124,21 @@ public class EventsPanel extends JPanel implements Refreshable {
         c.anchor = GridBagConstraints.WEST;
 
         dateField.setToolTipText("Year-month-day, e.g. 2026-12-15");
-        addRow(form, c, 0, "Name:", nameField, "Category:", categoryBox);
-        addRow(form, c, 1, "Date (yyyy-MM-dd):", dateField, "Location:", locationField);
-        addRow(form, c, 2, "Description:", descriptionField, null, null);
+        // one field per row, two columns don't fit in the left half
+        addRow(form, c, 0, "Name:", nameField);
+        addRow(form, c, 1, "Category:", categoryBox);
+        addRow(form, c, 2, "Date (yyyy-MM-dd):", dateField);
+        addRow(form, c, 3, "Location:", locationField);
+        addRow(form, c, 4, "Description:", descriptionField);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.add(button("Add", this::onAdd));
-        buttons.add(button("Update", this::onUpdate));
-        buttons.add(button("Delete", this::onDelete));
-        buttons.add(button("Clear", this::clearForm));
+        buttons.add(FormHelper.button("Add", "Save the form as a new event", this::onAdd));
+        buttons.add(FormHelper.button("Update", "Save the form over the selected event", this::onUpdate));
+        buttons.add(FormHelper.button("Delete", "Delete the selected event", this::onDelete));
+        buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearForm));
         c.gridx = 0;
-        c.gridy = 3;
-        c.gridwidth = 4;
+        c.gridy = 5;
+        c.gridwidth = 2;
         form.add(buttons, c);
         return form;
     }
@@ -166,7 +165,8 @@ public class EventsPanel extends JPanel implements Refreshable {
         attendeeForm.add(attendeeEmailField);
         attendeeForm.add(new JLabel("Phone:"));
         attendeeForm.add(attendeePhoneField);
-        attendeeForm.add(button("Register attendee", this::onRegisterAttendee));
+        attendeeForm.add(FormHelper.button("Register attendee", "Register this person for the selected event",
+                this::onRegisterAttendee));
         panel.add(attendeeForm);
         panel.add(javax.swing.Box.createVerticalStrut(6));
 
@@ -187,29 +187,32 @@ public class EventsPanel extends JPanel implements Refreshable {
         };
     }
 
-    private static void addRow(JPanel form, GridBagConstraints c, int row, String label1,
-                               java.awt.Component field1, String label2, java.awt.Component field2) {
+    /** Adds a label and field row. The field stretches. */
+    private static void addRow(JPanel form, GridBagConstraints c, int row, String label, java.awt.Component field) {
         c.gridy = row;
         c.gridwidth = 1;
         c.gridx = 0;
-        form.add(new JLabel(label1), c);
+        c.fill = GridBagConstraints.NONE;
+        c.weightx = 0;
+        form.add(new JLabel(label), c);
         c.gridx = 1;
-        form.add(field1, c);
-        if (label2 != null) {
-            c.gridx = 2;
-            form.add(new JLabel(label2), c);
-            c.gridx = 3;
-            form.add(field2, c);
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.weightx = 1;
+        form.add(field, c);
+        c.fill = GridBagConstraints.NONE;
+        c.weightx = 0;
+    }
+
+    // ---- actions ----
+
+    /** Updates the selected event, or adds a new one if nothing is selected. */
+    private void onSave() {
+        if (selectedEvent() == null) {
+            onAdd();
+        } else {
+            onUpdate();
         }
     }
-
-    private static JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.addActionListener(e -> action.run());
-        return button;
-    }
-
-    // ---------------- actions ----------------
 
     private void onAdd() {
         showAndRefresh(eventController.saveEvent(null, nameField.getText(), selectedCategoryId(),
@@ -232,10 +235,8 @@ public class EventsPanel extends JPanel implements Refreshable {
             statusBar.showResult(Result.fail("Select a row to delete first."));
             return;
         }
-        int answer = JOptionPane.showConfirmDialog(this,
-                "Delete '" + selected.getName() + "'? Its attendees and volunteer assignments are removed too.",
-                "Confirm delete", JOptionPane.YES_NO_OPTION);
-        if (answer == JOptionPane.YES_OPTION) {
+        if (FormHelper.confirmDelete(this,
+                "Delete '" + selected.getName() + "'? Its attendees and volunteer assignments are removed too.")) {
             showAndRefresh(eventController.deleteEvent(selected.getId()));
         }
     }
@@ -253,7 +254,7 @@ public class EventsPanel extends JPanel implements Refreshable {
         }
     }
 
-    /** Shows the result; on success reloads the table so it matches the database. */
+    /** Shows the result and reloads the table if it worked. */
     private void showAndRefresh(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
@@ -261,10 +262,10 @@ public class EventsPanel extends JPanel implements Refreshable {
         }
     }
 
-    // ---------------- selection ----------------
+    // ---- selection ----
 
     private Event selectedEvent() {
-        int row = eventsTable.getSelectedRow();
+        int row = FormHelper.selectedModelRow(eventsTable); // works with sorting and filtering
         return row < 0 ? null : events.get(row);
     }
 
@@ -290,7 +291,7 @@ public class EventsPanel extends JPanel implements Refreshable {
         }
     }
 
-    /** Reloads the attendee and volunteer lists for the selected event (or empties them). */
+    /** Loads the attendees and volunteers for the selected event. */
     private void showDetails() {
         attendeesModel.setRowCount(0);
         volunteersModel.setRowCount(0);

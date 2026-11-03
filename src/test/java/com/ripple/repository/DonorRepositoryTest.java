@@ -48,4 +48,36 @@ class DonorRepositoryTest {
     void unknownIdGivesEmpty() {
         assertTrue(repository.findById(999).isEmpty());
     }
+
+    @Test
+    void updateChangesTheStoredDetails() {
+        Donor saved = repository.insert(new Donor(0, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
+        repository.update(new Donor(saved.getId(), "Mona A. Ali", "", "01012345678", ContactChannel.SMS));
+
+        Donor found = repository.findById(saved.getId()).orElseThrow();
+        assertEquals("Mona A. Ali", found.getName());
+        assertEquals("01012345678", found.getPhone());
+        assertEquals(ContactChannel.SMS, found.getPreferredChannel());
+    }
+
+    @Test
+    void socialHandleIsStoredAndUpdated() {
+        Donor saved = repository.insert(new Donor(0, "Mona Ali", "", "", "@mona_ali", ContactChannel.SOCIAL));
+        assertEquals("@mona_ali", repository.findById(saved.getId()).orElseThrow().getSocialHandle());
+
+        repository.update(new Donor(saved.getId(), "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
+        Donor found = repository.findById(saved.getId()).orElseThrow();
+        assertEquals("", found.getSocialHandle());
+        assertEquals(ContactChannel.EMAIL, found.getPreferredChannel());
+    }
+
+    @Test
+    void deleteRemovesTheDonorAndCountDonationsStartsAtZero() {
+        Donor saved = repository.insert(new Donor(0, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
+        assertEquals(0, repository.countDonations(saved.getId()));
+
+        repository.delete(saved.getId());
+        assertTrue(repository.findById(saved.getId()).isEmpty());
+        assertEquals(0, repository.count());
+    }
 }

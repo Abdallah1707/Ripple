@@ -8,6 +8,7 @@ import com.ripple.repository.Database;
 import com.ripple.repository.EventCategoryRepository;
 import com.ripple.repository.EventRepository;
 import com.ripple.repository.VolunteerRepository;
+import com.ripple.service.EventService;
 import com.ripple.service.LookupService;
 import com.ripple.service.ValidationException;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Events screen's rules: validation, add / edit / delete, attendees, and the category link. */
+/** Tests for EventController. */
 class EventControllerTest {
 
     @TempDir
@@ -37,7 +38,8 @@ class EventControllerTest {
     void setUp() {
         Database db = TestDatabase.create(tempDir);
         VolunteerRepository volunteers = new VolunteerRepository(db);
-        controller = new EventController(new EventRepository(db), volunteers);
+        EventRepository events = new EventRepository(db);
+        controller = new EventController(new EventService(events), events, volunteers);
         volunteerController = new VolunteerController(volunteers);
         categories = new LookupService<>(new EventCategoryRepository(db), "Event category");
         categoryId = categories.findAll().stream().filter(c -> c.getName().equals("Outreach"))
@@ -61,6 +63,19 @@ class EventControllerTest {
 
         assertTrue(controller.deleteEvent(saved.getId()).success());
         assertTrue(controller.listEvents().isEmpty());
+    }
+
+    @Test
+    void theStatusMessageSaysWhenAttendeesWereNotified() {
+        controller.saveEvent(null, "Gala", categoryId, "2026-12-15", "Cairo", "");
+        int id = controller.listEvents().get(0).getId();
+
+        assertEquals("Event 'Gala dinner' updated",
+                controller.saveEvent(id, "Gala dinner", categoryId, "2026-12-15", "Cairo", "").message());
+        assertEquals("Event 'Gala dinner' updated; attendees were notified of the change",
+                controller.saveEvent(id, "Gala dinner", categoryId, "2026-12-15", "Giza", "").message());
+        assertEquals("This event no longer exists",
+                controller.saveEvent(999, "Ghost", categoryId, "2026-12-15", "", "").message());
     }
 
     @Test

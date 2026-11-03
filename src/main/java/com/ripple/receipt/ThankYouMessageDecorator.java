@@ -1,18 +1,13 @@
 package com.ripple.receipt;
 
 /**
- * Concrete decorator that appends a personal thank-you message to whatever receipt it wraps.
+ * Adds a thank-you message to a receipt.
  */
 public class ThankYouMessageDecorator extends ReceiptDecorator {
 
     private final String donorName;
 
-    /**
-     * Wraps a receipt with a thank-you message.
-     *
-     * @param wrapped   the receipt to decorate
-     * @param donorName the donor's name, shown in the message
-     */
+    /** Wraps a receipt with a thank-you message. */
     public ThankYouMessageDecorator(Receipt wrapped, String donorName) {
         super(wrapped);
         this.donorName = donorName;

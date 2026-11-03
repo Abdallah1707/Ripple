@@ -86,7 +86,7 @@ The assignment asks us to add a few requirements from "the client". We had no re
 | CR2 | You can't delete a lookup value that is already in use. The app says how many records use it. | 1 |
 | CR3 | Every donation gets the date and time automatically, plus a receipt number like `RCP-2026-0007`. | 1, 2 |
 | CR4 | Only tax-deductible donation types get tax information on their receipt. | 3 |
-| CR5 | Each donor picks Email or SMS, and automatically gets a thank-you message that way. Staff can turn this off. | 2, 5 |
+| CR5 | Each donor picks Email, SMS or Social, and automatically gets a thank-you message that way. Staff can turn this off. | 2, 5 |
 | CR6 | Every action shows a clear success or error message. | all |
 
 ---
@@ -109,7 +109,7 @@ The assignment asks us to add a few requirements from "the client". We had no re
   - Event categories: *Fundraiser*, *Workshop*, *Outreach*.
 
 **3. Main data classes** (the `model` folder)
-- [x] Donor, the three donation kinds (Cash, Online, In-kind) and their parent class Donation.
+- [x] Donor, the donation kinds (Cash, Online, In-kind; Cheque added in the gap fixes) and their parent class Donation.
 - [x] The two lookup classes: Donation Type (name, description, tax-deductible yes/no) and Event Category (name, description).
 - [x] A donation's receipt number looks like `RCP-2026-0007` (year + id).
 
@@ -121,12 +121,13 @@ The assignment asks us to add a few requirements from "the client". We had no re
 - [x] Create a single shared logger that writes to `logs/ripple.log` and remembers recent entries for the Dashboard.
 - [x] Make sure there can only ever be one: private constructor plus `getInstance()`.
 
-**6. Factory: `DonationFactory`**
+**6. Factory Method: `DonationFactory` and its creators**
 - [x] Given "Cash", "Online" or "In-kind", it builds the right donation object and checks the input:
   - amount above 0;
   - online donations need a transaction reference;
   - in-kind donations need an item and a quantity above 0.
-- [x] An unknown type such as "Cheque" gives the error *"Unsupported donation method"*.
+- [x] An unknown method gives the error *"Unsupported donation method"*.
+- [x] *(Gap fixes)* Rebuilt as the GoF **Factory Method** from the labs: the abstract creator `DonationFactory` has the fixed workflow `orderDonation(...)` and the abstract factory method `createDonation(...)`; one concrete creator per method. Cheque was then added as a new product and a new creator.
 
 **7. Lookup Management screen**
 - [x] Database code for both lookup tables, plus `LookupService` with the rules:
@@ -167,7 +168,7 @@ Add "Emergency Relief" → try adding it again (rejected) → rename it → dele
 - [x] Save and load donations. When loading, rebuild each donation through the `DonationFactory` from Section 1.
 
 **2. Observer pattern**
-- [x] Two interfaces: `DonationSubject` (attach, detach, notify) and `DonationObserver` (one method: "a donation was recorded").
+- [x] Two interfaces: `DonationSubject` (`registerObserver`, `removeObserver`, `notifyObservers`) and `DonationObserver` (one method: "a donation was recorded").
 - [x] `DonationService` is the subject. When it saves a donation, it notifies all attached observers. If one observer fails, the others still run.
 - [x] A first observer, `DonationLogObserver`, writes a line to the log each time a donation is recorded.
 
@@ -282,7 +283,7 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 
 ## Section 5 — Messages + Strategy
 
-**In short:** staff can send a message to a whole group by Email or SMS. Each channel is a separate "strategy" that can be swapped while the app runs. Donors also get an automatic thank-you on their preferred channel.
+**In short:** staff can send a message to a whole group by Email, SMS or Social media. Each channel is a separate "strategy" that can be swapped while the app runs. Donors also get an automatic thank-you on their preferred channel.
 
 > Sending is **simulated**: messages are printed and logged, not really sent. The screen must say so clearly.
 
@@ -294,6 +295,7 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 - [x] `CommunicationStrategy`: an interface for "a way of sending a message".
 - [x] `EmailStrategy`: uses the person's email.
 - [x] `SmsStrategy`: uses the phone number and rejects messages over 160 characters.
+- [x] `SocialMediaStrategy` (gap fix): uses the donor's `@handle` and rejects messages over 280 characters. Only donors have a handle.
 - [x] `CommunicationService`: holds the current strategy and lets you change it with `setStrategy(...)`. It must **not** contain any "if email… else if SMS…" code.
 - [x] Every attempt, sent or skipped, is saved in a message log.
 
@@ -303,7 +305,7 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 
 **3. Communication screen**
 - [x] Choose who to send to: all donors, all volunteers, all beneficiaries, or the attendees of one event.
-- [x] Choose Email or SMS, write a subject and message, then **Send**.
+- [x] Choose Email, SMS or Social, write a subject and message, then **Send**.
 - [x] Show a result like *"Sent 4, skipped 2 (no valid phone)"*.
 - [x] Show a table of the message log.
 - [x] Show a visible note: *"Simulated — no real email or SMS is sent."*
@@ -364,11 +366,31 @@ Start the app fresh → Dashboard shows zeros → walk through Sections 1–5 �
 
 ---
 
+## Gap fixes (after Section 6)
+
+A review against the lab slides, the "Common Mistakes in Class Diagram" slide and the project description found these gaps; all are fixed:
+
+- [x] Pattern code uses the slide names: `registerObserver` / `removeObserver` / `notifyObservers` and `update(donation)` (push model) for the Observer; `uniqueInstance` (Option B, eager) for the Singleton.
+- [x] The Simple Factory became the GoF **Factory Method** (see Section 1, step 6), and **Cheque** donations were added through it (the project description asks for cheques).
+- [x] **Donations is the complete module:** donors can now be edited and deleted (not while they have donations). Its CRUD matrix is in [docs/crud-matrix.md](docs/crud-matrix.md).
+- [x] No `System.out` / `System.err` in the code (common-mistakes rule 9).
+- [x] The class diagram follows the common-mistakes rules: no empty classes, no "system" class (`Main` is not drawn), and aggregation only where more than 5 methods are used. The checklist is at the top of [class-diagram.md](docs/class-diagram.md).
+
+A second review compared Ripple with the project description and another team's class diagram. These were added:
+
+- [x] **Abstract `Person`:** `Donor`, `Volunteer`, `Attendee` and `Beneficiary` extend it instead of each repeating id, name, email and phone (the description's *reusability* goal).
+- [x] **Social media channel:** `SocialMediaStrategy` is a third Strategy (the description asks to "integrate with social media platforms"). Only donors have a `@handle`; it was added with one new class and one map entry, without changing `CommunicationService`.
+- [x] **Observer for event updates:** `EventService` (subject) tells `AttendeeNotificationObserver` when an event's date or location changes, and each attendee is messaged by Email, or SMS if they have no email (the description's own example: "when … an event is updated").
+- [x] **Donation extras (second Decorator):** a donation can be urgent (listed first), a gift in honor of someone, and/or anonymous (shown as "Anonymous donor"), in any combination. `DonationDecorator` wraps the donation; `DonationOptions` applies the decorators when a donation is recorded and again when it is loaded.
+- [x] **Cleaner diagram picture:** [docs/tools/render_class_diagram.py](docs/tools/render_class_diagram.py) draws the packages in MVC-like columns and draws repeated helper arrows once. The Mermaid text still has every class and arrow.
+
+---
+
 ## Not in Phase 1
 
 Please don't build these yet; they belong to Phase 2 or later:
 
 - The Phase 2 patterns: Command, Adapter, Facade, Template Method, Iterator, State, Proxy
 - Admin pages, payments, logins
-- Volunteer hours and certificates, tracking aid distribution, ticketing, social media
-- Real email or SMS sending
+- Volunteer hours and certificates, tracking aid distribution, ticketing
+- Real email, SMS or social media sending

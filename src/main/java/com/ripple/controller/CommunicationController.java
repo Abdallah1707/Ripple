@@ -21,12 +21,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Controller for the Communication screen, and a client of the Strategy pattern.
- *
- * <p>It loads the chosen group of people, picks the strategy for the chosen channel from
- * its map (no "if email ... else if SMS ..."), gives it to {@link CommunicationService} with
- * {@code setStrategy(...)}, sends, and sums up the outcome for the status bar, e.g.
- * <i>"Sent 4, skipped 2 (no valid phone number)"</i>. It never throws to the view.
+ * Controller for the Communication screen.
+ * Picks the strategy for the chosen channel and sends to the chosen group.
  */
 public class CommunicationController {
 
@@ -38,17 +34,7 @@ public class CommunicationController {
     private final EventRepository eventRepository;
     private final MessageLogRepository messageLogRepository;
 
-    /**
-     * Creates the controller.
-     *
-     * @param communicationService  the Strategy context that sends the messages
-     * @param strategies            one strategy per channel
-     * @param donorRepository       where donors are read from
-     * @param volunteerRepository   where volunteers are read from
-     * @param beneficiaryRepository where beneficiaries are read from
-     * @param eventRepository       where an event's attendees are read from
-     * @param messageLogRepository  where the message log is read from
-     */
+    /** Creates the controller. */
     public CommunicationController(CommunicationService communicationService,
                                    Map<ContactChannel, CommunicationStrategy> strategies,
                                    DonorRepository donorRepository, VolunteerRepository volunteerRepository,
@@ -63,16 +49,7 @@ public class CommunicationController {
         this.messageLogRepository = messageLogRepository;
     }
 
-    /**
-     * Sends a message to a whole group on one channel.
-     *
-     * @param audience who to send to
-     * @param eventId  the chosen event, only used for {@link Audience#EVENT_ATTENDEES}
-     * @param channel  {@code "EMAIL"} or {@code "SMS"}
-     * @param subject  the subject typed by the user
-     * @param body     the message typed by the user
-     * @return how many were sent and skipped, for the status bar
-     */
+    /** Sends a message to a whole group on one channel. */
     public Result sendToGroup(Audience audience, Integer eventId, String channel, String subject, String body) {
         try {
             if (audience == null) {
@@ -102,11 +79,7 @@ public class CommunicationController {
         }
     }
 
-    /**
-     * Returns the message log, newest first, for the table.
-     *
-     * @return all log entries
-     */
+    /** The message log, newest first. */
     public List<MessageLogEntry> listMessageLog() {
         return messageLogRepository.findAll();
     }
@@ -126,7 +99,7 @@ public class CommunicationController {
         };
     }
 
-    /** Builds e.g. "Sent 4, skipped 2 (no valid phone number)". */
+    /** Builds the "Sent X, skipped Y" message. */
     private static String summarize(List<DeliveryResult> results) {
         long sent = results.stream().filter(DeliveryResult::success).count();
         Set<String> reasons = new LinkedHashSet<>();
@@ -140,7 +113,7 @@ public class CommunicationController {
         return reasons.isEmpty() ? summary : summary + " (" + String.join("; ", reasons) + ")";
     }
 
-    /** Converts {@code "EMAIL"} / {@code "SMS"} to a channel, or explains what is wrong. */
+    /** Turns "EMAIL" / "SMS" / "SOCIAL" into a channel. */
     private ContactChannel parseChannel(String channel) {
         if (channel != null) {
             for (ContactChannel value : ContactChannel.values()) {
@@ -149,6 +122,6 @@ public class CommunicationController {
                 }
             }
         }
-        throw new ValidationException("Channel must be Email or SMS");
+        throw new ValidationException("Channel must be Email, SMS or Social");
     }
 }

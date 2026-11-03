@@ -1,9 +1,10 @@
 package com.ripple.model;
 
-/** The ways Ripple can contact someone. */
+/** Ways to contact someone. */
 public enum ContactChannel {
     EMAIL("email address"),
-    SMS("phone number");
+    SMS("phone number"),
+    SOCIAL("social media handle");
 
     private final String addressLabel;
 
@@ -11,11 +12,7 @@ public enum ContactChannel {
         this.addressLabel = addressLabel;
     }
 
-    /**
-     * Returns what this channel's address is called, for messages shown to the user.
-     *
-     * @return e.g. {@code "phone number"} for SMS
-     */
+    /** What the address is called, like "phone number". */
     public String getAddressLabel() {
         return addressLabel;
     }

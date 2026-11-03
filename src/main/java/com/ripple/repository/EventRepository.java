@@ -15,13 +15,12 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Reads and writes the {@code events} and {@code attendees} tables. Contains SQL only,
- * no business rules. Deleting an event also deletes its attendees and volunteer
- * assignments (ON DELETE CASCADE in the schema).
+ * Database access for events and attendees.
+ * Deleting an event also deletes its attendees and assignments.
  */
 public class EventRepository {
 
-    /** Events are always read together with their category, so the entity is complete. */
+    /** Loads events with their category. */
     private static final String SELECT_EVENT =
             "SELECT e.id, e.name, e.event_date, e.location, e.description, "
                     + "c.id AS category_id, c.name AS category_name, c.description AS category_description "
@@ -29,20 +28,12 @@ public class EventRepository {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public EventRepository(Database database) {
         this.database = database;
     }
 
-    /**
-     * Returns all events, soonest first.
-     *
-     * @return all events
-     */
+    /** All events, soonest first. */
     public List<Event> findAll() {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(
@@ -58,12 +49,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Finds one event.
-     *
-     * @param id the event's id
-     * @return the event, or empty if there is no event with that id
-     */
+    /** Finds an event by id. */
     public Optional<Event> findById(int id) {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(SELECT_EVENT + "WHERE e.id = ?")) {
@@ -76,12 +62,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Saves a new event and sets its generated id.
-     *
-     * @param event the event to save (its id is ignored)
-     * @return the same event, now with its id
-     */
+    /** Saves a new event and sets its id. */
     public Event insert(Event event) {
         String sql = "INSERT INTO events (name, category_id, event_date, location, description) VALUES (?, ?, ?, ?, ?)";
         try (Connection c = database.getConnection();
@@ -101,11 +82,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Updates an existing event (matched by id).
-     *
-     * @param event the event with its new values
-     */
+    /** Updates an event. */
     public void update(Event event) {
         String sql = "UPDATE events SET name = ?, category_id = ?, event_date = ?, location = ?, description = ? "
                 + "WHERE id = ?";
@@ -123,11 +100,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Deletes an event together with its attendees and volunteer assignments.
-     *
-     * @param id the event's id
-     */
+    /** Deletes an event with its attendees and assignments. */
     public void delete(int id) {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement("DELETE FROM events WHERE id = ?")) {
@@ -138,11 +111,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Counts the events (used by the Dashboard).
-     *
-     * @return the number of events
-     */
+    /** Number of events. */
     public int count() {
         try (Connection c = database.getConnection();
              Statement statement = c.createStatement();
@@ -153,12 +122,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Registers an attendee for an event and sets the attendee's generated id.
-     *
-     * @param attendee the attendee to save (its id is ignored)
-     * @return the same attendee, now with its id
-     */
+    /** Adds an attendee to an event and sets its id. */
     public Attendee addAttendee(Attendee attendee) {
         String sql = "INSERT INTO attendees (event_id, name, email, phone) VALUES (?, ?, ?, ?)";
         try (Connection c = database.getConnection();
@@ -177,12 +141,7 @@ public class EventRepository {
         }
     }
 
-    /**
-     * Returns the attendees registered for an event, sorted by name.
-     *
-     * @param eventId the event's id
-     * @return the attendees (empty if none)
-     */
+    /** Attendees of an event, sorted by name. */
     public List<Attendee> findAttendees(int eventId) {
         String sql = "SELECT id, event_id, name, email, phone FROM attendees WHERE event_id = ? "
                 + "ORDER BY name COLLATE NOCASE";

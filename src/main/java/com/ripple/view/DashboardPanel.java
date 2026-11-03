@@ -17,11 +17,7 @@ import java.awt.GridLayout;
 import java.util.Locale;
 
 /**
- * The Dashboard screen: six summary cards (donors, donations, total donation value,
- * volunteers, events, beneficiaries) and a list of recent activity from the application log.
- *
- * <p>A <b>View</b> in MVC: it only shows what {@link DashboardController} gives it. It is
- * {@link Refreshable}, so {@link MainFrame} reloads the numbers every time the user opens it.
+ * The Dashboard screen: summary cards and recent activity.
  */
 public class DashboardPanel extends JPanel implements Refreshable {
 
@@ -35,11 +31,7 @@ public class DashboardPanel extends JPanel implements Refreshable {
     private final JLabel beneficiariesValue = newValueLabel();
     private final DefaultListModel<String> activityModel = new DefaultListModel<>();
 
-    /**
-     * Builds the screen.
-     *
-     * @param controller the dashboard controller that supplies the numbers
-     */
+    /** Builds the screen. */
     public DashboardPanel(DashboardController controller) {
         super(new BorderLayout(0, 14));
         this.controller = controller;
@@ -85,7 +77,7 @@ public class DashboardPanel extends JPanel implements Refreshable {
         return cards;
     }
 
-    /** The "Recent activity" list, newest entry first. */
+    /** Recent activity list, newest first. */
     private JScrollPane buildActivity() {
         JList<String> list = new JList<>(activityModel);
         list.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
@@ -95,7 +87,7 @@ public class DashboardPanel extends JPanel implements Refreshable {
         return scroll;
     }
 
-    /** One summary card: a big number with a small caption under it. */
+    /** One card with a number and a caption. */
     private static JPanel card(String caption, JLabel value) {
         JPanel card = new JPanel(new BorderLayout(0, 4));
         card.setBorder(BorderFactory.createCompoundBorder(

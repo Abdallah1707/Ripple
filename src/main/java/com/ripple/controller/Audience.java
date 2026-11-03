@@ -1,6 +1,6 @@
 package com.ripple.controller;
 
-/** Which group of people the user picked on the Communication screen. */
+/** The group of people picked on the Communication screen. */
 public enum Audience {
     DONORS("All donors"),
     VOLUNTEERS("All volunteers"),
@@ -13,11 +13,7 @@ public enum Audience {
         this.label = label;
     }
 
-    /**
-     * Returns the text shown in the combo box.
-     *
-     * @return e.g. {@code "All donors"}
-     */
+    /** Text shown in the combo box. */
     public String getLabel() {
         return label;
     }

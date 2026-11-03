@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests sending to each group on both channels, and the messages shown in the status bar. */
+/** Tests sending to each group and the status messages. */
 class CommunicationControllerTest {
 
     @TempDir
@@ -53,7 +53,7 @@ class CommunicationControllerTest {
                 Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy()),
                 donors, volunteers, beneficiaries, events, log);
 
-        // Two donors: one with an email only, one with a phone only.
+        // one donor with only email, one with only phone
         donors.insert(new Donor(0, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
         donors.insert(new Donor(0, "Omar Samy", "", "01012345678", ContactChannel.SMS));
         volunteers.insert(new Volunteer(0, "Sara", "sara@example.com", "01198765432", "", ""));
