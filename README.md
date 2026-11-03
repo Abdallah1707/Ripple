@@ -78,12 +78,12 @@ The main window (`MainFrame`) has a sidebar with one button per screen. The stat
 
 | Grading item | Marks | In the app | In the code | Tests |
 |---|:-:|---|---|---|
-| Class diagram | 2 | Picture: [docs/images/class-diagram.png](docs/images/class-diagram.png) ([SVG](docs/images/class-diagram.svg)) | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
-| MVC structure | 2 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
-| User control panel | 1 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
-| Strategy | 1 | Communication screen: send by Email, then by SMS or Social | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
-| Observer | 1 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees get a message | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
-| Decorator | 1 | Donations screen: *View receipt*, and record a donation with Urgent / Anonymous / "In honor of" | `receipt/`, `observer/ReceiptObserver.java`, `extras/` | `ReceiptDecoratorTest`, `ReceiptObserverTest`, `DonationDecoratorTest` |
+| Class diagram | 1 | Picture: [docs/images/class-diagram.png](docs/images/class-diagram.png) ([SVG](docs/images/class-diagram.svg)) | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
+| MVC structure | 0.5 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
+| User control panel | 0.5 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
+| Strategy | 0.5 | Communication screen: send by Email, then by SMS or Social | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
+| Observer | 0.5 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees get a message | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
+| Decorator | 0.5 | Donations screen: *View receipt*, and record a donation with Urgent / Anonymous / "In honor of" | `receipt/`, `observer/ReceiptObserver.java`, `extras/` | `ReceiptDecoratorTest`, `ReceiptObserverTest`, `DonationDecoratorTest` |
 | Factory Method | 0.5 | Donations screen: record a donation with each method | `factory/DonationFactory.java` and its 4 subclasses | `DonationFactoryTest` |
 | Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |
 | Lookup tables | 0.5 | Lookup Management screen | `service/LookupService.java` | `LookupServiceTest` |
@@ -103,15 +103,6 @@ We had no real client, so these requirements are **our own assumptions**.
 | CR4 | Only tax-deductible donation types get tax information on their receipt | *View receipt* on a Zakat donation vs. a Food Supplies donation. `ReceiptObserverTest` |
 | CR5 | Each donor picks Email, SMS or Social and automatically gets a thank-you that way. Staff can turn this off | Donor form, the "Notify donors on new donation" checkbox, and the Communication message log. `DonorNotificationObserverTest` |
 | CR6 | Every action shows a clear success or error message | The status bar on every screen. Every controller returns a `Result` |
-
----
-
-## Not included in Phase 1
-
-- The Phase 2 patterns (Command, Adapter, Facade, Template Method, Iterator, State, Proxy)
-- Logins, admin pages and payments
-- Volunteer hours, certificates, aid tracking and ticketing
-- Real email, SMS or social media sending (all sending is simulated and saved in the message log)
 
 ---
 
