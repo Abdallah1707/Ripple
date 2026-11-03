@@ -613,6 +613,7 @@ namespace controller {
     class CommunicationController {
         +sendToGroup(Audience audience, Integer eventId, String channel, String subject, String body) Result
         +listMessageLog() List~MessageLogEntry~
+        +getMessageLimit(ContactChannel channel) int
     }
     class DashboardController {
         +getSummary() DashboardSummary
@@ -782,6 +783,8 @@ CommunicationController --> "1" CommunicationService
 CommunicationController --> "3" CommunicationStrategy : strategies
 CommunicationController --> "1" MessageLogRepository
 CommunicationController ..> Audience
+CommunicationController ..> SmsStrategy : reads MAX_LENGTH
+CommunicationController ..> SocialMediaStrategy : reads MAX_LENGTH
 DonationController ..> ApplicationLogger : logs changes
 VolunteerController ..> ApplicationLogger : logs changes
 EventController ..> ApplicationLogger : logs changes
@@ -798,13 +801,13 @@ CommunicationController ..> Result
 
 %% ---------- views ----------
 MainFrame *-- "1" StatusBar
-MainFrame *-- "1" DashboardPanel
-MainFrame *-- "1" DonationsPanel
-MainFrame *-- "1" VolunteersPanel
-MainFrame *-- "1" EventsPanel
-MainFrame *-- "1" BeneficiariesPanel
-MainFrame *-- "1" CommunicationPanel
-MainFrame *-- "1" LookupPanel
+MainFrame --> "1" DashboardPanel
+MainFrame --> "1" DonationsPanel
+MainFrame --> "1" VolunteersPanel
+MainFrame --> "1" EventsPanel
+MainFrame --> "1" BeneficiariesPanel
+MainFrame --> "1" CommunicationPanel
+MainFrame --> "1" LookupPanel
 LookupPanel *-- "2" LookupTablePanel
 DashboardPanel ..|> Refreshable
 DonationsPanel ..|> Refreshable
@@ -965,7 +968,7 @@ Small utilities added while coding. They are not part of the design, so they are
 | `LookupService o-- LookupRepository`, `DonationService o-- DonorRepository`, `DonationController o-- DonationService`, `VolunteerController o-- VolunteerRepository`, `DonationsPanel o-- DonationController`, `EventsPanel o-- EventController`, `BasicReceipt o-- Donation` | **Aggregation by the course rule**: each uses more than 5 methods of the other (7, 6, 9, 6, 8, 6 and 7). `EventController --> EventRepository` became a plain association once saving moved to `EventService` (5 methods left). Every other field is drawn as a plain association. |
 | `DonationService --> "4" DonationFactory` | Association, not aggregation: the service calls only `orderDonation(...)` on its creators. |
 | `CashDonationFactory ..> CashDonation : «create»` | Dependency, not association: a creator does not keep the objects it creates. |
-| `MainFrame *-- DashboardPanel` | **Composition**: the frame creates its panels and they live only inside it. |
+| `MainFrame *-- StatusBar`, `MainFrame --> DashboardPanel` (and the other six screens) | **Composition** for the status bar: `MainFrame` creates it (`new StatusBar()`) and it lives only inside the frame. **Association** for the screens: `Main` creates them and passes them in with `addScreen(...)`, so the frame does not create them, and it only calls `refresh()` on them (fewer than 5 methods, so not aggregation). `LookupPanel *-- LookupTablePanel` is composition because `LookupPanel` creates its two tabs. |
 | `ApplicationLogger` → itself (static `uniqueInstance`) | The Singleton holds its own only instance in a private static field. |
 
 ---

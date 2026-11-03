@@ -31,7 +31,7 @@ digraph Ripple {
     "VolunteerController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>VolunteerController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listVolunteers(): List&lt;Volunteer&gt;<BR ALIGN="LEFT"/>+saveVolunteer(id: Integer, name: String, email: String, phone: String, skills: String, availability: String): Result<BR ALIGN="LEFT"/>+deleteVolunteer(id: int): Result<BR ALIGN="LEFT"/>+assignToEvent(volunteerId: int, eventId: int): Result<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
     "EventController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>EventController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listEvents(): List&lt;Event&gt;<BR ALIGN="LEFT"/>+saveEvent(id: Integer, name: String, categoryId: int, date: String, location: String, description: String): Result<BR ALIGN="LEFT"/>+deleteEvent(id: int): Result<BR ALIGN="LEFT"/>+registerAttendee(eventId: int, name: String, email: String, phone: String): Result<BR ALIGN="LEFT"/>+listAttendees(eventId: int): List&lt;Attendee&gt;<BR ALIGN="LEFT"/>+listVolunteers(eventId: int): List&lt;Volunteer&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
     "BeneficiaryController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>BeneficiaryController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listBeneficiaries(): List&lt;Beneficiary&gt;<BR ALIGN="LEFT"/>+saveBeneficiary(id: Integer, name: String, email: String, phone: String, address: String, needs: String): Result<BR ALIGN="LEFT"/>+deleteBeneficiary(id: int): Result<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
-    "CommunicationController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>CommunicationController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+sendToGroup(audience: Audience, eventId: Integer, channel: String, subject: String, body: String): Result<BR ALIGN="LEFT"/>+listMessageLog(): List&lt;MessageLogEntry&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "CommunicationController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>CommunicationController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+sendToGroup(audience: Audience, eventId: Integer, channel: String, subject: String, body: String): Result<BR ALIGN="LEFT"/>+listMessageLog(): List&lt;MessageLogEntry&gt;<BR ALIGN="LEFT"/>+getMessageLimit(channel: ContactChannel): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
     "DashboardController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>DashboardController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getSummary(): DashboardSummary<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
   }
   subgraph cluster_service {
@@ -390,17 +390,19 @@ digraph Ripple {
   "CommunicationController" -> "CommunicationStrategy" [arrowhead=vee color="#6c7a96" label="strategies" headlabel="3"];
   "CommunicationController" -> "MessageLogRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
   "CommunicationController" -> "Audience" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "CommunicationController" -> "SmsStrategy" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="reads MAX_LENGTH"];
+  "CommunicationController" -> "SocialMediaStrategy" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="reads MAX_LENGTH"];
   "DashboardController" -> "ApplicationLogger" [arrowhead=vee color="#6c7a96" headlabel="1"];
   "DashboardController" -> "DashboardSummary" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false label="«create»"];
   "LookupController" -> "Result" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
   "MainFrame" -> "StatusBar" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "DashboardPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "DonationsPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "VolunteersPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "EventsPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "BeneficiariesPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "CommunicationPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
-  "MainFrame" -> "LookupPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "DashboardPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "MainFrame" -> "DonationsPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "MainFrame" -> "VolunteersPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "MainFrame" -> "EventsPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "MainFrame" -> "BeneficiariesPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "MainFrame" -> "CommunicationPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "MainFrame" -> "LookupPanel" [arrowhead=vee color="#6c7a96" headlabel="1"];
   "LookupPanel" -> "LookupTablePanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="2"];
   "Refreshable" -> "DashboardPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
   "Refreshable" -> "DonationsPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];

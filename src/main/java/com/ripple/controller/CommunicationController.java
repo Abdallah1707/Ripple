@@ -4,6 +4,8 @@ import com.ripple.communication.CommunicationService;
 import com.ripple.communication.CommunicationStrategy;
 import com.ripple.communication.DeliveryResult;
 import com.ripple.communication.MessageLogEntry;
+import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Contactable;
@@ -82,6 +84,17 @@ public class CommunicationController {
     /** The message log, newest first. */
     public List<MessageLogEntry> listMessageLog() {
         return messageLogRepository.findAll();
+    }
+
+    /** Max message length for a channel, or 0 if there is no limit. */
+    public int getMessageLimit(ContactChannel channel) {
+        if (channel == ContactChannel.SMS) {
+            return SmsStrategy.MAX_LENGTH;
+        }
+        if (channel == ContactChannel.SOCIAL) {
+            return SocialMediaStrategy.MAX_LENGTH;
+        }
+        return 0;
     }
 
     /** Loads the people in the chosen group. */

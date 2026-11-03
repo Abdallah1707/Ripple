@@ -1,8 +1,6 @@
 package com.ripple.view;
 
 import com.ripple.communication.MessageLogEntry;
-import com.ripple.communication.SmsStrategy;
-import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.controller.Audience;
 import com.ripple.controller.CommunicationController;
 import com.ripple.controller.EventController;
@@ -114,8 +112,10 @@ public class CommunicationPanel extends JPanel implements Refreshable {
 
         FormHelper.placeholder(subjectField, "e.g. Thank you for your support");
         subjectField.setToolTipText("Used for email; SMS messages have no subject");
-        channelBox.setToolTipText("SMS messages are limited to " + SmsStrategy.MAX_LENGTH + " characters, social media "
-                + "messages to " + SocialMediaStrategy.MAX_LENGTH + "; only donors have a social handle");
+        channelBox.setToolTipText("SMS messages are limited to "
+                + communicationController.getMessageLimit(ContactChannel.SMS) + " characters, social media "
+                + "messages to " + communicationController.getMessageLimit(ContactChannel.SOCIAL)
+                + "; only donors have a social handle");
         FormHelper.onEnter(this::send, subjectField);
         addRow(form, 6, new JLabel(), FormHelper.button("Send",
                 "Send this message to everyone in the chosen group", this::send));
@@ -145,9 +145,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
     private void updateLengthLabel() {
         int length = bodyArea.getText().length();
         ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
-        int limit = channel == ContactChannel.SMS ? SmsStrategy.MAX_LENGTH
-                : channel == ContactChannel.SOCIAL ? SocialMediaStrategy.MAX_LENGTH
-                : 0; // no limit for email
+        int limit = communicationController.getMessageLimit(channel); // 0 means no limit
         String text = limit == 0 ? length + " characters"
                 : length + " / " + limit + " characters (" + channel + " limit)";
         if (channel == ContactChannel.SOCIAL) {
