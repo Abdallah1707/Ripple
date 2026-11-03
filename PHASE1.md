@@ -167,7 +167,7 @@ Add "Emergency Relief" → try adding it again (rejected) → rename it → dele
 - [x] Save and load donations. When loading, rebuild each donation through the `DonationFactory` from Section 1.
 
 **2. Observer pattern**
-- [x] Two interfaces: `DonationSubject` (attach, detach, notify) and `DonationObserver` (one method: "a donation was recorded").
+- [x] Two interfaces: `DonationSubject` (`registerObserver`, `removeObserver`, `notifyObservers`) and `DonationObserver` (one method: "a donation was recorded").
 - [x] `DonationService` is the subject. When it saves a donation, it notifies all attached observers. If one observer fails, the others still run.
 - [x] A first observer, `DonationLogObserver`, writes a line to the log each time a donation is recorded.
 

@@ -3,13 +3,16 @@ package com.ripple.model;
 import java.time.LocalDateTime;
 import java.util.Locale;
 
-/** A donation of money handed over in cash. ConcreteProduct in the Factory pattern. */
+/**
+ * A donation of money handed over in cash. ConcreteProduct in the Factory Method pattern,
+ * created by {@code CashDonationFactory}.
+ */
 public class CashDonation extends Donation {
 
     private final double amount;
 
     /**
-     * Creates a cash donation. Use {@code DonationFactory} instead of calling this directly.
+     * Creates a cash donation. Use {@code CashDonationFactory} instead of calling this directly.
      *
      * @param donor        who gave it
      * @param donationType its lookup type

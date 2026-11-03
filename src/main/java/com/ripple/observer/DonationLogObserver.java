@@ -20,7 +20,7 @@ public class DonationLogObserver implements DonationObserver {
     }
 
     @Override
-    public void onDonationRecorded(Donation donation) {
+    public void update(Donation donation) {
         logger.info("Donation " + donation.getReceiptNumber() + " recorded: "
                 + donation.describe() + " from " + donation.getDonor().getName());
     }

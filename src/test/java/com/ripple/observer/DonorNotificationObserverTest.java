@@ -1,6 +1,7 @@
 package com.ripple.observer;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.communication.CommunicationService;
 import com.ripple.communication.EmailStrategy;
 import com.ripple.communication.MessageLogEntry;
@@ -42,13 +43,13 @@ class DonorNotificationObserverTest {
     @BeforeEach
     void setUp() {
         Database db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonationTypeRepository types = new DonationTypeRepository(db);
-        service = new DonationService(factory, new DonorRepository(db), new DonationRepository(db, factory), types);
+        service = new DonationService(factories, new DonorRepository(db), new DonationRepository(db, factories), types);
         log = new MessageLogRepository(db);
         notifier = new DonorNotificationObserver(new CommunicationService(log),
                 Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy()));
-        service.attach(notifier);
+        service.registerObserver(notifier);
         typeId = types.findAll().get(0).getId();
     }
 
@@ -81,11 +82,11 @@ class DonorNotificationObserverTest {
         donate(donor);
         assertEquals(1, log.findAll().size());
 
-        service.detach(notifier);
+        service.removeObserver(notifier);
         donate(donor);
         assertEquals(1, log.findAll().size());
 
-        service.attach(notifier);
+        service.registerObserver(notifier);
         donate(donor);
         assertEquals(2, log.findAll().size());
     }

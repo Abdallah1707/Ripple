@@ -181,8 +181,11 @@ public class DonationsPanel extends JPanel implements Refreshable {
         boolean cash = method == DonationMethod.CASH;
         boolean online = method == DonationMethod.ONLINE;
         boolean inKind = method == DonationMethod.IN_KIND;
-        setVisible(cash || online, amountLabel, amountField);
-        setVisible(online, referenceLabel, referenceField);
+        boolean cheque = method == DonationMethod.CHEQUE;
+        setVisible(cash || online || cheque, amountLabel, amountField);
+        // Online and cheque both use the reference field; only its label changes.
+        referenceLabel.setText(cheque ? "Cheque no." : "Transaction reference");
+        setVisible(online || cheque, referenceLabel, referenceField);
         setVisible(inKind, itemLabel, itemField, quantityLabel, quantityField, valueLabel, valueField);
         revalidate();
         repaint();

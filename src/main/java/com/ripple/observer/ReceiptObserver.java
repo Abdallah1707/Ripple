@@ -28,7 +28,7 @@ public class ReceiptObserver implements DonationObserver {
     }
 
     @Override
-    public void onDonationRecorded(Donation donation) {
+    public void update(Donation donation) {
         Receipt receipt = buildReceipt(donation);
         receiptRepository.save(donation.getId(), receipt.render());
     }

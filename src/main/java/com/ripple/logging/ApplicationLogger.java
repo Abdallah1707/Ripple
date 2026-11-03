@@ -24,10 +24,12 @@ import java.util.List;
  * <p><b>How the single instance is guaranteed:</b> the constructor is private, so no
  * other class can call {@code new ApplicationLogger()}. The instance is created once when
  * the JVM loads this class, which Java guarantees is thread-safe without {@code synchronized}.
+ * This is "Option B: eager instantiation" from the lab slides; the trade-off is that the
+ * logger is created even if nothing logs, which is fine because Ripple always logs at start-up.
  */
 public final class ApplicationLogger {
 
-    private static final ApplicationLogger INSTANCE = new ApplicationLogger();
+    private static final ApplicationLogger uniqueInstance = new ApplicationLogger();
 
     private static final int MAX_RECENT_ENTRIES = 100;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -46,7 +48,7 @@ public final class ApplicationLogger {
      * @return the shared logger
      */
     public static ApplicationLogger getInstance() {
-        return INSTANCE;
+        return uniqueInstance;
     }
 
     /**

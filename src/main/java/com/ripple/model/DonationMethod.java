@@ -1,13 +1,15 @@
 package com.ripple.model;
 
 /**
- * How a donation was given. {@link com.ripple.factory.DonationFactory} uses this value to
- * decide which {@link Donation} subclass to create.
+ * How a donation was given. Each method has its own creator (a subclass of
+ * {@link com.ripple.factory.DonationFactory}), and {@code Main} keeps them in a map keyed by
+ * this value, so choosing a method picks the creator without any {@code if/else}.
  */
 public enum DonationMethod {
     CASH("Cash"),
     ONLINE("Online"),
-    IN_KIND("In-kind");
+    IN_KIND("In-kind"),
+    CHEQUE("Cheque");
 
     private final String label;
 

@@ -5,9 +5,9 @@ import java.time.LocalDateTime;
 /**
  * A donation: who gave it, its type, and when it was recorded.
  *
- * <p>This is the <b>Product</b> in the Factory pattern. The three kinds of donation
- * ({@link CashDonation}, {@link OnlineDonation}, {@link InKindDonation}) are created only by
- * {@code DonationFactory}. The rest of the app works with {@code Donation} and calls
+ * <p>This is the <b>Product</b> in the Factory Method pattern. The four kinds of donation
+ * ({@link CashDonation}, {@link OnlineDonation}, {@link InKindDonation}, {@link ChequeDonation})
+ * are created only by the subclasses of {@code DonationFactory}, one creator per kind. The rest of the app works with {@code Donation} and calls
  * {@link #getValue()} and {@link #describe()} without knowing which kind it has
  * (polymorphism).
  */

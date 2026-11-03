@@ -11,9 +11,14 @@ import com.ripple.controller.DonationController;
 import com.ripple.controller.EventController;
 import com.ripple.controller.LookupController;
 import com.ripple.controller.VolunteerController;
+import com.ripple.factory.CashDonationFactory;
+import com.ripple.factory.ChequeDonationFactory;
 import com.ripple.factory.DonationFactory;
+import com.ripple.factory.InKindDonationFactory;
+import com.ripple.factory.OnlineDonationFactory;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.ContactChannel;
+import com.ripple.model.DonationMethod;
 import com.ripple.model.DonationType;
 import com.ripple.model.EventCategory;
 import com.ripple.observer.DonationLogObserver;
@@ -43,6 +48,7 @@ import com.ripple.view.VolunteersPanel;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import java.util.EnumMap;
 import java.util.Map;
 
 /**
@@ -53,7 +59,7 @@ import java.util.Map;
  * (see {@code docs/architecture.md}, "Composition root"):
  * <ol>
  *   <li>{@code Database}, then {@code initialize()} it;</li>
- *   <li>{@code DonationFactory}, then the repositories;</li>
+ *   <li>the donation creators (one {@code DonationFactory} per method), then the repositories;</li>
  *   <li>the communication strategies;</li>
  *   <li>the services;</li>
  *   <li>the observers, attached to {@code DonationService};</li>
@@ -94,17 +100,24 @@ public final class Main {
         LookupService<EventCategory> eventCategoryService =
                 new LookupService<>(new EventCategoryRepository(database), "Event category");
 
-        // Section 2: DonationFactory, DonorRepository, DonationRepository, DonationService, DonationLogObserver
-        DonationFactory donationFactory = new DonationFactory();
+        // Section 2: donation creators, DonorRepository, DonationRepository, DonationService, DonationLogObserver
+        // Factory Method: one Concrete Creator per method, keyed by the method it makes, so the
+        // service picks a creator with factories.get(method) instead of an if/else chain.
+        Map<DonationMethod, DonationFactory> donationFactories = new EnumMap<>(DonationMethod.class);
+        DonationFactory[] creators = {new CashDonationFactory(), new OnlineDonationFactory(),
+                new InKindDonationFactory(), new ChequeDonationFactory()};
+        for (DonationFactory creator : creators) {
+            donationFactories.put(creator.getMethod(), creator);
+        }
         DonorRepository donorRepository = new DonorRepository(database);
-        DonationRepository donationRepository = new DonationRepository(database, donationFactory);
-        DonationService donationService = new DonationService(donationFactory, donorRepository,
+        DonationRepository donationRepository = new DonationRepository(database, donationFactories);
+        DonationService donationService = new DonationService(donationFactories, donorRepository,
                 donationRepository, new DonationTypeRepository(database));
         // Observers: attached to the subject (DonationService).
-        donationService.attach(new DonationLogObserver());
+        donationService.registerObserver(new DonationLogObserver());
         // Section 3: ReceiptRepository, ReceiptObserver
         ReceiptRepository receiptRepository = new ReceiptRepository(database);
-        donationService.attach(new ReceiptObserver(receiptRepository));
+        donationService.registerObserver(new ReceiptObserver(receiptRepository));
         // Section 4: VolunteerRepository, EventRepository, BeneficiaryRepository
         VolunteerRepository volunteerRepository = new VolunteerRepository(database);
         EventRepository eventRepository = new EventRepository(database);
@@ -116,7 +129,7 @@ public final class Main {
         CommunicationService communicationService = new CommunicationService(messageLogRepository);
         // Donor notification starts attached (CR5); the Donations screen checkbox can detach it.
         DonorNotificationObserver donorNotifier = new DonorNotificationObserver(communicationService, strategies);
-        donationService.attach(donorNotifier);
+        donationService.registerObserver(donorNotifier);
 
         // ---- Controllers ----
         // Section 1: LookupController

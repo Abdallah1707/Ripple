@@ -1,45 +1,41 @@
 package com.ripple.factory;
 
-import com.ripple.model.CashDonation;
 import com.ripple.model.Donation;
 import com.ripple.model.DonationMethod;
 import com.ripple.model.DonationType;
 import com.ripple.model.Donor;
-import com.ripple.model.InKindDonation;
-import com.ripple.model.OnlineDonation;
-import com.ripple.service.InputValidator;
 import com.ripple.service.ValidationException;
 
 import java.time.LocalDateTime;
-import java.util.Locale;
 
 /**
- * Factory in the Factory pattern: the <b>only</b> place that decides which {@link Donation}
- * subclass to create, and checks that the details make sense for that kind of donation.
+ * Creator in the Factory Method pattern (like {@code PizzaStore} in the lab slides).
  *
- * <p>Callers ask for "a donation of method X" and get back a {@code Donation}; they never
- * call {@code new CashDonation(...)} themselves. Adding a new method (e.g. cheques) means
- * one new subclass and one new {@code case} here, and nothing else changes.
+ * <p>{@link #orderDonation} is the common workflow that every kind of donation goes through
+ * (like {@code orderPizza()}): check the shared details, stamp the time, then call the
+ * <b>factory method</b> {@link #createDonation}. Each subclass ({@link CashDonationFactory},
+ * {@link OnlineDonationFactory}, {@link InKindDonationFactory}, {@link ChequeDonationFactory})
+ * is a Concrete Creator: it decides which {@link Donation} subclass to create and checks the
+ * fields that only that kind needs.
  *
- * <p>Used when a new donation is recorded and also when donations are loaded from the
- * database, so every donation object in the app comes from here.
+ * <p>Callers hold a {@code DonationFactory} and never name a concrete donation class. Adding a
+ * new method means one new product and one new creator; this class and its callers do not
+ * change ("closed for modification, open for extension").
  */
-public class DonationFactory {
+public abstract class DonationFactory {
 
     /**
-     * Creates the right kind of donation for {@code method}.
+     * The common workflow: checks what every donation needs, then lets the subclass create it.
+     * It is {@code final} so a subclass can change <i>what</i> is created but not the steps
+     * (the Hollywood principle: "don't call us, we'll call you").
      *
-     * @param method  how the donation was given
      * @param donor   who gave it
      * @param type    its donation type (lookup)
-     * @param request the details; only the fields for {@code method} are used
-     * @return a {@link CashDonation}, {@link OnlineDonation} or {@link InKindDonation}
+     * @param request the details; each creator reads only its own fields
+     * @return the new donation (not saved yet)
      * @throws ValidationException if anything is missing or the details are invalid
      */
-    public Donation create(DonationMethod method, Donor donor, DonationType type, DonationRequest request) {
-        if (method == null) {
-            throw new ValidationException("Donation method is required");
-        }
+    public final Donation orderDonation(Donor donor, DonationType type, DonationRequest request) {
         if (donor == null) {
             throw new ValidationException("Donor is required");
         }
@@ -49,63 +45,43 @@ public class DonationFactory {
         if (request == null) {
             throw new ValidationException("Donation details are required");
         }
-        return switch (method) {
-            case CASH -> createCash(donor, type, request);
-            case ONLINE -> createOnline(donor, type, request);
-            case IN_KIND -> createInKind(donor, type, request);
-        };
+        // New donations are stamped with the current time (CR3); loaded ones keep their stored time.
+        LocalDateTime createdAt = request.createdAt() != null ? request.createdAt() : LocalDateTime.now();
+
+        Donation donation = createDonation(donor, type, request, createdAt);
+        return donation;
     }
 
     /**
-     * Converts a method name typed or chosen by the user into a {@link DonationMethod}.
-     * Accepts the enum name or the label, ignoring case: {@code "online"}, {@code "In-kind"}.
+     * The factory method: creates this creator's kind of donation and checks its own fields.
      *
-     * @param name the method name
-     * @return the matching method
-     * @throws ValidationException if the name is blank or not a supported method
+     * @param donor     who gave it (never {@code null})
+     * @param type      its donation type (never {@code null})
+     * @param request   the details (never {@code null})
+     * @param createdAt when it was recorded
+     * @return the new donation
+     * @throws ValidationException if the details are invalid for this kind of donation
      */
-    public DonationMethod parseMethod(String name) {
-        if (name == null || name.isBlank()) {
-            throw new ValidationException("Donation method is required");
-        }
-        String key = name.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
-        try {
-            return DonationMethod.valueOf(key);
-        } catch (IllegalArgumentException e) {
-            throw new ValidationException("Unsupported donation method: " + name.trim());
-        }
-    }
+    protected abstract Donation createDonation(Donor donor, DonationType type, DonationRequest request,
+                                               LocalDateTime createdAt);
 
-    private CashDonation createCash(Donor donor, DonationType type, DonationRequest request) {
-        requirePositiveAmount(request.amount());
-        return new CashDonation(donor, type, createdAtOf(request), request.amount());
-    }
+    /**
+     * Tells which method this creator handles. {@code Main} uses it as the key of the
+     * creators map, so the right creator is picked without any {@code if/else}.
+     *
+     * @return the donation method this creator makes
+     */
+    public abstract DonationMethod getMethod();
 
-    private OnlineDonation createOnline(Donor donor, DonationType type, DonationRequest request) {
-        requirePositiveAmount(request.amount());
-        String reference = InputValidator.requireText(request.transactionReference(), "Transaction reference", 3, 50);
-        return new OnlineDonation(donor, type, createdAtOf(request), request.amount(), reference);
-    }
-
-    private InKindDonation createInKind(Donor donor, DonationType type, DonationRequest request) {
-        String item = InputValidator.requireText(request.itemDescription(), "Item description", 2, 100);
-        if (request.quantity() <= 0) {
-            throw new ValidationException("Quantity must be greater than 0");
-        }
-        if (!(request.estimatedValue() >= 0)) { // written this way so NaN is rejected too
-            throw new ValidationException("Estimated value cannot be negative");
-        }
-        return new InKindDonation(donor, type, createdAtOf(request), item, request.quantity(), request.estimatedValue());
-    }
-
-    private static void requirePositiveAmount(double amount) {
-        if (!(amount > 0)) {
+    /**
+     * Shared rule for the money donations (cash, online, cheque).
+     *
+     * @param amount the amount in EGP
+     * @throws ValidationException if the amount is not greater than 0
+     */
+    protected static void requirePositiveAmount(double amount) {
+        if (!(amount > 0)) { // written this way so NaN is rejected too
             throw new ValidationException("Amount must be greater than 0");
         }
-    }
-
-    /** New donations are stamped with the current time (CR3); loaded ones keep their stored time. */
-    private static LocalDateTime createdAtOf(DonationRequest request) {
-        return request.createdAt() != null ? request.createdAt() : LocalDateTime.now();
     }
 }

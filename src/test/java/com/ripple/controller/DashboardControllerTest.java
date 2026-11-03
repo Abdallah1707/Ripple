@@ -1,6 +1,7 @@
 package com.ripple.controller;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,16 +45,16 @@ class DashboardControllerTest {
     @BeforeEach
     void setUp() {
         db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonorRepository donors = new DonorRepository(db);
-        DonationRepository donations = new DonationRepository(db, factory);
+        DonationRepository donations = new DonationRepository(db, factories);
         VolunteerRepository volunteers = new VolunteerRepository(db);
         EventRepository events = new EventRepository(db);
         BeneficiaryRepository beneficiaries = new BeneficiaryRepository(db);
         donationTypes = new DonationTypeRepository(db);
 
         dashboard = new DashboardController(donors, donations, volunteers, events, beneficiaries);
-        donationService = new DonationService(factory, donors, donations, donationTypes);
+        donationService = new DonationService(factories, donors, donations, donationTypes);
         volunteerController = new VolunteerController(volunteers);
         eventController = new EventController(events, volunteers);
         beneficiaryController = new BeneficiaryController(beneficiaries);
@@ -137,7 +139,7 @@ class DashboardControllerTest {
         // A database file that was never initialized has no tables, so every count fails.
         Database broken = new Database(tempDir.resolve("broken.db").toString());
         DashboardController brokenDashboard = new DashboardController(new DonorRepository(broken),
-                new DonationRepository(broken, new DonationFactory()), new VolunteerRepository(broken),
+                new DonationRepository(broken, TestFactories.all()), new VolunteerRepository(broken),
                 new EventRepository(broken), new BeneficiaryRepository(broken));
 
         DashboardSummary summary = brokenDashboard.getSummary();

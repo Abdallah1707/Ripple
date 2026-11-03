@@ -1,6 +1,7 @@
 package com.ripple.service;
 
 import com.ripple.TestDatabase;
+import com.ripple.TestFactories;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.CashDonation;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -36,7 +38,7 @@ class DonationServiceTest {
         Donation last;
 
         @Override
-        public void onDonationRecorded(Donation donation) {
+        public void update(Donation donation) {
             calls++;
             last = donation;
         }
@@ -45,7 +47,7 @@ class DonationServiceTest {
     /** An observer that always fails. */
     private static class BrokenObserver implements DonationObserver {
         @Override
-        public void onDonationRecorded(Donation donation) {
+        public void update(Donation donation) {
             throw new IllegalStateException("broken on purpose");
         }
     }
@@ -61,14 +63,14 @@ class DonationServiceTest {
     @BeforeEach
     void setUp() {
         Database db = TestDatabase.create(tempDir);
-        DonationFactory factory = new DonationFactory();
+        Map<DonationMethod, DonationFactory> factories = TestFactories.all();
         DonationTypeRepository types = new DonationTypeRepository(db);
-        service = new DonationService(factory, new DonorRepository(db),
-                new DonationRepository(db, factory), types);
+        service = new DonationService(factories, new DonorRepository(db),
+                new DonationRepository(db, factories), types);
         donor = service.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
         typeId = types.findAll().get(0).getId();
         observer = new CountingObserver();
-        service.attach(observer);
+        service.registerObserver(observer);
     }
 
     private DonationRequest cash(double amount) {
@@ -186,15 +188,15 @@ class DonationServiceTest {
 
     @Test
     void detachedObserverIsNotNotified() {
-        service.detach(observer);
+        service.removeObserver(observer);
         service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(100));
         assertEquals(0, observer.calls);
-        assertFalse(service.isAttached(observer));
+        assertFalse(service.isRegistered(observer));
     }
 
     @Test
     void attachingTwiceNotifiesOnlyOnce() {
-        service.attach(observer); // already attached in setUp
+        service.registerObserver(observer); // already attached in setUp
         service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(100));
         assertEquals(1, observer.calls);
     }
@@ -202,8 +204,8 @@ class DonationServiceTest {
     @Test
     void aFailingObserverDoesNotStopTheOthers() {
         CountingObserver after = new CountingObserver();
-        service.attach(new BrokenObserver());
-        service.attach(after);
+        service.registerObserver(new BrokenObserver());
+        service.registerObserver(after);
 
         service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(100));
 

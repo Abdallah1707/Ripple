@@ -16,6 +16,7 @@ import com.ripple.repository.LookupRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Business rules for donors and donations. Also the <b>Subject</b> in the Observer pattern:
@@ -23,12 +24,13 @@ import java.util.List;
  *
  * <p>This class does not know what the observers do (log, receipt, thank-you message...).
  * That is the point of the pattern: new reactions can be added without changing this class.
- * It uses {@link DonationFactory} (Factory pattern) to create and validate donations.
+ * It picks the {@link DonationFactory} creator for the chosen method (Factory Method pattern)
+ * to create and validate donations.
  */
 public class DonationService implements DonationSubject {
 
     private final List<DonationObserver> observers = new ArrayList<>();
-    private final DonationFactory factory;
+    private final Map<DonationMethod, DonationFactory> factories;
     private final DonorRepository donorRepository;
     private final DonationRepository donationRepository;
     private final LookupRepository<DonationType> donationTypeRepository;
@@ -36,15 +38,15 @@ public class DonationService implements DonationSubject {
     /**
      * Creates the service.
      *
-     * @param factory                creates and validates donations
+     * @param factories              one creator per donation method (built in {@code Main})
      * @param donorRepository        donor storage
      * @param donationRepository     donation storage
      * @param donationTypeRepository donation type storage (to find the chosen type)
      */
-    public DonationService(DonationFactory factory, DonorRepository donorRepository,
+    public DonationService(Map<DonationMethod, DonationFactory> factories, DonorRepository donorRepository,
                            DonationRepository donationRepository,
                            LookupRepository<DonationType> donationTypeRepository) {
-        this.factory = factory;
+        this.factories = factories;
         this.donorRepository = donorRepository;
         this.donationRepository = donationRepository;
         this.donationTypeRepository = donationTypeRepository;
@@ -53,23 +55,23 @@ public class DonationService implements DonationSubject {
     // ---------------- Observer pattern: the Subject's methods ----------------
 
     @Override
-    public void attach(DonationObserver observer) {
-        if (observer != null && !observers.contains(observer)) { // attaching twice has no effect
+    public void registerObserver(DonationObserver observer) {
+        if (observer != null && !observers.contains(observer)) { // registering twice has no effect
             observers.add(observer);
         }
     }
 
     @Override
-    public void detach(DonationObserver observer) {
+    public void removeObserver(DonationObserver observer) {
         observers.remove(observer);
     }
 
     @Override
     public void notifyObservers(Donation donation) {
-        // Loop over a copy so an observer may detach itself while being notified.
+        // Loop over a copy so an observer may remove itself while being notified.
         for (DonationObserver observer : new ArrayList<>(observers)) {
             try {
-                observer.onDonationRecorded(donation);
+                observer.update(donation);
             } catch (RuntimeException e) {
                 // One failing observer must not stop the others from running.
                 ApplicationLogger.getInstance().error(
@@ -84,7 +86,7 @@ public class DonationService implements DonationSubject {
      * @param observer the observer to look for
      * @return {@code true} if it is attached
      */
-    public boolean isAttached(DonationObserver observer) {
+    public boolean isRegistered(DonationObserver observer) {
         return observers.contains(observer);
     }
 
@@ -149,7 +151,14 @@ public class DonationService implements DonationSubject {
         DonationType type = donationTypeRepository.findById(donationTypeId)
                 .orElseThrow(() -> new ValidationException("Please choose a donation type"));
 
-        Donation donation = factory.create(method, donor, type, request); // validates the details
+        if (method == null) {
+            throw new ValidationException("Donation method is required");
+        }
+        DonationFactory factory = factories.get(method); // the creator for this method, no if/else
+        if (factory == null) {
+            throw new ValidationException("Unsupported donation method: " + method.getLabel());
+        }
+        Donation donation = factory.orderDonation(donor, type, request); // validates the details
         donationRepository.insert(donation);
         notifyObservers(donation);
         return donation;

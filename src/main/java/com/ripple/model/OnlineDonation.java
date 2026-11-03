@@ -5,7 +5,8 @@ import java.util.Locale;
 
 /**
  * A donation of money paid online, identified by the payment's transaction reference.
- * ConcreteProduct in the Factory pattern.
+ * ConcreteProduct in the Factory Method pattern,
+ * created by {@code OnlineDonationFactory}.
  */
 public class OnlineDonation extends Donation {
 
@@ -13,7 +14,7 @@ public class OnlineDonation extends Donation {
     private final String transactionReference;
 
     /**
-     * Creates an online donation. Use {@code DonationFactory} instead of calling this directly.
+     * Creates an online donation. Use {@code OnlineDonationFactory} instead of calling this directly.
      *
      * @param donor                who gave it
      * @param donationType         its lookup type

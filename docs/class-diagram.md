@@ -19,7 +19,7 @@ Related: [architecture.md](architecture.md) (layers, object wiring, sequence dia
 | `A --> B` (solid line, open arrow) | **Association** | `A` keeps a field of type `B` | `CommunicationService --> CommunicationStrategy` |
 | `A o-- B` (hollow diamond at A) | **Aggregation** | `A` holds `B` but does not own its life; `B` is created elsewhere and passed in | `DonationService o-- DonationObserver` |
 | `A *-- B` (filled diamond at A) | **Composition** | `A` creates and owns `B`; `B` lives and dies with `A` | `MainFrame *-- StatusBar` |
-| `A ..> B` (dashed line, open arrow) | **Dependency** | `A` uses `B` only inside a method (parameter, return, local, or `new`) | `DonationFactory ..> CashDonation : «create»` |
+| `A ..> B` (dashed line, open arrow) | **Dependency** | `A` uses `B` only inside a method (parameter, return, local, or `new`) | `CashDonationFactory ..> CashDonation : «create»` |
 
 ### Multiplicities
 
@@ -35,7 +35,7 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | `name()$` / `field$` | static method / static field |
 | `List~T~` | generic type, i.e. `List<T>` |
 | `<<interface>>`, `<<abstract>>`, `<<enumeration>>`, `<<record>>` | kind of type |
-| `<<Singleton>>`, `<<Subject>>`, `<<Observer>>`, `<<Strategy>>`, `<<Context>>`, `<<Component>>`, `<<Decorator>>`, `<<Factory>>` | the design-pattern role the class plays |
+| `<<Singleton>>`, `<<Subject>>`, `<<Observer>>`, `<<Strategy>>`, `<<Context>>`, `<<Component>>`, `<<Decorator>>`, `<<ConcreteCreator>>` | the design-pattern role the class plays |
 
 ### What is left out on purpose
 
@@ -74,6 +74,7 @@ namespace model {
         CASH
         ONLINE
         IN_KIND
+        CHEQUE
         +getLabel() String
     }
     class Donor {
@@ -112,6 +113,13 @@ namespace model {
         -String itemDescription
         -int quantity
         -double estimatedValue
+        +getMethod() DonationMethod
+        +getValue() double
+        +describe() String
+    }
+    class ChequeDonation {
+        -double amount
+        -String chequeNumber
         +getMethod() DonationMethod
         +getValue() double
         +describe() String
@@ -163,14 +171,31 @@ namespace model {
 %% ===================== factory =====================
 namespace factory {
     class DonationFactory {
-        <<Factory>>
-        +create(DonationMethod method, Donor donor, DonationType type, DonationRequest request) Donation
-        +parseMethod(String name) DonationMethod
-        -createCash(Donor, DonationType, DonationRequest) CashDonation
-        -createOnline(Donor, DonationType, DonationRequest) OnlineDonation
-        -createInKind(Donor, DonationType, DonationRequest) InKindDonation
-        -requirePositiveAmount(double amount)$ void
-        -createdAtOf(DonationRequest request)$ LocalDateTime
+        <<abstract>>
+        +orderDonation(Donor donor, DonationType type, DonationRequest request) Donation
+        #createDonation(Donor donor, DonationType type, DonationRequest request, LocalDateTime createdAt)* Donation
+        +getMethod()* DonationMethod
+        #requirePositiveAmount(double amount)$ void
+    }
+    class CashDonationFactory {
+        <<ConcreteCreator>>
+        #createDonation(Donor donor, DonationType type, DonationRequest request, LocalDateTime createdAt) Donation
+        +getMethod() DonationMethod
+    }
+    class OnlineDonationFactory {
+        <<ConcreteCreator>>
+        #createDonation(Donor donor, DonationType type, DonationRequest request, LocalDateTime createdAt) Donation
+        +getMethod() DonationMethod
+    }
+    class InKindDonationFactory {
+        <<ConcreteCreator>>
+        #createDonation(Donor donor, DonationType type, DonationRequest request, LocalDateTime createdAt) Donation
+        +getMethod() DonationMethod
+    }
+    class ChequeDonationFactory {
+        <<ConcreteCreator>>
+        #createDonation(Donor donor, DonationType type, DonationRequest request, LocalDateTime createdAt) Donation
+        +getMethod() DonationMethod
     }
     class DonationRequest {
         <<record>>
@@ -187,30 +212,30 @@ namespace factory {
 namespace observer {
     class DonationSubject {
         <<interface>>
-        +attach(DonationObserver observer) void
-        +detach(DonationObserver observer) void
+        +registerObserver(DonationObserver observer) void
+        +removeObserver(DonationObserver observer) void
         +notifyObservers(Donation donation) void
     }
     class DonationObserver {
         <<interface>>
-        +onDonationRecorded(Donation donation) void
+        +update(Donation donation) void
     }
     class DonationLogObserver {
         <<Observer>>
         -ApplicationLogger logger
-        +onDonationRecorded(Donation donation) void
+        +update(Donation donation) void
     }
     class ReceiptObserver {
         <<Observer>>
         -ReceiptRepository receiptRepository
-        +onDonationRecorded(Donation donation) void
+        +update(Donation donation) void
         +buildReceipt(Donation donation) Receipt
     }
     class DonorNotificationObserver {
         <<Observer>>
         -CommunicationService communicationService
         -Map~ContactChannel, CommunicationStrategy~ strategies
-        +onDonationRecorded(Donation donation) void
+        +update(Donation donation) void
     }
 }
 
@@ -307,7 +332,7 @@ namespace communication {
 namespace logging {
     class ApplicationLogger {
         <<Singleton>>
-        -ApplicationLogger INSTANCE$
+        -ApplicationLogger uniqueInstance$
         -Path logFile
         -Deque~String~ recentEntries
         -ApplicationLogger()
@@ -354,7 +379,7 @@ namespace repository {
     }
     class DonationRepository {
         -Database database
-        -DonationFactory factory
+        -Map~DonationMethod, DonationFactory~ factories
         +insert(Donation donation) Donation
         +findAll() List~Donation~
         +count() int
@@ -427,14 +452,14 @@ namespace service {
     class DonationService {
         <<Subject>>
         -List~DonationObserver~ observers
-        -DonationFactory factory
+        -Map~DonationMethod, DonationFactory~ factories
         -DonorRepository donorRepository
         -DonationRepository donationRepository
         -LookupRepository~DonationType~ donationTypeRepository
-        +attach(DonationObserver observer) void
-        +detach(DonationObserver observer) void
+        +registerObserver(DonationObserver observer) void
+        +removeObserver(DonationObserver observer) void
         +notifyObservers(Donation donation) void
-        +isAttached(DonationObserver observer) boolean
+        +isRegistered(DonationObserver observer) boolean
         +registerDonor(String name, String email, String phone, ContactChannel channel) Donor
         +findAllDonors() List~Donor~
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
@@ -624,6 +649,7 @@ Donor "*" --> "1" ContactChannel : preferredChannel
 CashDonation --|> Donation
 OnlineDonation --|> Donation
 InKindDonation --|> Donation
+ChequeDonation --|> Donation
 Donation "*" --> "1" Donor : donor
 Donation "*" --> "1" DonationType : donationType
 Donation ..> DonationMethod
@@ -633,11 +659,17 @@ Event "*" --> "1" EventCategory : category
 Attendee "*" --> "1" Event : eventId
 Event "*" -- "*" Volunteer : assigned via event_volunteers
 
-%% ---------- Factory ----------
+%% ---------- Factory Method ----------
+CashDonationFactory --|> DonationFactory
+OnlineDonationFactory --|> DonationFactory
+InKindDonationFactory --|> DonationFactory
+ChequeDonationFactory --|> DonationFactory
+DonationFactory ..> Donation : «create» (factory method)
 DonationFactory ..> DonationRequest : reads
-DonationFactory ..> CashDonation : «create»
-DonationFactory ..> OnlineDonation : «create»
-DonationFactory ..> InKindDonation : «create»
+CashDonationFactory ..> CashDonation : «create»
+OnlineDonationFactory ..> OnlineDonation : «create»
+InKindDonationFactory ..> InKindDonation : «create»
+ChequeDonationFactory ..> ChequeDonation : «create»
 DonationFactory ..> ValidationException : throws
 
 %% ---------- Observer ----------
@@ -680,7 +712,7 @@ DonationTypeRepository --> Database
 EventCategoryRepository --> Database
 DonorRepository --> Database
 DonationRepository --> Database
-DonationRepository --> "1" DonationFactory : rebuilds rows
+DonationRepository --> "4" DonationFactory : rebuilds rows
 ReceiptRepository --> Database
 VolunteerRepository --> Database
 EventRepository --> Database
@@ -692,7 +724,7 @@ MessageLogRepository ..> MessageLogEntry
 LookupService --> "1" LookupRepository
 LookupService ..> InputValidator
 LookupService ..> ValidationException : throws
-DonationService --> "1" DonationFactory
+DonationService o-- "4" DonationFactory : factories
 DonationService --> "1" DonorRepository
 DonationService --> "1" DonationRepository
 DonationService --> "1" LookupRepository : donation types
@@ -704,7 +736,7 @@ LookupController ..> LookupKind
 LookupController ..> ApplicationLogger : logs changes
 DonationController --> "1" DonationService
 DonationController --> "1" ReceiptRepository
-DonationController --> "1" DonorNotificationObserver : attach / detach
+DonationController --> "1" DonorNotificationObserver : registerObserver / removeObserver
 VolunteerController --> "1" VolunteerRepository
 EventController --> "1" EventRepository
 EventController --> "1" VolunteerRepository
@@ -769,26 +801,27 @@ Main ..> MainFrame : «create»
 |---|---|---|
 | `Contactable` | interface | Anything Ripple can message: name, email, phone. Lets communication treat donors, volunteers, attendees and beneficiaries the same way (polymorphism). |
 | `ContactChannel` | enum | `EMAIL`, `SMS`. |
-| `DonationMethod` | enum | `CASH`, `ONLINE`, `IN_KIND` — the key the factory switches on. |
+| `DonationMethod` | enum | `CASH`, `ONLINE`, `IN_KIND`, `CHEQUE` — the key of the creators map built in `Main`. |
 | `Donor` | class | A person or company that donates; has a preferred channel (CR5). |
 | `Donation` | abstract class | Common donation data (donor, type, timestamp — CR3) and the abstract operations each kind must define. |
-| `CashDonation`, `OnlineDonation`, `InKindDonation` | classes | The three concrete donation kinds; each computes its own `getValue()` and `describe()`. |
+| `CashDonation`, `OnlineDonation`, `InKindDonation`, `ChequeDonation` | classes | The four concrete donation kinds (Concrete Products); each computes its own `getValue()` and `describe()`. |
 | `LookupEntry` | abstract class | Shared shape of lookup rows: id, name, description. |
 | `DonationType` | class | Lookup row, plus the tax-deductible flag (CR4). |
 | `EventCategory` | class | Lookup row. |
 | `Volunteer`, `Event`, `Attendee`, `Beneficiary` | classes | Entities of the other modules. |
 
-### `com.ripple.factory` — Factory pattern
+### `com.ripple.factory` — Factory Method pattern
 | Class | Kind | Responsibility |
 |---|---|---|
-| `DonationFactory` | class | The **only** place that decides which `Donation` subclass to build and validates its method-specific fields. Unknown methods throw `ValidationException`. |
-| `DonationRequest` | record | Carries the already-parsed form values into the factory. |
+| `DonationFactory` | abstract class | **Creator.** `orderDonation(...)` is the fixed workflow (shared checks, time stamp) and calls the abstract factory method `createDonation(...)`. |
+| `CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory` | classes | **Concrete Creators.** Each implements `createDonation(...)` for its own `Donation` subclass and validates that kind's fields; `getMethod()` is its key in the creators map. |
+| `DonationRequest` | record | Carries the already-parsed form values into the creator (a cheque's number travels in `transactionReference`). |
 
 ### `com.ripple.observer` — Observer pattern
 | Class | Kind | Responsibility |
 |---|---|---|
-| `DonationSubject` | interface | attach / detach / notify. |
-| `DonationObserver` | interface | `onDonationRecorded(donation)`. |
+| `DonationSubject` | interface | registerObserver / removeObserver / notifyObservers. |
+| `DonationObserver` | interface | `update(donation)` (push model: the donation is passed in). |
 | `DonationLogObserver` | class | Writes the donation to the application log. |
 | `ReceiptObserver` | class | Builds the decorated receipt and stores it. |
 | `DonorNotificationObserver` | class | Picks the strategy for the donor's preferred channel and sends a thank-you. |
@@ -821,13 +854,13 @@ Main ..> MainFrame : «create»
 | `Database` | Connection URL (from `RIPPLE_DB_PATH`), opens connections with foreign keys on, creates schema and seed data. |
 | `LookupRepository<T>` | Common contract for both lookup tables, including `countUsages` for CR2. |
 | `DonationTypeRepository`, `EventCategoryRepository` | SQL for the two lookup tables. |
-| `DonorRepository`, `DonationRepository`, `ReceiptRepository`, `VolunteerRepository`, `EventRepository`, `BeneficiaryRepository`, `MessageLogRepository` | SQL for each table group. `DonationRepository` uses `DonationFactory` to rebuild the right subclass from a row. |
+| `DonorRepository`, `DonationRepository`, `ReceiptRepository`, `VolunteerRepository`, `EventRepository`, `BeneficiaryRepository`, `MessageLogRepository` | SQL for each table group. `DonationRepository` uses the creator for each row's method to rebuild the right subclass. |
 
 ### `com.ripple.service` — business rules (Model)
 | Class | Responsibility |
 |---|---|
 | `LookupService<T>` | One implementation of the lookup rules (CR1, CR2) used for both tables. |
-| `DonationService` | Registers donors, records donations through the factory, and is the Observer **Subject**. |
+| `DonationService` | Registers donors, records donations through the creator for the chosen method, and is the Observer **Subject**. |
 | `InputValidator` | Shared static checks and parsing (text length, email, phone, numbers). |
 | `ValidationException` | `extends RuntimeException`; carries a message meant for the user. |
 
@@ -866,9 +899,9 @@ Main ..> MainFrame : «create»
 | `DonationService "1" o-- "0..*" DonationObserver` | **Aggregation**: observers are created in `Main` and attached; the service only holds them. Zero observers is valid. |
 | `ReceiptDecorator o-- "1" Receipt` | The heart of Decorator: a decorator **is-a** `Receipt` (realization) and **has-a** `Receipt` (aggregation). |
 | `CommunicationService --> "0..1" CommunicationStrategy` | The context holds at most one current strategy and can swap it at runtime. |
-| `DonationFactory ..> CashDonation : «create»` | Dependency, not association: the factory does not keep the objects it creates. |
+| `CashDonationFactory ..> CashDonation : «create»` | Dependency, not association: a creator does not keep the objects it creates. |
 | `MainFrame *-- DashboardPanel` | **Composition**: the frame creates its panels and they live only inside it. |
-| `ApplicationLogger` → itself (static `INSTANCE`) | The Singleton holds its own only instance in a private static field. |
+| `ApplicationLogger` → itself (static `uniqueInstance`) | The Singleton holds its own only instance in a private static field. |
 
 ---
 
@@ -881,7 +914,7 @@ One small diagram per design pattern (sized for a slide), cut out of the complet
 | Strategy | 1 | `communication` | Choose Email or SMS at runtime without `if/else` on the channel | 5 |
 | Observer | 1 | `observer` + `DonationService` | Several things must happen after a donation is recorded, without the donation code knowing them | 2 |
 | Decorator | 1 | `receipt` | Add optional receipt sections (thank-you, tax info) without changing the basic receipt | 3 |
-| Factory | 0.5 | `factory` | One place decides which `Donation` subclass to build and validates it | 1 |
+| Factory Method | 0.5 | `factory` | Each creator subclass decides which `Donation` subclass to build and validates it; new kinds need no edits | 1 |
 | Singleton | 0.5 | `logging` | Exactly one shared application log | 1 |
 | MVC | 2 | all | Keep UI, coordination and business rules apart | all, checked in 6 |
 ### 5.1 Strategy — communication channels
@@ -933,7 +966,7 @@ DonorNotificationObserver --> CommunicationService : setStrategy() + send()
 
 - **In the code:** [CommunicationStrategy.java](../src/main/java/com/ripple/communication/CommunicationStrategy.java), [EmailStrategy.java](../src/main/java/com/ripple/communication/EmailStrategy.java), [SmsStrategy.java](../src/main/java/com/ripple/communication/SmsStrategy.java) and the context [CommunicationService.java](../src/main/java/com/ripple/communication/CommunicationService.java) (`setStrategy(...)`, `send(...)`; no channel `if/else`). The clients pick a strategy from a `Map<ContactChannel, CommunicationStrategy>` built in `Main`: [CommunicationController.java](../src/main/java/com/ripple/controller/CommunicationController.java) and [DonorNotificationObserver.java](../src/main/java/com/ripple/observer/DonorNotificationObserver.java).
 - **Demo:** on the Communication screen send a message to *All donors* by Email, then the same by SMS: the message log shows email addresses the first time and phone numbers the second, and people without one are logged as `FAILED: no valid ...`. Record a donation and its thank-you appears in the log on the donor's preferred channel; untick "Notify donors on new donation" and record again: no thank-you.
-- **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, and the 160-character SMS limit; `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel and stops after `detach`.
+- **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, and the 160-character SMS limit; `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel and stops after `removeObserver`.
 
 **Presentation note**
 
@@ -952,19 +985,19 @@ classDiagram
 direction TB
 class DonationSubject {
     <<interface>>
-    +attach(DonationObserver observer) void
-    +detach(DonationObserver observer) void
+    +registerObserver(DonationObserver observer) void
+    +removeObserver(DonationObserver observer) void
     +notifyObservers(Donation donation) void
 }
 class DonationService {
     <<Subject>>
     -List~DonationObserver~ observers
     +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
-    +isAttached(DonationObserver observer) boolean
+    +isRegistered(DonationObserver observer) boolean
 }
 class DonationObserver {
     <<interface>>
-    +onDonationRecorded(Donation donation) void
+    +update(Donation donation) void
 }
 class DonationLogObserver {
     <<Observer>>
@@ -987,18 +1020,18 @@ ReceiptObserver ..|> DonationObserver
 DonorNotificationObserver ..|> DonationObserver
 ```
 
-**How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `onDonationRecorded` on each one. The donation code does not know *what* the observers do.
-**Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `detach(donorNotifier)` / `attach(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
+**How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `update` on each one. The donation code does not know *what* the observers do.
+**Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `removeObserver(donorNotifier)` / `registerObserver(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
 **Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` uses the Strategy; `DonationLogObserver` uses the Singleton.
 
-- **In the code:** [DonationSubject.java](../src/main/java/com/ripple/observer/DonationSubject.java), [DonationObserver.java](../src/main/java/com/ripple/observer/DonationObserver.java) and the subject [DonationService.java](../src/main/java/com/ripple/service/DonationService.java) (`attach`, `detach`, `notifyObservers`). The three observers are in `com.ripple.observer` and are attached in `Main`; the "Notify donors on new donation" checkbox in [DonationsPanel.java](../src/main/java/com/ripple/view/DonationsPanel.java) detaches and re-attaches `DonorNotificationObserver`.
+- **In the code:** [DonationSubject.java](../src/main/java/com/ripple/observer/DonationSubject.java), [DonationObserver.java](../src/main/java/com/ripple/observer/DonationObserver.java) and the subject [DonationService.java](../src/main/java/com/ripple/service/DonationService.java) (`registerObserver`, `removeObserver`, `notifyObservers`). The three observers are in `com.ripple.observer` and are attached in `Main`; the "Notify donors on new donation" checkbox in [DonationsPanel.java](../src/main/java/com/ripple/view/DonationsPanel.java) detaches and re-attaches `DonorNotificationObserver`.
 - **Demo:** register a donor and record an Online donation: open `logs/ripple.log` to see the line written by `DonationLogObserver`, then open *View receipt* (`ReceiptObserver`) and the Communication screen's message log (`DonorNotificationObserver`). Try an In-kind donation with quantity 0: it is rejected and no observer does anything. Untick "Notify donors", record again, and no thank-you is logged.
 - **Test:** `src/test/java/com/ripple/service/DonationServiceTest.java` checks that an attached observer is notified, a detached one is not, attaching twice notifies once, a failing observer does not stop the others, and bad input notifies nobody; `src/test/java/com/ripple/observer/DonationLogObserverTest.java` checks the log line.
 
 **Presentation note**
 
 - **Problem:** after a donation is saved, several things must happen (write the log, build the receipt, thank the donor) and the list will grow. `DonationService` should not have to know about them, and staff must be able to switch one off.
-- **How Ripple solves it:** `DonationService` is the subject: it keeps a list of `DonationObserver`s and calls `onDonationRecorded(...)` on each after saving. `Main` attaches the observers, and the checkbox attaches or detaches one while the app runs.
+- **How Ripple solves it:** `DonationService` is the subject: it keeps a list of `DonationObserver`s and calls `update(...)` on each after saving. `Main` attaches the observers, and the checkbox attaches or detaches one while the app runs.
 - **Why not just `if/else`:** calling `writeLog(d); buildReceipt(d); sendThankYou(d);` inside `recordDonation` ties the service to every feature, turns "stop thanking donors" into a flag inside the service, and means each new reaction edits the service. With observers the service knows none of them, and a test can attach a counting observer.
 
 ---
@@ -1066,32 +1099,38 @@ String text = receipt.render();
 
 ---
 
-### 5.4 Factory — creating donations
+### 5.4 Factory Method — creating donations
 
-**Roles:** Factory = `DonationFactory` · Product = `Donation` · Concrete products = `CashDonation`, `OnlineDonation`, `InKindDonation` · Client = `DonationService` (and `DonationRepository` when loading rows).
+**Roles (as in the lab's `PizzaStore` example):** Creator = `DonationFactory` (abstract, like `PizzaStore`) · Concrete Creators = `CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory` (like `NYPizzaStore`) · Product = `Donation` (like `Pizza`) · Concrete Products = `CashDonation`, `OnlineDonation`, `InKindDonation`, `ChequeDonation` · Clients = `DonationService` (new donations) and `DonationRepository` (rows from the database).
 
 ```mermaid
 classDiagram
 direction TB
 class DonationFactory {
-    <<Factory>>
-    +create(DonationMethod method, Donor donor, DonationType type, DonationRequest request) Donation
-    +parseMethod(String name) DonationMethod
+    <<abstract>>
+    +orderDonation(Donor donor, DonationType type, DonationRequest request) Donation
+    #createDonation(Donor donor, DonationType type, DonationRequest request, LocalDateTime createdAt)* Donation
+    +getMethod()* DonationMethod
 }
-class DonationRequest {
-    <<record>>
-    +double amount
-    +String transactionReference
-    +String itemDescription
-    +int quantity
-    +double estimatedValue
-    +LocalDateTime createdAt
+class CashDonationFactory {
+    <<ConcreteCreator>>
+    #createDonation(...) Donation
+    +getMethod() DonationMethod
 }
-class DonationMethod {
-    <<enumeration>>
-    CASH
-    ONLINE
-    IN_KIND
+class OnlineDonationFactory {
+    <<ConcreteCreator>>
+    #createDonation(...) Donation
+    +getMethod() DonationMethod
+}
+class InKindDonationFactory {
+    <<ConcreteCreator>>
+    #createDonation(...) Donation
+    +getMethod() DonationMethod
+}
+class ChequeDonationFactory {
+    <<ConcreteCreator>>
+    #createDonation(...) Donation
+    +getMethod() DonationMethod
 }
 class Donation {
     <<abstract>>
@@ -1099,34 +1138,60 @@ class Donation {
     +getValue()* double
     +describe()* String
 }
-class CashDonation
-class OnlineDonation
-class InKindDonation
-class DonationService
-class DonationRepository
+class CashDonation {
+    -double amount
+}
+class OnlineDonation {
+    -double amount
+    -String transactionReference
+}
+class InKindDonation {
+    -String itemDescription
+    -int quantity
+    -double estimatedValue
+}
+class ChequeDonation {
+    -double amount
+    -String chequeNumber
+}
+class DonationService {
+    -Map~DonationMethod, DonationFactory~ factories
+    +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
+}
+class DonationRepository {
+    -Map~DonationMethod, DonationFactory~ factories
+    +findAll() List~Donation~
+}
+CashDonationFactory --|> DonationFactory
+OnlineDonationFactory --|> DonationFactory
+InKindDonationFactory --|> DonationFactory
+ChequeDonationFactory --|> DonationFactory
 CashDonation --|> Donation
 OnlineDonation --|> Donation
 InKindDonation --|> Donation
-DonationFactory ..> DonationMethod : switches on
-DonationFactory ..> DonationRequest : reads
-DonationFactory ..> CashDonation : «create»
-DonationFactory ..> OnlineDonation : «create»
-DonationFactory ..> InKindDonation : «create»
-DonationService --> DonationFactory : new donations
-DonationRepository --> DonationFactory : rows from DB
+ChequeDonation --|> Donation
+DonationFactory ..> Donation : «create»
+CashDonationFactory ..> CashDonation : «create»
+OnlineDonationFactory ..> OnlineDonation : «create»
+InKindDonationFactory ..> InKindDonation : «create»
+ChequeDonationFactory ..> ChequeDonation : «create»
+DonationService o-- "4" DonationFactory : factories
+DonationRepository --> "4" DonationFactory : rows from DB
 ```
 
-**How it works:** `create(...)` switches on the method, checks the fields that method needs (online needs a transaction reference, in-kind needs a quantity > 0, ...) and returns the right subclass as a `Donation`. `parseMethod("CHEQUE")` throws `ValidationException("Unsupported donation method: CHEQUE")`. Callers only ever see `Donation`, so receipts, tables and the dashboard total use `getValue()` polymorphically.
+**How it works:** `orderDonation(...)` is the fixed workflow, like `orderPizza()`: it checks the donor, the type and the details, stamps the time (CR3), and then calls the **factory method** `createDonation(...)`. It is `final`, so subclasses decide *what* is created but never change the steps (the Hollywood principle: "don't call us, we'll call you"). Each Concrete Creator builds its own subclass and checks only its own fields (online needs a transaction reference, in-kind needs a quantity > 0, a cheque needs a cheque number). `Main` puts the four creators in a `Map<DonationMethod, DonationFactory>`, and the service picks one with `factories.get(method)`, so nowhere in the app is there an `if/else` or `switch` on the method. Callers only ever see `Donation`, so receipts, tables and the dashboard total use `getValue()` polymorphically.
 
-- **In the code:** [DonationFactory.java](../src/main/java/com/ripple/factory/DonationFactory.java), method `create(...)` and its `switch`. Products are in `com.ripple.model` (`CashDonation`, `OnlineDonation`, `InKindDonation`).
-- **Demo:** run `DonationFactoryTest` and show `create(...)`. From Section 2 on, the Donations screen records every donation through it (try an in-kind donation with quantity 0 to see the factory reject it).
-- **Test:** `src/test/java/com/ripple/factory/DonationFactoryTest.java` checks that each method gives the right subclass, rejects invalid details and unsupported methods, and keeps stored timestamps.
+**Open for extension, closed for modification:** cheques were added later with exactly two new classes (`ChequeDonation` and `ChequeDonationFactory`) and one line in `Main`. `DonationFactory`, `DonationService` and `DonationRepository` did not change.
+
+- **In the code:** [DonationFactory.java](../src/main/java/com/ripple/factory/DonationFactory.java) (`orderDonation` and the abstract `createDonation`), the four creators next to it in `com.ripple.factory`, and the creators map in `Main`. Products are in `com.ripple.model`.
+- **Demo:** on the Donations screen choose each method in turn: the form shows only that method's fields (Cheque shows "Cheque no."). Record a Cheque donation, restart the app and it is still listed as Cheque (rebuilt by `ChequeDonationFactory`). Try an in-kind donation with quantity 0 to see its creator reject it.
+- **Test:** `src/test/java/com/ripple/factory/DonationFactoryTest.java` checks that each creator makes its own subclass and reports its method, that `orderDonation` is `final`, that invalid details and missing donor or type are rejected, and that stored timestamps are kept; `src/test/java/com/ripple/repository/DonationRepositoryTest.java` saves a cheque and loads it back as a `ChequeDonation`.
 
 **Presentation note**
 
-- **Problem:** the three donation kinds need different fields and rules (an amount above 0; an online donation needs a transaction reference; an in-kind donation needs an item and a quantity above 0). Donations are created in more than one place (when recording and when loading rows), and an invalid one must never exist.
-- **How Ripple solves it:** `DonationFactory.create(...)` is the only code that picks the subclass and checks its fields. Callers receive a `Donation` and never name the concrete classes; an unknown method such as "Cheque" gives "Unsupported donation method".
-- **Why not just `if/else`:** `if (method.equals("Cash")) new CashDonation(...)` chains scattered over the service, the repository and the tests would copy the validation rules, and the copies would drift apart (one place forgets the quantity check). One factory is one place to fix and one place to add a new kind.
+- **Problem:** the four donation kinds need different fields and rules (an amount above 0; online needs a transaction reference; a cheque needs a cheque number; in-kind needs an item and a quantity above 0). Donations are created in more than one place (when recording and when loading rows), an invalid one must never exist, and new kinds will be added.
+- **How Ripple solves it:** the abstract creator `DonationFactory` owns the steps every donation goes through; each subclass implements one factory method, `createDonation(...)`, for its own kind. Callers hold a `DonationFactory`, call `orderDonation(...)` and receive a `Donation`; they never name a concrete class.
+- **Why not a single `switch` (Simple Factory) or `if/else`:** a `switch (method)` must be edited, and everything around it re-tested, for every new kind. With the Factory Method, a new kind is a new product and a new creator; existing code stays closed for modification. This is how cheques were added.
 
 ---
 
@@ -1138,7 +1203,7 @@ DonationRepository --> DonationFactory : rows from DB
 classDiagram
 class ApplicationLogger {
     <<Singleton>>
-    -ApplicationLogger INSTANCE$
+    -ApplicationLogger uniqueInstance$
     -Path logFile
     -Deque~String~ recentEntries
     -ApplicationLogger()
@@ -1149,16 +1214,16 @@ class ApplicationLogger {
 }
 class DonationLogObserver
 class DashboardController
-ApplicationLogger --> ApplicationLogger : INSTANCE
+ApplicationLogger --> ApplicationLogger : uniqueInstance
 DonationLogObserver --> ApplicationLogger : info()
 DashboardController --> ApplicationLogger : getRecentEntries()
 ```
 
-**How it works:** the constructor is `private`, so no other class can call `new ApplicationLogger()`. The single instance is created when the class is loaded (`private static final ApplicationLogger INSTANCE = new ApplicationLogger();`), which the JVM guarantees happens once, so it is thread-safe without `synchronized`.
+**How it works:** the constructor is `private`, so no other class can call `new ApplicationLogger()`. The single instance is created when the class is loaded (`private static final ApplicationLogger uniqueInstance = new ApplicationLogger();`), which the JVM guarantees happens once, so it is thread-safe without `synchronized`.
 **Why this class deserves to be a Singleton:** there is one log file (`logs/ripple.log`) and one recent-activity feed on the Dashboard. Two logger objects would write the same file independently and each would see only half the activity.
 **Why nothing else is a Singleton:** `Database` and the services are passed through constructors so tests can give each one its own temporary database.
 
-- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `INSTANCE` and `getInstance()`. Used by `Main` ("Ripple started"), `LookupController` (every add, update or delete) and `DonationLogObserver` (every donation), and read by `DashboardController` for the Dashboard's "Recent activity".
+- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `uniqueInstance` and `getInstance()`. Used by `Main` ("Ripple started"), `LookupController` (every add, update or delete) and `DonationLogObserver` (every donation), and read by `DashboardController` for the Dashboard's "Recent activity".
 - **Demo:** add or delete a lookup value, then open `logs/ripple.log` and show the new line. Point out that `new ApplicationLogger()` does not compile outside the class.
 - **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first; `src/test/java/com/ripple/controller/DashboardControllerTest.java` checks that the Dashboard's recent activity comes from the logger, newest first.
 

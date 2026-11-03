@@ -1,6 +1,5 @@
 package com.ripple.controller;
 
-import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.ContactChannel;
@@ -14,6 +13,7 @@ import com.ripple.service.InputValidator;
 import com.ripple.service.ValidationException;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Controller for the Donations screen.
@@ -82,9 +82,9 @@ public class DonationController {
      *
      * @param donorId          id of the chosen donor
      * @param typeId           id of the chosen donation type
-     * @param method           {@code "CASH"}, {@code "ONLINE"} or {@code "IN_KIND"}
-     * @param amount           amount in EGP (cash, online)
-     * @param transactionRef   payment reference (online)
+     * @param method           {@code "CASH"}, {@code "ONLINE"}, {@code "IN_KIND"} or {@code "CHEQUE"}
+     * @param amount           amount in EGP (cash, online, cheque)
+     * @param transactionRef   payment reference (online) or cheque number (cheque)
      * @param item             what was given (in-kind)
      * @param quantity         how many (in-kind)
      * @param estimatedValue   estimated value in EGP (in-kind)
@@ -93,7 +93,7 @@ public class DonationController {
     public Result recordDonation(int donorId, int typeId, String method, String amount,
                                  String transactionRef, String item, String quantity, String estimatedValue) {
         try {
-            DonationMethod donationMethod = new DonationFactory().parseMethod(method);
+            DonationMethod donationMethod = parseMethod(method);
             DonationRequest request = switch (donationMethod) {
                 case CASH -> new DonationRequest(
                         InputValidator.parseDouble(amount, "Amount"), null, null, 0, 0, null);
@@ -102,6 +102,8 @@ public class DonationController {
                 case IN_KIND -> new DonationRequest(0, null, item,
                         InputValidator.parseInt(quantity, "Quantity"),
                         InputValidator.parseDouble(estimatedValue, "Estimated value"), null);
+                case CHEQUE -> new DonationRequest(
+                        InputValidator.parseDouble(amount, "Amount"), transactionRef, null, 0, 0, null);
             };
             Donation donation = donationService.recordDonation(donationMethod, donorId, typeId, request);
             return Result.ok("Donation " + donation.getReceiptNumber() + " recorded");
@@ -141,9 +143,9 @@ public class DonationController {
      */
     public void setDonorNotifications(boolean enabled) {
         if (enabled) {
-            donationService.attach(donorNotifier);
+            donationService.registerObserver(donorNotifier);
         } else {
-            donationService.detach(donorNotifier);
+            donationService.removeObserver(donorNotifier);
         }
     }
 
@@ -153,7 +155,23 @@ public class DonationController {
      * @return {@code true} if the donor notification observer is attached
      */
     public boolean isDonorNotificationsEnabled() {
-        return donationService.isAttached(donorNotifier);
+        return donationService.isRegistered(donorNotifier);
+    }
+
+    /**
+     * Converts a method name chosen on the screen into a {@link DonationMethod}. Accepts the
+     * enum name or the label, ignoring case: {@code "online"}, {@code "In-kind"}.
+     */
+    private DonationMethod parseMethod(String name) {
+        if (name == null || name.isBlank()) {
+            throw new ValidationException("Donation method is required");
+        }
+        String key = name.trim().toUpperCase(Locale.ROOT).replace('-', '_').replace(' ', '_');
+        try {
+            return DonationMethod.valueOf(key);
+        } catch (IllegalArgumentException e) {
+            throw new ValidationException("Unsupported donation method: " + name.trim());
+        }
     }
 
     /** Converts {@code "EMAIL"} / {@code "SMS"} to a channel, or explains what is wrong. */

@@ -37,7 +37,7 @@ public class DonorNotificationObserver implements DonationObserver {
     }
 
     @Override
-    public void onDonationRecorded(Donation donation) {
+    public void update(Donation donation) {
         Donor donor = donation.getDonor();
         communicationService.setStrategy(strategies.get(donor.getPreferredChannel()));
         communicationService.send(donor, "Thank you for your donation",

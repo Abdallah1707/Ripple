@@ -3,6 +3,7 @@ package com.ripple.repository;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.CashDonation;
+import com.ripple.model.ChequeDonation;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Donation;
 import com.ripple.model.DonationMethod;
@@ -19,28 +20,29 @@ import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Reads and writes the {@code donations} table. Contains SQL only, no business rules.
  *
  * <p>When donations are loaded, each row is turned back into the right {@code Donation}
- * subclass by {@link DonationFactory}, so every donation object in the app comes from the
- * factory (Factory pattern).
+ * subclass by the {@link DonationFactory} creator for its method, so every donation object
+ * in the app comes from a creator (Factory Method pattern).
  */
 public class DonationRepository {
 
     private final Database database;
-    private final DonationFactory factory;
+    private final Map<DonationMethod, DonationFactory> factories;
 
     /**
      * Creates the repository.
      *
      * @param database the database to use
-     * @param factory  the factory used to rebuild donations from rows
+     * @param factories one creator per donation method, used to rebuild donations from rows
      */
-    public DonationRepository(Database database, DonationFactory factory) {
+    public DonationRepository(Database database, Map<DonationMethod, DonationFactory> factories) {
         this.database = database;
-        this.factory = factory;
+        this.factories = factories;
     }
 
     /**
@@ -65,6 +67,9 @@ public class DonationRepository {
         } else if (donation instanceof OnlineDonation online) {
             amount = online.getAmount();
             transactionRef = online.getTransactionReference();
+        } else if (donation instanceof ChequeDonation cheque) {
+            amount = cheque.getAmount();
+            transactionRef = cheque.getChequeNumber(); // the cheque number shares the reference column
         } else if (donation instanceof InKindDonation inKind) {
             item = inKind.getItemDescription();
             quantity = inKind.getQuantity();
@@ -93,7 +98,7 @@ public class DonationRepository {
     }
 
     /**
-     * Returns all donations, newest first. Each one is rebuilt through the factory.
+     * Returns all donations, newest first. Each one is rebuilt through its creator.
      *
      * @return all donations
      */
@@ -156,7 +161,7 @@ public class DonationRepository {
         }
     }
 
-    /** Turns one joined row into a donation, using the factory to pick the subclass. */
+    /** Turns one joined row into a donation, using the creator for its method to pick the subclass. */
     private Donation toDonation(ResultSet row) throws SQLException {
         Donor donor = new Donor(row.getInt("donor_id"), row.getString("donor_name"),
                 row.getString("donor_email"), row.getString("donor_phone"),
@@ -170,8 +175,12 @@ public class DonationRepository {
                 row.getInt("quantity"),
                 row.getDouble("estimated_value"),
                 LocalDateTime.parse(row.getString("created_at"))); // keep the stored time (CR3)
-        DonationMethod method = factory.parseMethod(row.getString("method"));
-        Donation donation = factory.create(method, donor, type, request);
+        DonationMethod method = DonationMethod.valueOf(row.getString("method")); // stored as the enum name
+        DonationFactory factory = factories.get(method);
+        if (factory == null) {
+            throw new IllegalStateException("No creator for stored donation method " + method);
+        }
+        Donation donation = factory.orderDonation(donor, type, request);
         donation.setId(row.getInt("id"));
         return donation;
     }

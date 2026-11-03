@@ -5,7 +5,8 @@ import java.util.Locale;
 
 /**
  * A donation of goods (blankets, food, books...) instead of money. Its value is the
- * estimated value of the goods. ConcreteProduct in the Factory pattern.
+ * estimated value of the goods. ConcreteProduct in the Factory Method pattern,
+ * created by {@code InKindDonationFactory}.
  */
 public class InKindDonation extends Donation {
 
@@ -14,7 +15,7 @@ public class InKindDonation extends Donation {
     private final double estimatedValue;
 
     /**
-     * Creates an in-kind donation. Use {@code DonationFactory} instead of calling this directly.
+     * Creates an in-kind donation. Use {@code InKindDonationFactory} instead of calling this directly.
      *
      * @param donor           who gave it
      * @param donationType    its lookup type

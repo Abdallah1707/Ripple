@@ -1,6 +1,6 @@
 package com.ripple.receipt;
 
-import com.ripple.factory.DonationFactory;
+import com.ripple.TestFactories;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Donation;
@@ -19,7 +19,7 @@ class ReceiptDecoratorTest {
 
     private Donation newDonation() {
         DonationType type = new DonationType(1, "Zakat", "", true);
-        Donation donation = new DonationFactory().create(DonationMethod.CASH, donor, type,
+        Donation donation = TestFactories.create(DonationMethod.CASH, donor, type,
                 new DonationRequest(500, null, null, 0, 0, null));
         donation.setId(7);
         return donation;

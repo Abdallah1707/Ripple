@@ -110,7 +110,7 @@ flowchart TD
 |---|---|
 | `com.ripple.app` | `Main` — the **composition root**: builds every object once and wires them together. |
 | `com.ripple.model` | Entities (`Donor`, `Donation` hierarchy, `Volunteer`, `Event`, ...), lookup entities, enums, the `Contactable` interface. |
-| `com.ripple.factory` | **Factory**: `DonationFactory`, `DonationRequest`. |
+| `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
 | `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers. |
 | `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
 | `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, context `CommunicationService`. |
@@ -127,7 +127,7 @@ flowchart TD
 `Main` creates everything once, in this order, and passes objects through constructors. Apart from the logger Singleton there is **no global state**, so every class can be tested with its own inputs.
 
 1. `Database` (reads `RIPPLE_DB_PATH`, default `data/ripple.db`) → `initialize()` creates tables and seed data.
-2. `DonationFactory`, then repositories (the donation repository gets the factory so it can rebuild donations from rows).
+2. The donation creators, one `DonationFactory` subclass per method, in a `Map<DonationMethod, DonationFactory>` keyed by `getMethod()`; then repositories (the donation repository gets the map so it can rebuild donations from rows).
 3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy())`.
 4. Services: `LookupService` ×2, `DonationService`.
 5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
@@ -148,7 +148,7 @@ sequenceDiagram
     participant V as DonationsPanel (View)
     participant C as DonationController
     participant S as DonationService (Subject)
-    participant F as DonationFactory
+    participant F as OnlineDonationFactory (creator)
     participant DR as DonationRepository
     participant LO as DonationLogObserver
     participant RO as ReceiptObserver
@@ -160,17 +160,19 @@ sequenceDiagram
     V->>C: recordDonation(donorId, typeId, "ONLINE", "500", "TX-991", ...)
     C->>C: parse strings → DonationRequest
     C->>S: recordDonation(method, request)
-    S->>F: create(method, donor, type, request)
+    S->>S: factory = factories.get(ONLINE)
+    S->>F: orderDonation(donor, type, request)
+    F->>F: shared checks + time stamp, then createDonation(...)
     F-->>S: OnlineDonation (validated)
     S->>DR: insert(donation)
     DR-->>S: donation with id + createdAt
     S->>S: notifyObservers(donation)
-    S->>LO: onDonationRecorded(donation)
+    S->>LO: update(donation)
     LO->>LO: ApplicationLogger.getInstance().info(...)
-    S->>RO: onDonationRecorded(donation)
+    S->>RO: update(donation)
     RO->>RO: new TaxInformationDecorator(new ThankYouMessageDecorator(new BasicReceipt(d)))
     RO->>RO: receipt.render() → save to receipts table
-    S->>NO: onDonationRecorded(donation)
+    S->>NO: update(donation)
     NO->>CS: setStrategy(strategy for donor.preferredChannel)
     NO->>CS: send(donor, subject, body)
     CS->>ST: send(message)
@@ -263,9 +265,9 @@ erDiagram
         INTEGER id PK
         INTEGER donor_id FK
         INTEGER donation_type_id FK
-        TEXT method "CASH, ONLINE, IN_KIND"
-        REAL amount "cash, online"
-        TEXT transaction_ref "online"
+        TEXT method "CASH, ONLINE, IN_KIND, CHEQUE"
+        REAL amount "cash, online, cheque"
+        TEXT transaction_ref "online ref or cheque no."
         TEXT item_description "in-kind"
         INTEGER quantity "in-kind"
         REAL estimated_value "in-kind"
@@ -323,7 +325,7 @@ erDiagram
     }
 ```
 
-**Single-table donations.** The three donation kinds share one `donations` table with nullable method-specific columns. This keeps queries and the "total value" dashboard number simple. `DonationRepository` reads `method` and passes the row to `DonationFactory`, so the **same factory** builds the right subclass when loading from the database.
+**Single-table donations.** The four donation kinds share one `donations` table with nullable method-specific columns (a cheque's number is stored in `transaction_ref`). This keeps queries and the "total value" dashboard number simple. `DonationRepository` reads `method` and passes the row to the creator for that method, so the **same creators** build the right subclass when loading from the database.
 
 Foreign keys are switched on (`PRAGMA foreign_keys = ON`) as a safety net under the service-level in-use check. Seed data: donation types *General Fund* (tax), *Zakat* (tax), *Education* (tax), *Food Supplies* (no tax); event categories *Fundraiser*, *Workshop*, *Outreach*.
 
