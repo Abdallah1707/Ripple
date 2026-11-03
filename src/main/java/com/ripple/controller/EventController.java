@@ -16,12 +16,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
- * Controller for the Events screen (and for screens that need the list of events).
- *
- * <p>Checks the typed values (a name and a category are required, the date must look like
- * {@code 2026-12-15}), saves events through {@link EventService} (which notifies attendees when
- * the date or location changes), reads the rest from the repositories, and turns the outcome
- * into a {@link Result} for the status bar. It never throws to the view.
+ * Controller for the Events screen.
  */
 public class EventController {
 
@@ -29,13 +24,7 @@ public class EventController {
     private final EventRepository eventRepository;
     private final VolunteerRepository volunteerRepository;
 
-    /**
-     * Creates the controller.
-     *
-     * @param eventService        saves events and is the Observer subject for event changes
-     * @param eventRepository     where events and attendees are read from (and deleted)
-     * @param volunteerRepository where the volunteers assigned to an event are read from
-     */
+    /** Creates the controller. */
     public EventController(EventService eventService, EventRepository eventRepository,
                            VolunteerRepository volunteerRepository) {
         this.eventService = eventService;
@@ -43,26 +32,12 @@ public class EventController {
         this.volunteerRepository = volunteerRepository;
     }
 
-    /**
-     * Returns all events, soonest first.
-     *
-     * @return the events
-     */
+    /** All events, soonest first. */
     public List<Event> listEvents() {
         return eventRepository.findAll();
     }
 
-    /**
-     * Adds a new event ({@code id == null}) or updates an existing one.
-     *
-     * @param id          the event's id, or {@code null} to add a new one
-     * @param name        the name typed by the user (required)
-     * @param categoryId  id of the chosen event category (required, {@code <= 0} means none chosen)
-     * @param date        the date typed by the user, as {@code yyyy-MM-dd}, e.g. {@code 2026-12-15}
-     * @param location    the location typed by the user
-     * @param description the description typed by the user
-     * @return what happened, for the status bar
-     */
+    /** Adds an event if id is null, otherwise updates it. Date is yyyy-MM-dd. */
     public Result saveEvent(Integer id, String name, int categoryId, String date, String location,
                             String description) {
         boolean adding = id == null;
@@ -72,13 +47,13 @@ public class EventController {
                 throw new ValidationException("Please choose an event category");
             }
             LocalDate eventDate = parseDate(date);
-            // Only the id matters for saving; the repository reads the full category back when it loads events.
+            // only the category id is needed to save
             Event event = new Event(adding ? 0 : id, cleanName, new EventCategory(categoryId, "", ""), eventDate,
                     clean(location), clean(description));
             String message = "Event '" + cleanName + "' " + (adding ? "added" : "updated");
             if (adding) {
                 eventService.addEvent(event);
-            } else if (eventService.updateEvent(event)) { // true when the date or location changed
+            } else if (eventService.updateEvent(event)) { // date or location changed
                 message += "; attendees were notified of the change";
             }
             ApplicationLogger.getInstance().info(message);
@@ -92,12 +67,7 @@ public class EventController {
         }
     }
 
-    /**
-     * Deletes an event together with its attendees and volunteer assignments.
-     *
-     * @param id the event's id
-     * @return what happened, for the status bar
-     */
+    /** Deletes an event with its attendees and volunteers. */
     public Result deleteEvent(int id) {
         try {
             String name = eventRepository.findById(id).map(Event::getName).orElse("");
@@ -112,15 +82,7 @@ public class EventController {
         }
     }
 
-    /**
-     * Registers an attendee for an event.
-     *
-     * @param eventId the event's id
-     * @param name    the name typed by the user (required)
-     * @param email   the email typed by the user (optional, must be valid if filled in)
-     * @param phone   the phone typed by the user (optional, must be valid if filled in)
-     * @return what happened, for the status bar
-     */
+    /** Registers an attendee for an event. */
     public Result registerAttendee(int eventId, String name, String email, String phone) {
         try {
             if (eventId <= 0) {
@@ -142,22 +104,12 @@ public class EventController {
         }
     }
 
-    /**
-     * Returns the attendees of an event.
-     *
-     * @param eventId the event's id
-     * @return the attendees sorted by name
-     */
+    /** Attendees of an event. */
     public List<Attendee> listAttendees(int eventId) {
         return eventRepository.findAttendees(eventId);
     }
 
-    /**
-     * Returns the volunteers assigned to an event.
-     *
-     * @param eventId the event's id
-     * @return the assigned volunteers sorted by name
-     */
+    /** Volunteers assigned to an event. */
     public List<Volunteer> listVolunteers(int eventId) {
         return volunteerRepository.findByEvent(eventId);
     }
@@ -165,7 +117,7 @@ public class EventController {
     private static LocalDate parseDate(String text) {
         String trimmed = InputValidator.requireText(text, "Date", 1, 20);
         try {
-            return LocalDate.parse(trimmed); // ISO format yyyy-MM-dd; rejects 2026-02-30 etc.
+            return LocalDate.parse(trimmed); // yyyy-MM-dd
         } catch (DateTimeParseException e) {
             throw new ValidationException("Date must look like 2026-12-15 (year-month-day)");
         }

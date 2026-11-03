@@ -8,29 +8,18 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 /**
- * Reads and writes the {@code receipts} table. Contains SQL only, no business rules: the
- * rendered text comes from {@code ReceiptObserver}, which builds it with the Decorator pattern.
+ * Database access for receipts.
  */
 public class ReceiptRepository {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public ReceiptRepository(Database database) {
         this.database = database;
     }
 
-    /**
-     * Saves the rendered text of a donation's receipt. There is at most one receipt per
-     * donation, so saving again for the same donation replaces the previous text.
-     *
-     * @param donationId id of the donation the receipt belongs to
-     * @param content    the rendered receipt text
-     */
+    /** Saves a receipt. Replaces the old one if it exists. */
     public void save(int donationId, String content) {
         String sql = """
                 INSERT INTO receipts (donation_id, content, created_at) VALUES (?, ?, ?)
@@ -47,12 +36,7 @@ public class ReceiptRepository {
         }
     }
 
-    /**
-     * Finds the saved receipt text for a donation.
-     *
-     * @param donationId id of the donation
-     * @return the receipt text, or empty if no receipt was saved for it
-     */
+    /** Finds the receipt for a donation. */
     public Optional<String> findByDonationId(int donationId) {
         String sql = "SELECT content FROM receipts WHERE donation_id = ?";
         try (Connection c = database.getConnection();

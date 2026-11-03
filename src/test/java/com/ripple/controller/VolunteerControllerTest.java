@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Volunteers screen's rules: validation, add / edit / delete, and event assignment. */
+/** Tests for VolunteerController. */
 class VolunteerControllerTest {
 
     @TempDir
@@ -85,7 +85,7 @@ class VolunteerControllerTest {
 
         assertFalse(second.success());
         assertEquals(1, events.listVolunteers(eventId).size());
-        // Even if the repository is called directly, the primary key keeps it to one row.
+        // still one row even when calling the repository directly
         volunteers.assignToEvent(volunteerId, eventId);
         assertEquals(1, events.listVolunteers(eventId).size());
     }
@@ -106,6 +106,6 @@ class VolunteerControllerTest {
 
         assertTrue(events.listVolunteers(eventId).isEmpty());
         Event stillThere = events.listEvents().get(0);
-        assertEquals("Food drive", stillThere.getName()); // the event itself is untouched
+        assertEquals("Food drive", stillThere.getName()); // the event is still there
     }
 }

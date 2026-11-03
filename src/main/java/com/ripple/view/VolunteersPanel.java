@@ -23,13 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Volunteers screen: a table of volunteers, a small form with
- * Add / Update / Delete / Clear buttons, and an "Assign to event" option for the
- * selected volunteer.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link VolunteerController}
- * (and {@link EventController} for the list of events). The outcome of every action is
- * shown in the status bar.
+ * The Volunteers screen: table, form, and assigning to events.
  */
 public class VolunteersPanel extends JPanel implements Refreshable {
 
@@ -45,16 +39,10 @@ public class VolunteersPanel extends JPanel implements Refreshable {
     private final JTextField skillsField = new JTextField(24);
     private final JTextField availabilityField = new JTextField(24);
     private final JComboBox<Event> eventBox = new JComboBox<>();
-    /** The volunteers currently shown, in the same order as the table rows. */
+    /** Volunteers in the same order as the table. */
     private List<Volunteer> volunteers = new ArrayList<>();
 
-    /**
-     * Builds the screen.
-     *
-     * @param volunteerController the volunteer controller
-     * @param eventController     the event controller (fills the "assign to event" list)
-     * @param statusBar           where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public VolunteersPanel(VolunteerController volunteerController, EventController eventController,
                            StatusBar statusBar) {
         super(new BorderLayout(0, 8));
@@ -66,7 +54,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         tableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Skills", "Availability"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // editing happens in the form, not in the table
+                return false; // edit in the form, not the table
             }
         };
         table = new JTable(tableModel);
@@ -158,10 +146,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         }
     }
 
-    /**
-     * Adds a field that grows with the form. Without the weight, a form narrower than its
-     * preferred width would shrink every field to its minimum size.
-     */
+    /** Adds a field that stretches with the form. */
     private static void addStretched(JPanel form, GridBagConstraints c, JTextField field) {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
@@ -170,7 +155,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         c.weightx = 0;
     }
 
-    /** Enter in the form: update the selected row, or add a new one if no row is selected. */
+    /** Updates the selected row, or adds a new one if nothing is selected. */
     private void onSave() {
         if (selectedVolunteer() == null) {
             onAdd();
@@ -216,7 +201,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
         statusBar.showResult(volunteerController.assignToEvent(selected.getId(), event == null ? 0 : event.getId()));
     }
 
-    /** Shows the result; on success reloads the table so it matches the database. */
+    /** Shows the result and reloads the table if it worked. */
     private void showAndRefresh(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
@@ -225,7 +210,7 @@ public class VolunteersPanel extends JPanel implements Refreshable {
     }
 
     private Volunteer selectedVolunteer() {
-        int row = FormHelper.selectedModelRow(table); // correct even when sorted or filtered
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
         return row < 0 ? null : volunteers.get(row);
     }
 

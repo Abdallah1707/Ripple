@@ -1,25 +1,16 @@
-"""Draws the complete class diagram (section 2 of docs/class-diagram.md) as a Graphviz UML picture.
+"""Turns the class diagram in docs/class-diagram.md into a Graphviz picture.
 
-The Mermaid text in docs/class-diagram.md is the source of truth (DiagramConsistencyTest checks it
-against the code). This script only turns it into a printable picture, so the picture can never
-show a class the code does not have.
-
-Usage (from the project root; needs Python 3 and Graphviz's `dot`):
+Usage (from the project root, needs Python 3 and Graphviz):
     python docs/tools/render_class_diagram.py docs/class-diagram.md docs/images/class-diagram.dot
     dot -Tsvg docs/images/class-diagram.dot -o docs/images/class-diagram.svg
     dot -Tpng -Gdpi=96 docs/images/class-diagram.dot -o docs/images/class-diagram.png
-
-To keep the picture readable:
-- every class and every inheritance, association, aggregation and composition arrow is drawn, but
-  a dashed "uses" arrow into a shared helper (see HELPERS) only once; the Mermaid text keeps them all;
-- packages are laid out in fixed left-to-right columns, like MVC layers (see COLUMNS).
 """
 import html
 import re
 import sys
 from pathlib import Path
 
-# Look of each package box: (title, background, header colour), keyed by Mermaid namespace.
+# package box style: (title, background, header color)
 CLUSTERS = {
     "view": ("VIEW  |  MVC", "#eaf2ff", "#cfe2fb"),
     "controller": ("CONTROLLER  |  MVC", "#fff1e5", "#fad9bc"),
@@ -34,8 +25,7 @@ CLUSTERS = {
     "logging": ("LOGGING  |  SINGLETON", "#fff3e0", "#f9ddaa"),
 }
 
-# Left-to-right columns of packages, like MVC layers. Packages in the same column are stacked.
-# Graphviz would otherwise let every arrow pull boxes to the right, giving a long diagonal staircase.
+# package columns from left to right, so the layout stays tidy
 COLUMNS = [
     ["view"],
     ["controller"],
@@ -45,20 +35,19 @@ COLUMNS = [
     ["model"],
 ]
 
-# Small classes used by many others. Drawing every dashed "uses" arrow into them would cross the
-# whole picture, so only the first one is drawn; the legend says so.
+# used by many classes, so only draw one arrow into each
 HELPERS = {"ApplicationLogger", "Result"}
 
 
 def generic(text):
-    """Mermaid List~T~ -> List<T> (handles nesting)."""
+    """List~T~ -> List<T>"""
     while "~" in text:
         text = re.sub(r"~([^~]*)~", r"<\1>", text, count=1)
     return text
 
 
 def split_top(params):
-    """Splits a parameter list on the commas that are not inside <...>."""
+    """Splits params on commas outside <...>."""
     out, depth, cur = [], 0, ""
     for ch in params:
         depth += ch == "<"
@@ -74,7 +63,7 @@ def split_top(params):
 
 
 def uml_param(p):
-    """Java style 'int id' -> UML style 'id: int'."""
+    """'int id' -> 'id: int'"""
     parts = p.rsplit(" ", 1)
     if len(parts) == 1 or p == "...":
         return p
@@ -82,12 +71,12 @@ def uml_param(p):
 
 
 def member(line):
-    """One Mermaid member line -> (HTML text, is_method). Static is underlined, abstract in italics."""
+    """Converts one member line. Returns (text, is_method)."""
     line = generic(line.strip())
     vis = line[0] if line[0] in "+-#~" else ""
     body = line[len(vis):]
     m = re.match(r"(\w+)\((.*)\)([*$]?)\s*(.*)$", body)
-    if m:  # method or constructor
+    if m:  # method
         name, params, flag, ret = m.groups()
         text = f"{vis}{name}({', '.join(uml_param(p) for p in split_top(params))})"
         if ret:
@@ -107,7 +96,7 @@ def member(line):
 
 
 def parse(md):
-    """Reads the classes (per namespace) and the relationships of section 2."""
+    """Reads the classes and relationships from section 2."""
     start = md.index("## 2. Complete diagram")
     block = re.search(r"(?s)```mermaid\n(.*?)```", md[start:]).group(1)
 
@@ -139,7 +128,7 @@ def parse(md):
 
 
 def declutter(rels):
-    """Drops repeated dashed "uses" arrows into the shared helpers (the first one is kept)."""
+    """Keeps only the first arrow into each helper."""
     kept, seen = [], set()
     for r in rels:
         arrow, target = r[2], r[4]
@@ -152,7 +141,7 @@ def declutter(rels):
 
 
 def node(name, info, header):
-    """One class box: stereotypes and name, then fields, then methods."""
+    """One class box."""
     stereo = info["stereo"]
     italic = any(s in ("interface", "abstract") for s in stereo)
     title = html.escape(name + info["gen"])
@@ -170,14 +159,14 @@ def node(name, info, header):
 
 
 def column(ns):
-    """Index of the package's column in COLUMNS."""
+    """Column number of a package."""
     return next(i for i, packages in enumerate(COLUMNS) if ns in packages)
 
 
 def edge(classes, a, mult_a, arrow, mult_b, b, label):
-    """One relationship as a Graphviz edge, with the UML arrowhead for its kind."""
+    """One relationship as a Graphviz edge."""
     attrs = []
-    if arrow in ("--|>", "..|>"):  # drawn from the parent, so parents sit on the left
+    if arrow in ("--|>", "..|>"):  # flip so parents are on the left
         a, b, mult_a, mult_b = b, a, mult_b, mult_a
         attrs += ['dir=back', 'arrowtail=empty', 'color="#4f5d7a"', 'weight=4']
         if arrow == "..|>":
@@ -190,11 +179,9 @@ def edge(classes, a, mult_a, arrow, mult_b, b, label):
         attrs += ['dir=both', 'arrowtail=diamond', 'arrowhead=vee', 'color="#4f5d7a"']
     elif arrow == "..>":
         attrs += ['arrowhead=vee', 'style=dashed', 'color="#8a93a8"', 'weight=0']
-    else:  # plain link (many-to-many)
+    else:  # many-to-many
         attrs += ['arrowhead=none', 'color="#6c7a96"']
-    # An arrow that does not point to a later column (backwards, or to another package in the same
-    # column), and a dashed dependency inside a package, is drawn but does not decide positions,
-    # so it cannot pull boxes out of their package's column or widen the package.
+    # backward arrows and dashed arrows inside a package shouldn't move the boxes
     ns_a, ns_b = classes[a]["ns"], classes[b]["ns"]
     if (ns_a != ns_b and column(ns_a) >= column(ns_b)) or (ns_a == ns_b and arrow == "..>"):
         attrs.append("constraint=false")
@@ -237,8 +224,7 @@ def render(classes, rels):
 
 
 def column_order(classes):
-    """Invisible gates between the COLUMNS: every class of column i is left of gate i, and every
-    class of column i+1 is right of it. Only these invisible edges decide the columns."""
+    """Invisible nodes between columns that keep each package in its column."""
     out = []
     for i in range(len(COLUMNS) - 1):
         gate = f"gate{i}"

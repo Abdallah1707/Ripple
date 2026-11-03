@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Observer subject for events: who is notified, when, and with what change text. */
+/** Tests for EventService notifications. */
 class EventServiceTest {
 
     @TempDir
@@ -30,7 +30,7 @@ class EventServiceTest {
     private EventService service;
     private EventCategory category;
     private final List<String> heard = new ArrayList<>();
-    /** A stand-in observer that only records what it was told. */
+    /** Records what it was told. */
     private final EventObserver recorder = (event, change) -> heard.add(event.getName() + ": " + change);
 
     @BeforeEach
@@ -73,7 +73,7 @@ class EventServiceTest {
 
     @Test
     void aRemovedObserverIsNotNotifiedAndRegisteringTwiceHasNoEffect() {
-        service.registerObserver(recorder); // second time: still one entry
+        service.registerObserver(recorder); // still one entry
         int id = service.addEvent(event(0, "Food drive", "2026-12-15", "Cairo")).getId();
         service.updateEvent(event(id, "Food drive", "2026-12-16", "Cairo"));
         assertEquals(1, heard.size());
@@ -89,7 +89,7 @@ class EventServiceTest {
         service.registerObserver((event, change) -> {
             throw new IllegalStateException("boom");
         });
-        service.registerObserver(recorder); // already registered: stays first
+        service.registerObserver(recorder); // stays first
         EventObserver second = (event, change) -> heard.add("second");
         service.registerObserver(second);
         int id = service.addEvent(event(0, "Food drive", "2026-12-15", "Cairo")).getId();

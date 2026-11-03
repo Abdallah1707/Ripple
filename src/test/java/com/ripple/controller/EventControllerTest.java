@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Events screen's rules: validation, add / edit / delete, attendees, and the category link. */
+/** Tests for EventController. */
 class EventControllerTest {
 
     @TempDir

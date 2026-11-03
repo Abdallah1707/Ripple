@@ -10,32 +10,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Abstract <b>Decorator</b> in the Decorator pattern for donations: it <i>is a</i>
- * {@link Donation} and <i>has a</i> {@link Donation} (the one it wraps), and forwards every
- * method to it. A concrete decorator ({@link UrgentDonation}, {@link GiftDonation},
- * {@link AnonymousDonation}) overrides only the one or two methods it changes, so decorators
- * can be stacked in any combination without a subclass for each combination.
- *
- * <p>{@code Donation} is an abstract class, not an interface, so this class also inherits its
- * fields. They are filled with the wrapped donation's values but never read: every getter is
- * forwarded instead. It is the same shape as {@code CondimentDecorator extends Beverage} in
- * <i>Head First Design Patterns</i>.
+ * Base decorator for donations. It wraps a donation and forwards every method to it.
+ * Subclasses only override what they change, so they can be stacked in any combination.
  */
 public abstract class DonationDecorator extends Donation {
 
     protected final Donation wrapped;
 
-    /**
-     * Wraps a donation.
-     *
-     * @param wrapped the donation to decorate (a plain donation or another decorator)
-     */
+    /** Wraps a donation. */
     protected DonationDecorator(Donation wrapped) {
         super(wrapped.getDonor(), wrapped.getDonationType(), wrapped.getCreatedAt());
         this.wrapped = wrapped;
     }
 
-    // The id lives in the plain donation, so the receipt number is the same at every layer.
+    // same id at every layer
     @Override
     public int getId() {
         return wrapped.getId();
@@ -116,7 +104,7 @@ public abstract class DonationDecorator extends Donation {
         return wrapped.getOptions();
     }
 
-    /** The wrapped donation's options plus this decorator's own, for {@link #getOptions()}. */
+    /** The wrapped donation's options plus this one. */
     protected List<String> optionsPlus(String option) {
         List<String> options = new ArrayList<>(wrapped.getOptions());
         options.add(option);

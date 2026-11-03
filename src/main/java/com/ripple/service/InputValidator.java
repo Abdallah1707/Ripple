@@ -3,31 +3,21 @@ package com.ripple.service;
 import java.util.regex.Pattern;
 
 /**
- * Small shared input checks, so every service and controller validates text, emails,
- * phones and numbers the same way. All methods are static; this class holds no state.
+ * Shared input checks for text, email, phone and numbers.
  */
 public final class InputValidator {
 
-    /** Something@something.something with no spaces. Deliberately simple. */
+    /** Simple email check. */
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
-    /** Optional leading +, then 8 to 15 digits (after spaces and dashes are removed). */
+    /** Optional +, then 8 to 15 digits. */
     private static final Pattern PHONE = Pattern.compile("^\\+?\\d{8,15}$");
-    /** An @, then 2 to 30 letters, digits, underscores or dots, like most platforms allow. */
+    /** @ then 2 to 30 letters, digits, _ or dots. */
     private static final Pattern SOCIAL_HANDLE = Pattern.compile("^@[A-Za-z0-9_.]{2,30}$");
 
     private InputValidator() {
     }
 
-    /**
-     * Checks that a required text field is filled in and not too short or long.
-     *
-     * @param value the user's input (may be {@code null})
-     * @param field the field's name for the error message, e.g. {@code "Name"}
-     * @param min   minimum length after trimming
-     * @param max   maximum length after trimming
-     * @return the trimmed value
-     * @throws ValidationException if the value is blank or its length is out of range
-     */
+    /** Checks a required text field and its length. Returns it trimmed. */
     public static String requireText(String value, String field, int min, int max) {
         String trimmed = value == null ? "" : value.trim();
         if (trimmed.isEmpty()) {
@@ -39,44 +29,22 @@ public final class InputValidator {
         return trimmed;
     }
 
-    /**
-     * Tells whether the text looks like an email address.
-     *
-     * @param value the text to check (may be {@code null})
-     * @return {@code true} for e.g. {@code "mona@example.com"}
-     */
+    /** True if it looks like an email. */
     public static boolean isValidEmail(String value) {
         return value != null && EMAIL.matcher(value.trim()).matches();
     }
 
-    /**
-     * Tells whether the text looks like a phone number. Spaces and dashes are ignored.
-     *
-     * @param value the text to check (may be {@code null})
-     * @return {@code true} for e.g. {@code "010 1234 5678"} or {@code "+201012345678"}
-     */
+    /** True if it looks like a phone number. Spaces and dashes are ignored. */
     public static boolean isValidPhone(String value) {
         return value != null && PHONE.matcher(value.replaceAll("[\\s-]", "")).matches();
     }
 
-    /**
-     * Tells whether the text looks like a social media handle.
-     *
-     * @param value the text to check (may be {@code null})
-     * @return {@code true} for e.g. {@code "@mona_ali"}; {@code false} without the leading {@code @}
-     */
+    /** True if it looks like a handle, like @mona_ali. */
     public static boolean isValidSocialHandle(String value) {
         return value != null && SOCIAL_HANDLE.matcher(value.trim()).matches();
     }
 
-    /**
-     * Checks an email that may be left empty: an empty value is fine, a filled-in one must
-     * look like an email address.
-     *
-     * @param value the user's input (may be {@code null})
-     * @return the trimmed email, or an empty string if nothing was typed
-     * @throws ValidationException if something was typed that is not a valid email
-     */
+    /** Email that can be empty, but must be valid if typed. */
     public static String optionalEmail(String value) {
         String trimmed = value == null ? "" : value.trim();
         if (!trimmed.isEmpty() && !isValidEmail(trimmed)) {
@@ -85,14 +53,7 @@ public final class InputValidator {
         return trimmed;
     }
 
-    /**
-     * Checks a phone number that may be left empty: an empty value is fine, a filled-in one
-     * must look like a phone number.
-     *
-     * @param value the user's input (may be {@code null})
-     * @return the trimmed phone number, or an empty string if nothing was typed
-     * @throws ValidationException if something was typed that is not a valid phone number
-     */
+    /** Phone that can be empty, but must be valid if typed. */
     public static String optionalPhone(String value) {
         String trimmed = value == null ? "" : value.trim();
         if (!trimmed.isEmpty() && !isValidPhone(trimmed)) {
@@ -101,35 +62,21 @@ public final class InputValidator {
         return trimmed;
     }
 
-    /**
-     * Converts the user's input to a decimal number.
-     *
-     * @param value the user's input
-     * @param field the field's name for the error message
-     * @return the number
-     * @throws ValidationException if the input is blank or not a number
-     */
+    /** Parses a decimal number. */
     public static double parseDouble(String value, String field) {
         String trimmed = requireText(value, field, 1, 30);
         try {
             double number = Double.parseDouble(trimmed);
-            if (Double.isFinite(number)) { // rejects "NaN" and "Infinity", which Java would accept
+            if (Double.isFinite(number)) { // rejects NaN and Infinity
                 return number;
             }
         } catch (NumberFormatException ignored) {
-            // falls through to the error below
+            // goes to the error below
         }
         throw new ValidationException(field + " must be a number");
     }
 
-    /**
-     * Converts the user's input to a whole number.
-     *
-     * @param value the user's input
-     * @param field the field's name for the error message
-     * @return the number
-     * @throws ValidationException if the input is blank or not a whole number
-     */
+    /** Parses a whole number. */
     public static int parseInt(String value, String field) {
         String trimmed = requireText(value, field, 1, 10);
         try {

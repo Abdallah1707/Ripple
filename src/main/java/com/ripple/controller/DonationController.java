@@ -18,12 +18,7 @@ import java.util.Locale;
 
 /**
  * Controller for the Donations screen.
- *
- * <p>It turns the texts typed on the screen into typed values, passes them to
- * {@link DonationService}, and turns the outcome into a {@link Result} for the status bar.
- * It never throws to the view. It also attaches / detaches the donor notification observer
- * when the "Notify donors on new donation" checkbox changes, and looks up a donation's
- * saved receipt for the "View receipt" pop-up.
+ * Also turns the donor notification observer on or off.
  */
 public class DonationController {
 
@@ -31,13 +26,7 @@ public class DonationController {
     private final ReceiptRepository receiptRepository;
     private final DonorNotificationObserver donorNotifier;
 
-    /**
-     * Creates the controller.
-     *
-     * @param donationService   the donation service (the Observer subject)
-     * @param receiptRepository where saved receipts are read from
-     * @param donorNotifier     the observer that the checkbox attaches and detaches
-     */
+    /** Creates the controller. */
     public DonationController(DonationService donationService, ReceiptRepository receiptRepository,
                               DonorNotificationObserver donorNotifier) {
         this.donationService = donationService;
@@ -45,26 +34,12 @@ public class DonationController {
         this.donorNotifier = donorNotifier;
     }
 
-    /**
-     * Returns all donors, e.g. for the donor combo box.
-     *
-     * @return the donors sorted by name
-     */
+    /** All donors sorted by name. */
     public List<Donor> listDonors() {
         return donationService.findAllDonors();
     }
 
-    /**
-     * Adds a new donor ({@code id == null}) or updates an existing one.
-     *
-     * @param id           {@code null} to add, or the id of the donor to update
-     * @param name         the name typed by the user
-     * @param email        the email typed by the user
-     * @param phone        the phone typed by the user
-     * @param socialHandle the social media handle typed by the user, e.g. {@code "@mona_ali"}
-     * @param channel      {@code "EMAIL"}, {@code "SMS"} or {@code "SOCIAL"}
-     * @return what happened, for the status bar
-     */
+    /** Adds a donor if id is null, otherwise updates it. */
     public Result saveDonor(Integer id, String name, String email, String phone, String socialHandle,
                             String channel) {
         boolean adding = id == null;
@@ -84,12 +59,7 @@ public class DonationController {
         }
     }
 
-    /**
-     * Deletes a donor. A donor who has donations cannot be deleted (red message).
-     *
-     * @param id the donor's id
-     * @return what happened, for the status bar
-     */
+    /** Deletes a donor. Donors with donations can't be deleted. */
     public Result deleteDonor(int id) {
         try {
             Donor donor = donationService.deleteDonor(id);
@@ -104,43 +74,14 @@ public class DonationController {
         }
     }
 
-    /**
-     * Records a donation. Only the texts that belong to the chosen method are read; the
-     * others can be empty.
-     *
-     * @param donorId          id of the chosen donor
-     * @param typeId           id of the chosen donation type
-     * @param method           {@code "CASH"}, {@code "ONLINE"}, {@code "IN_KIND"} or {@code "CHEQUE"}
-     * @param amount           amount in EGP (cash, online, cheque)
-     * @param transactionRef   payment reference (online) or cheque number (cheque)
-     * @param item             what was given (in-kind)
-     * @param quantity         how many (in-kind)
-     * @param estimatedValue   estimated value in EGP (in-kind)
-     * @return what happened, for the status bar
-     */
+    /** Records a donation. Only the fields for the chosen method are used. */
     public Result recordDonation(int donorId, int typeId, String method, String amount,
                                  String transactionRef, String item, String quantity, String estimatedValue) {
         return recordDonation(donorId, typeId, method, amount, transactionRef, item, quantity, estimatedValue,
                 false, "", false);
     }
 
-    /**
-     * Records a donation with the extras the user ticked: urgent, a gift in honor of someone,
-     * anonymous. Each extra becomes a decorator around the donation.
-     *
-     * @param donorId          id of the chosen donor
-     * @param typeId           id of the chosen donation type
-     * @param method           {@code "CASH"}, {@code "ONLINE"}, {@code "IN_KIND"} or {@code "CHEQUE"}
-     * @param amount           amount in EGP (cash, online, cheque)
-     * @param transactionRef   payment reference (online) or cheque number (cheque)
-     * @param item             what was given (in-kind)
-     * @param quantity         how many (in-kind)
-     * @param estimatedValue   estimated value in EGP (in-kind)
-     * @param urgent           whether the donation is for an urgent need
-     * @param honoree          who the donation honors; empty if it is not a gift
-     * @param anonymous        whether the donor should not be named publicly
-     * @return what happened, for the status bar
-     */
+    /** Records a donation with extras (urgent, gift, anonymous). */
     public Result recordDonation(int donorId, int typeId, String method, String amount,
                                  String transactionRef, String item, String quantity, String estimatedValue,
                                  boolean urgent, String honoree, boolean anonymous) {
@@ -169,32 +110,18 @@ public class DonationController {
         }
     }
 
-    /**
-     * Returns all donations, newest first, for the table.
-     *
-     * @return the donations
-     */
+    /** All donations, newest first. */
     public List<Donation> listDonations() {
         return donationService.findAllDonations();
     }
 
-    /**
-     * Returns the saved receipt text for a donation, for the "View receipt" pop-up.
-     *
-     * @param donationId id of the donation
-     * @return the receipt text, or a message saying none was saved yet
-     */
+    /** Gets the saved receipt for a donation. */
     public String getReceipt(int donationId) {
         return receiptRepository.findByDonationId(donationId)
                 .orElse("No receipt was saved for this donation yet.");
     }
 
-    /**
-     * Turns the automatic donor thank-you on or off (the checkbox on the Donations screen).
-     * This attaches or detaches the {@link DonorNotificationObserver}.
-     *
-     * @param enabled {@code true} to attach the observer, {@code false} to detach it
-     */
+    /** Turns the donor thank-you messages on or off. */
     public void setDonorNotifications(boolean enabled) {
         if (enabled) {
             donationService.registerObserver(donorNotifier);
@@ -203,19 +130,12 @@ public class DonationController {
         }
     }
 
-    /**
-     * Tells whether donors are currently notified about new donations.
-     *
-     * @return {@code true} if the donor notification observer is attached
-     */
+    /** True if donor thank-you messages are on. */
     public boolean isDonorNotificationsEnabled() {
         return donationService.isRegistered(donorNotifier);
     }
 
-    /**
-     * Converts a method name chosen on the screen into a {@link DonationMethod}. Accepts the
-     * enum name or the label, ignoring case: {@code "online"}, {@code "In-kind"}.
-     */
+    /** Turns a method name like "online" or "In-kind" into a DonationMethod. */
     private DonationMethod parseMethod(String name) {
         if (name == null || name.isBlank()) {
             throw new ValidationException("Donation method is required");
@@ -228,7 +148,7 @@ public class DonationController {
         }
     }
 
-    /** Converts {@code "EMAIL"} / {@code "SMS"} / {@code "SOCIAL"} to a channel, or explains what is wrong. */
+    /** Turns "EMAIL" / "SMS" / "SOCIAL" into a channel. */
     private ContactChannel parseChannel(String channel) {
         if (channel != null) {
             for (ContactChannel value : ContactChannel.values()) {

@@ -59,7 +59,7 @@ class DonationRepositoryTest {
 
         Donation loaded = repository.findAll().get(0);
 
-        assertInstanceOf(OnlineDonation.class, loaded.getBase()); // the plain donation is rebuilt by its creator
+        assertInstanceOf(OnlineDonation.class, loaded.getBase()); // rebuilt by its factory
         assertEquals("TX-9", ((OnlineDonation) loaded.getBase()).getTransactionReference());
         assertTrue(loaded.isUrgent());
         assertTrue(loaded.isAnonymous());
@@ -78,7 +78,7 @@ class DonationRepositoryTest {
         List<Donation> all = repository.findAll();
 
         assertEquals(urgent.getId(), all.get(0).getId());
-        assertEquals(300, all.get(1).getValue()); // then newest first
+        assertEquals(300, all.get(1).getValue()); // then newest
     }
 
     @Test
@@ -104,7 +104,7 @@ class DonationRepositoryTest {
         assertInstanceOf(ChequeDonation.class, loaded);
         assertEquals(DonationMethod.CHEQUE, loaded.getMethod());
         assertEquals("000123", ((ChequeDonation) loaded).getChequeNumber());
-        assertEquals(2500.0, repository.totalValue(), 0.001); // a cheque counts by its amount
+        assertEquals(2500.0, repository.totalValue(), 0.001); // cheque uses its amount
     }
 
     @Test

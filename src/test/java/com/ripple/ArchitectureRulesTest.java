@@ -15,21 +15,15 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Checks the project's ground rules by reading the source files (Phase 1, Section 6), so the
- * MVC separation cannot be broken by accident later:
- * <ul>
- *   <li>a view never imports {@code java.sql} or a repository (this replaces the manual
- *       {@code grep} from {@code PHASE1.md});</li>
- *   <li>only views (and {@code Main}, which builds the window) use Swing or AWT;</li>
- *   <li>only {@code Main} and the views refer to the view package;</li>
- *   <li>every class has a Javadoc comment.</li>
- * </ul>
+ * Checks the project rules by reading the source files:
+ * views don't use SQL or repositories, only views and Main use Swing,
+ * only views and Main use the view package, and every class has a Javadoc.
  */
 class ArchitectureRulesTest {
 
-    /** Packages that are allowed to use Swing / AWT. */
+    /** Packages allowed to use Swing. */
     private static final Set<String> SWING_ALLOWED = Set.of("view", "app");
-    /** Packages that are allowed to refer to {@code com.ripple.view}. */
+    /** Packages allowed to use the view package. */
     private static final Set<String> VIEW_ALLOWED = Set.of("view", "app");
 
     private static final Pattern TYPE_DECLARATION = Pattern.compile(
@@ -78,7 +72,7 @@ class ArchitectureRulesTest {
         assertTrue(without.isEmpty(), "Add a short Javadoc comment on top of: " + without);
     }
 
-    /** The files (as class names) that have an {@code import} line matching the given regex. */
+    /** Files with an import matching the regex. */
     private static List<String> filesImporting(List<Path> sources, String importRegex) throws IOException {
         Pattern importLine = Pattern.compile("(?m)^import\\s+(static\\s+)?(" + importRegex + ")");
         List<String> offenders = new ArrayList<>();
@@ -90,20 +84,20 @@ class ArchitectureRulesTest {
         return offenders;
     }
 
-    /** True if the comment right above the class / interface / enum / record declaration is a Javadoc. */
+    /** True if the class has a Javadoc right above it. */
     private static boolean hasJavadocOnTopLevelType(String source) {
         Matcher declaration = TYPE_DECLARATION.matcher(source);
         if (!declaration.find()) {
             return false;
         }
         List<String> above = new ArrayList<>(List.of(source.substring(0, declaration.start()).split("\\R")));
-        // Annotations (e.g. @FunctionalInterface) may sit between the comment and the declaration.
+        // skip annotations between the comment and the class
         while (!above.isEmpty() && (above.get(above.size() - 1).isBlank()
                 || above.get(above.size() - 1).strip().startsWith("@"))) {
             above.remove(above.size() - 1);
         }
         String text = String.join("\n", above).strip();
-        // The comment that ends right above the declaration must itself start with "/**".
+        // the comment must start with /**
         return text.endsWith("*/") && text.startsWith("/**", text.lastIndexOf("/*"));
     }
 }

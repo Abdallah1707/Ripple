@@ -23,12 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * One lookup table on screen: a table of entries, a small form and
- * Add / Update / Delete / Clear buttons.
- *
- * <p>The same class is used twice (once per {@link LookupKind}); the tax-deductible column
- * and checkbox only appear for donation types. Like every view, it only calls the
- * controller and shows the {@link Result} it gets back.
+ * One lookup table with its form and buttons. Used for both lookup tables.
+ * The tax column and checkbox only show for donation types.
  */
 public class LookupTablePanel extends JPanel implements Refreshable {
 
@@ -41,16 +37,10 @@ public class LookupTablePanel extends JPanel implements Refreshable {
     private final JTextField nameField = new JTextField(20);
     private final JTextField descriptionField = new JTextField(30);
     private final JCheckBox taxCheckBox = new JCheckBox("Tax deductible");
-    /** The entries currently shown, in the same order as the table rows. */
+    /** Entries in the same order as the table. */
     private List<LookupEntry> entries = new ArrayList<>();
 
-    /**
-     * Builds the panel.
-     *
-     * @param controller the lookup controller
-     * @param kind       which lookup table this panel shows
-     * @param statusBar  where to show the outcome of each action
-     */
+    /** Builds the panel. */
     public LookupTablePanel(LookupController controller, LookupKind kind, StatusBar statusBar) {
         super(new BorderLayout(0, 8));
         this.controller = controller;
@@ -64,7 +54,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // editing happens in the form, not in the table
+                return false; // edit in the form, not the table
             }
         };
         table = new JTable(tableModel);
@@ -138,7 +128,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         return form;
     }
 
-    /** Enter in the form: update the selected row, or add a new one if no row is selected. */
+    /** Updates the selected row, or adds a new one if nothing is selected. */
     private void onSave() {
         if (selectedEntry() == null) {
             onAdd();
@@ -175,7 +165,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         }
     }
 
-    /** Shows the result; on success reloads the table so it matches the database. */
+    /** Shows the result and reloads the table if it worked. */
     private void showAndRefresh(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
@@ -184,7 +174,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
     }
 
     private LookupEntry selectedEntry() {
-        int row = FormHelper.selectedModelRow(table); // correct even when sorted or filtered
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
         return row < 0 ? null : entries.get(row);
     }
 

@@ -24,7 +24,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that ReceiptObserver builds the right decorator chain and saves it. */
+/** Tests for ReceiptObserver. */
 class ReceiptObserverTest {
 
     @TempDir

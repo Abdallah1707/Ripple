@@ -32,12 +32,7 @@ import java.awt.Insets;
 import java.time.format.DateTimeFormatter;
 
 /**
- * The Communication screen: send a message to a whole group by Email, SMS or Social, and see the
- * message log.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link CommunicationController}
- * (and {@link EventController} for the list of events). The outcome of every send is shown
- * in the status bar. Sending is simulated, and the screen says so.
+ * The Communication screen: send a message to a group and see the message log.
  */
 public class CommunicationPanel extends JPanel implements Refreshable {
 
@@ -55,13 +50,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
     private final JLabel lengthLabel = new JLabel();
     private final DefaultTableModel tableModel;
 
-    /**
-     * Builds the screen.
-     *
-     * @param communicationController the communication controller
-     * @param eventController         gives the list of events for "Attendees of one event"
-     * @param statusBar               where to show the outcome of each send
-     */
+    /** Builds the screen. */
     public CommunicationPanel(CommunicationController communicationController, EventController eventController,
                               StatusBar statusBar) {
         super(new BorderLayout(0, 8));
@@ -109,7 +98,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         updateLengthLabel();
     }
 
-    /** The form: who, which channel, subject and message, the Send button and the "simulated" note. */
+    /** The send form. */
     private JPanel buildForm() {
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Send a message to a group"));
@@ -138,7 +127,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         return form;
     }
 
-    /** Adds one "label + field" row to a form that uses GridBagLayout. */
+    /** Adds a label and field row. */
     private void addRow(JPanel form, int row, JLabel label, JComponent field) {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(3, 4, 3, 4);
@@ -152,13 +141,13 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         form.add(field, c);
     }
 
-    /** Shows how long the message is, and the channel's limit when SMS or Social is chosen. */
+    /** Shows the message length and the limit for SMS or Social. */
     private void updateLengthLabel() {
         int length = bodyArea.getText().length();
         ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
         int limit = channel == ContactChannel.SMS ? SmsStrategy.MAX_LENGTH
                 : channel == ContactChannel.SOCIAL ? SocialMediaStrategy.MAX_LENGTH
-                : 0; // email has no limit
+                : 0; // no limit for email
         String text = limit == 0 ? length + " characters"
                 : length + " / " + limit + " characters (" + channel + " limit)";
         if (channel == ContactChannel.SOCIAL) {
@@ -177,10 +166,10 @@ public class CommunicationPanel extends JPanel implements Refreshable {
                 channel == null ? null : channel.name(),
                 subjectField.getText(), bodyArea.getText());
         statusBar.showResult(result);
-        refresh(); // skipped attempts are logged too, so reload the log either way
+        refresh(); // skipped messages are logged too
     }
 
-    /** Reloads the events and the message log. */
+    /** Reloads the events and message log. */
     @Override
     public void refresh() {
         Event selectedEvent = (Event) eventBox.getSelectedItem();
@@ -188,7 +177,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         for (Event event : eventController.listEvents()) {
             eventBox.addItem(event);
             if (selectedEvent != null && event.getId() == selectedEvent.getId()) {
-                eventBox.setSelectedItem(event); // keep the previous choice
+                eventBox.setSelectedItem(event); // keep the old selection
             }
         }
 

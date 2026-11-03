@@ -5,19 +5,13 @@ import com.ripple.model.Contactable;
 import com.ripple.service.InputValidator;
 
 /**
- * Concrete strategy in the Strategy pattern: sends a message as a social media direct
- * message, using the person's handle (e.g. {@code @mona_ali}). Like a short post, it has no
- * subject, and messages over {@value #MAX_LENGTH} characters are rejected.
- *
- * <p>Only donors have a handle, so sending to anyone else fails with "no valid social media
- * handle" in the message log, just as SMS fails for someone without a phone number.
- *
- * <p><b>Simulated:</b> nothing is posted to a real platform. The result is status
- * {@code SIMULATED}, and {@code CommunicationService} records the message in the message log.
+ * Sends a message as a social media DM using the donor's handle.
+ * No subject, and max 280 characters. Only donors have a handle.
+ * Simulated, nothing is really posted.
  */
 public class SocialMediaStrategy implements CommunicationStrategy {
 
-    /** The longest text a single social media message can carry. */
+    /** Max message length. */
     public static final int MAX_LENGTH = 280;
 
     @Override

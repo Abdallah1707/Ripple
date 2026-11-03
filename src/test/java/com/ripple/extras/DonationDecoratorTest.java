@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Decorator pattern for donations: urgent, gift and anonymous, alone and stacked. */
+/** Tests for the donation decorators. */
 class DonationDecoratorTest {
 
     private final Donor mona = new Donor(1, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
@@ -52,7 +52,7 @@ class DonationDecoratorTest {
         Donation anonymous = new AnonymousDonation(cash());
         assertTrue(anonymous.isAnonymous());
         assertEquals(AnonymousDonation.DISPLAY_NAME, anonymous.getDonorDisplayName());
-        assertEquals("Cash donation of EGP 500.00", anonymous.describe()); // the description is unchanged
+        assertEquals("Cash donation of EGP 500.00", anonymous.describe()); // description doesn't change
     }
 
     @Test
@@ -64,12 +64,12 @@ class DonationDecoratorTest {
         assertEquals(List.of("Gift", "Urgent", "Anonymous"), all.getOptions());
         assertTrue(all.isUrgent() && all.isAnonymous());
         assertEquals("Hana Ali", all.getHonoree());
-        // everything else is forwarded to the plain donation
+        // the rest is forwarded
         assertEquals(500, all.getValue());
         assertEquals(DonationMethod.CASH, all.getMethod());
         assertTrue(all.isTaxDeductible());
         assertSame(base, all.getBase());
-        assertSame(mona, all.getDonor()); // the real donor is kept: they still get their receipt
+        assertSame(mona, all.getDonor()); // real donor is kept
     }
 
     @Test
@@ -77,7 +77,7 @@ class DonationDecoratorTest {
         CashDonation base = cash();
         Donation decorated = new UrgentDonation(new AnonymousDonation(base));
 
-        decorated.setId(7); // what the repository does after saving
+        decorated.setId(7); // like the repository does after saving
 
         assertEquals(7, base.getId());
         assertEquals("RCP-2026-0007", decorated.getReceiptNumber());

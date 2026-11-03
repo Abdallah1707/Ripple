@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Factory Method: each Concrete Creator and the shared {@code orderDonation} workflow. */
+/** Tests for the donation factories. */
 class DonationFactoryTest {
 
     private final DonationFactory cashFactory = new CashDonationFactory();

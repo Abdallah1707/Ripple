@@ -4,18 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * A donation: who gave it, its type, and when it was recorded.
- *
- * <p>This is the <b>Product</b> in the Factory Method pattern. The four kinds of donation
- * ({@link CashDonation}, {@link OnlineDonation}, {@link InKindDonation}, {@link ChequeDonation})
- * are created only by the subclasses of {@code DonationFactory}, one creator per kind. The rest of the app works with {@code Donation} and calls
- * {@link #getValue()} and {@link #describe()} without knowing which kind it has
- * (polymorphism).
- *
- * <p>It is also the <b>Component</b> in a Decorator pattern: {@code DonationDecorator} (package
- * {@code com.ripple.extras}) wraps a donation to make it urgent, a gift or anonymous, in any combination. The methods from
- * {@link #getBase()} down are the hooks those decorators change; a plain donation answers them
- * with the defaults below.
+ * Base class for donations (cash, online, in-kind, cheque).
+ * Created by the factories. Also the component that the decorators wrap.
  */
 public abstract class Donation {
 
@@ -24,13 +14,7 @@ public abstract class Donation {
     private final DonationType donationType;
     private final LocalDateTime createdAt;
 
-    /**
-     * Creates a donation.
-     *
-     * @param donor        who gave it
-     * @param donationType its lookup type
-     * @param createdAt    when it was recorded (CR3)
-     */
+    /** Creates a donation. */
     protected Donation(Donor donor, DonationType donationType, LocalDateTime createdAt) {
         this.donor = donor;
         this.donationType = donationType;
@@ -41,11 +25,7 @@ public abstract class Donation {
         return id;
     }
 
-    /**
-     * Sets the id given by the database after the donation is saved.
-     *
-     * @param id the generated id
-     */
+    /** Sets the id after saving. */
     public void setId(int id) {
         this.id = id;
     }
@@ -62,98 +42,53 @@ public abstract class Donation {
         return createdAt;
     }
 
-    /**
-     * Returns how this donation was given.
-     *
-     * @return the donation method
-     */
+    /** How the donation was given. */
     public abstract DonationMethod getMethod();
 
-    /**
-     * Returns the donation's value in EGP: the amount for money, the estimated value for goods.
-     *
-     * @return the value in EGP
-     */
+    /** Value in EGP. */
     public abstract double getValue();
 
-    /**
-     * Returns a one-line description for tables and receipts.
-     *
-     * @return e.g. {@code "Cash donation of EGP 500.00"}
-     */
+    /** Short description for tables and receipts. */
     public abstract String describe();
 
-    /**
-     * Returns the receipt number, built from the year and the id (CR3).
-     *
-     * @return e.g. {@code "RCP-2026-0007"}
-     */
+    /** Receipt number like RCP-2026-0007 (CR3). */
     public String getReceiptNumber() {
         return String.format("RCP-%d-%04d", createdAt.getYear(), id);
     }
 
-    /**
-     * Tells whether this donation is tax-deductible, which depends on its donation type (CR4).
-     *
-     * @return {@code true} if the donation type is tax-deductible
-     */
+    /** True if the donation type is tax-deductible (CR4). */
     public boolean isTaxDeductible() {
         return donationType.isTaxDeductible();
     }
 
-    // ---------------- Decorator hooks: a plain donation's answers ----------------
+    // ---- methods the decorators override ----
 
-    /**
-     * Returns the plain donation inside any decorators. Saving needs it, because only the plain
-     * donation knows its own fields (amount, cheque number...).
-     *
-     * @return this donation; a decorator returns the base of the donation it wraps
-     */
+    /** The plain donation without decorators. Needed for saving. */
     public Donation getBase() {
         return this;
     }
 
-    /**
-     * Returns the donor's name as it may be shown to everyone (lists, log, Dashboard).
-     *
-     * @return the donor's name; "Anonymous donor" when the donation is anonymous
-     */
+    /** Name shown to others. Anonymous donations hide it. */
     public String getDonorDisplayName() {
         return getDonor().getName();
     }
 
-    /**
-     * Tells whether the donation is for an urgent need and should be handled first.
-     *
-     * @return {@code false} unless decorated as urgent
-     */
+    /** True if marked urgent. */
     public boolean isUrgent() {
         return false;
     }
 
-    /**
-     * Returns the person the donation is given in honor of.
-     *
-     * @return the honoree's name, or an empty string if the donation is not a gift
-     */
+    /** Who the gift is for, or empty. */
     public String getHonoree() {
         return "";
     }
 
-    /**
-     * Tells whether the donor asked not to be named publicly.
-     *
-     * @return {@code false} unless decorated as anonymous
-     */
+    /** True if anonymous. */
     public boolean isAnonymous() {
         return false;
     }
 
-    /**
-     * Returns the names of the options added by decorators, for the donations table.
-     *
-     * @return e.g. {@code ["Gift", "Urgent"]}; empty for a plain donation
-     */
+    /** Options added by decorators, like Gift or Urgent. */
     public List<String> getOptions() {
         return List.of();
     }

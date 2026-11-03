@@ -20,13 +20,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Business rules for donors and donations. Also the <b>Subject</b> in the Observer pattern:
- * after a donation is saved it tells every attached {@link DonationObserver}.
- *
- * <p>This class does not know what the observers do (log, receipt, thank-you message...).
- * That is the point of the pattern: new reactions can be added without changing this class.
- * It picks the {@link DonationFactory} creator for the chosen method (Factory Method pattern)
- * to create and validate donations.
+ * Rules for donors and donations. Also the observer subject: after a donation
+ * is saved it notifies all observers. Uses the factories to create donations.
  */
 public class DonationService implements DonationSubject {
 
@@ -36,14 +31,7 @@ public class DonationService implements DonationSubject {
     private final DonationRepository donationRepository;
     private final LookupRepository<DonationType> donationTypeRepository;
 
-    /**
-     * Creates the service.
-     *
-     * @param factories              one creator per donation method (built in {@code Main})
-     * @param donorRepository        donor storage
-     * @param donationRepository     donation storage
-     * @param donationTypeRepository donation type storage (to find the chosen type)
-     */
+    /** Creates the service. */
     public DonationService(Map<DonationMethod, DonationFactory> factories, DonorRepository donorRepository,
                            DonationRepository donationRepository,
                            LookupRepository<DonationType> donationTypeRepository) {
@@ -53,11 +41,11 @@ public class DonationService implements DonationSubject {
         this.donationTypeRepository = donationTypeRepository;
     }
 
-    // ---------------- Observer pattern: the Subject's methods ----------------
+    // ---- observer methods ----
 
     @Override
     public void registerObserver(DonationObserver observer) {
-        if (observer != null && !observers.contains(observer)) { // registering twice has no effect
+        if (observer != null && !observers.contains(observer)) { // no duplicates
             observers.add(observer);
         }
     }
@@ -69,59 +57,32 @@ public class DonationService implements DonationSubject {
 
     @Override
     public void notifyObservers(Donation donation) {
-        // Loop over a copy so an observer may remove itself while being notified.
+        // loop over a copy in case an observer removes itself
         for (DonationObserver observer : new ArrayList<>(observers)) {
             try {
                 observer.update(donation);
             } catch (RuntimeException e) {
-                // One failing observer must not stop the others from running.
+                // one failing observer shouldn't stop the rest
                 ApplicationLogger.getInstance().error(
                         observer.getClass().getSimpleName() + " failed: " + e.getMessage());
             }
         }
     }
 
-    /**
-     * Tells whether an observer is currently attached.
-     *
-     * @param observer the observer to look for
-     * @return {@code true} if it is attached
-     */
+    /** True if the observer is registered. */
     public boolean isRegistered(DonationObserver observer) {
         return observers.contains(observer);
     }
 
-    // ---------------- Donors ----------------
+    // ---- donors ----
 
-    /**
-     * Checks and saves a new donor.
-     *
-     * @param name         the donor's name (required)
-     * @param email        the email address (required if the donor prefers Email)
-     * @param phone        the phone number (required if the donor prefers SMS)
-     * @param socialHandle the social media handle, e.g. {@code "@mona_ali"} (required if the donor prefers Social)
-     * @param channel      the preferred channel for thank-you messages (CR5)
-     * @return the saved donor, with its id
-     * @throws ValidationException if a rule is broken
-     */
+    /** Checks and saves a new donor. Throws ValidationException if something is wrong. */
     public Donor registerDonor(String name, String email, String phone, String socialHandle,
                                ContactChannel channel) {
         return donorRepository.insert(validateDonor(0, name, email, phone, socialHandle, channel));
     }
 
-    /**
-     * Checks and saves new details for an existing donor. The same rules as
-     * {@link #registerDonor} apply.
-     *
-     * @param id           the donor's id
-     * @param name         the new name
-     * @param email        the new email
-     * @param phone        the new phone number
-     * @param socialHandle the new social media handle
-     * @param channel      the new preferred channel
-     * @return the updated donor
-     * @throws ValidationException if the donor does not exist or a rule is broken
-     */
+    /** Checks and updates a donor. Same rules as registerDonor. */
     public Donor updateDonor(int id, String name, String email, String phone, String socialHandle,
                              ContactChannel channel) {
         requireExistingDonor(id);
@@ -130,14 +91,7 @@ public class DonationService implements DonationSubject {
         return donor;
     }
 
-    /**
-     * Deletes a donor who has no donations. A donor with donations is kept, so receipts and
-     * the donation history stay complete.
-     *
-     * @param id the donor's id
-     * @return the deleted donor
-     * @throws ValidationException if the donor does not exist or has donations
-     */
+    /** Deletes a donor. Donors with donations can't be deleted. */
     public Donor deleteDonor(int id) {
         Donor donor = requireExistingDonor(id);
         int donations = donorRepository.countDonations(id);
@@ -154,7 +108,7 @@ public class DonationService implements DonationSubject {
                 .orElseThrow(() -> new ValidationException("Please choose a donor"));
     }
 
-    /** The donor rules, shared by register and update. Returns a clean donor with the given id. */
+    /** Donor checks used by register and update. */
     private static Donor validateDonor(int id, String name, String email, String phone, String socialHandle,
                                        ContactChannel channel) {
         String cleanName = InputValidator.requireText(name, "Donor name", 1, 100);
@@ -164,7 +118,7 @@ public class DonationService implements DonationSubject {
         if (channel == null) {
             throw new ValidationException("Preferred channel is required");
         }
-        // A phone number is optional for Email donors, but if one is typed it must be exactly 11 digits.
+        // phone is optional for email donors but must be 11 digits if typed
         if (!cleanPhone.isEmpty() && !cleanPhone.replaceAll("[\\s-]", "").matches("\\d{11}")) {
             throw new ValidationException("Phone number must be exactly 11 digits");
         }
@@ -174,7 +128,7 @@ public class DonationService implements DonationSubject {
         if (channel == ContactChannel.SMS && !InputValidator.isValidPhone(cleanPhone)) {
             throw new ValidationException("A valid phone number is required when the donor prefers SMS");
         }
-        // A handle is optional for the other channels, but if one is typed it must be valid.
+        // handle is optional for other channels but must be valid if typed
         if (!cleanHandle.isEmpty() && !InputValidator.isValidSocialHandle(cleanHandle)) {
             throw new ValidationException("Social handle must start with @ (example: @mona_ali)");
         }
@@ -184,48 +138,22 @@ public class DonationService implements DonationSubject {
         return new Donor(id, cleanName, cleanEmail, cleanPhone, cleanHandle, channel);
     }
 
-    /**
-     * Returns all donors sorted by name.
-     *
-     * @return all donors
-     */
+    /** All donors sorted by name. */
     public List<Donor> findAllDonors() {
         return donorRepository.findAll();
     }
 
-    // ---------------- Donations ----------------
+    // ---- donations ----
 
-    /**
-     * Records a plain donation, with no extras. Same as
-     * {@link #recordDonation(DonationMethod, int, int, DonationRequest, DonationOptions)} with
-     * {@link DonationOptions#NONE}.
-     *
-     * @param method         how the donation was given
-     * @param donorId        id of the donor
-     * @param donationTypeId id of the donation type
-     * @param request        the details for that method
-     * @return the saved donation, with its id and receipt number
-     * @throws ValidationException if the donor, type or details are not valid
-     */
+    /** Records a donation with no extras. */
     public Donation recordDonation(DonationMethod method, int donorId, int donationTypeId,
                                    DonationRequest request) {
         return recordDonation(method, donorId, donationTypeId, request, DonationOptions.NONE);
     }
 
     /**
-     * Records a donation: checks it, saves it, then tells the observers.
-     * If anything is invalid nothing is saved and no observer is told.
-     *
-     * <p>Three patterns meet here: the creator for the method builds the plain donation (Factory
-     * Method), the chosen extras wrap it (Decorator), and the observers are told (Observer).
-     *
-     * @param method         how the donation was given
-     * @param donorId        id of the donor
-     * @param donationTypeId id of the donation type
-     * @param request        the details for that method
-     * @param options        the extras the donor chose (urgent, gift, anonymous)
-     * @return the saved donation, decorated with the chosen extras, with its id and receipt number
-     * @throws ValidationException if the donor, type, details or honoree are not valid
+     * Checks the donation, saves it, then notifies the observers.
+     * Nothing is saved if something is invalid.
      */
     public Donation recordDonation(DonationMethod method, int donorId, int donationTypeId,
                                    DonationRequest request, DonationOptions options) {
@@ -243,22 +171,18 @@ public class DonationService implements DonationSubject {
         if (method == null) {
             throw new ValidationException("Donation method is required");
         }
-        DonationFactory factory = factories.get(method); // the creator for this method, no if/else
+        DonationFactory factory = factories.get(method); // factory for this method
         if (factory == null) {
             throw new ValidationException("Unsupported donation method: " + method.getLabel());
         }
-        Donation base = factory.orderDonation(donor, type, request); // validates the details
-        Donation donation = options.decorate(base);                  // adds the chosen extras
+        Donation base = factory.orderDonation(donor, type, request); // checks the details
+        Donation donation = options.decorate(base);                  // add the extras
         donationRepository.insert(donation);
         notifyObservers(donation);
         return donation;
     }
 
-    /**
-     * Returns all donations, newest first.
-     *
-     * @return all donations
-     */
+    /** All donations, newest first. */
     public List<Donation> findAllDonations() {
         return donationRepository.findAll();
     }

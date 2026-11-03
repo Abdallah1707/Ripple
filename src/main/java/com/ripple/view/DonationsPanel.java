@@ -32,19 +32,8 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The Donations screen, in two tabs:
- * <ul>
- *   <li><b>Donations</b>: record a donation, see all donations and open a receipt;</li>
- *   <li><b>Donors</b>: add, update and delete donors (Add / Update / Delete / Clear).</li>
- * </ul>
- * Together they are the complete Donations module (see {@code docs/crud-matrix.md}).
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link DonationController}
- * (and {@link LookupController} for the donation type list). The outcome of every action
- * is shown in the status bar.
- *
- * <p>The "Notify donors on new donation" checkbox is the visible part of the Observer
- * pattern: ticking it registers the donor notification observer, unticking it removes it.
+ * The Donations screen with two tabs: Donations and Donors.
+ * The notify checkbox adds or removes the donor notification observer.
  */
 public class DonationsPanel extends JPanel implements Refreshable {
 
@@ -54,7 +43,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final LookupController lookupController;
     private final StatusBar statusBar;
 
-    // --- Donors tab ---
+    // donors tab
     private final JTextField donorNameField = new JTextField(18);
     private final JTextField donorEmailField = new JTextField(18);
     private final JTextField donorPhoneField = new JTextField(14);
@@ -62,10 +51,10 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JComboBox<ContactChannel> channelBox = new JComboBox<>(ContactChannel.values());
     private final DefaultTableModel donorTableModel;
     private final JTable donorTable;
-    /** The donors currently shown, in the same order as the donor table rows. */
+    /** Donors in the same order as the table. */
     private List<Donor> donors = List.of();
 
-    // --- Donations tab ---
+    // donations tab
     private final JComboBox<Donor> donorBox = new JComboBox<>();
     private final JComboBox<DonationType> typeBox = new JComboBox<>();
     private final JComboBox<DonationMethod> methodBox = new JComboBox<>(DonationMethod.values());
@@ -79,7 +68,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JLabel itemLabel = new JLabel("Item");
     private final JLabel quantityLabel = new JLabel("Quantity");
     private final JLabel valueLabel = new JLabel("Estimated value (EGP)");
-    // Extras: each one ticked becomes a decorator around the donation.
+    // extras, each one becomes a decorator
     private final JCheckBox urgentCheckBox = new JCheckBox("Urgent need");
     private final JCheckBox anonymousCheckBox = new JCheckBox("Anonymous (hide the donor's name in lists)");
     private final JTextField honoreeField = new JTextField(12);
@@ -90,13 +79,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JTable table;
     private List<Donation> currentDonations = List.of();
 
-    /**
-     * Builds the screen.
-     *
-     * @param donationController the donations controller
-     * @param lookupController   gives the list of donation types
-     * @param statusBar          where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public DonationsPanel(DonationController donationController, LookupController lookupController,
                           StatusBar statusBar) {
         super(new BorderLayout());
@@ -118,7 +101,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         donorTableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Social handle", "Preferred channel"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // editing happens in the form, not in the table
+                return false; // edit in the form, not the table
             }
         };
         donorTable = new JTable(donorTableModel);
@@ -159,7 +142,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         showFieldsForMethod();
     }
 
-    // ---------------- Donations tab ----------------
+    // ---- donations tab ----
 
     private JPanel buildDonationsTab() {
         JPanel tab = new JPanel(new BorderLayout(0, 8));
@@ -167,7 +150,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         tab.add(buildDonationForm(), BorderLayout.NORTH);
         tab.add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
 
-        // Ticked when the screen first opens: donors are notified by default.
+        // on by default
         notifyCheckBox.setSelected(donationController.isDonorNotificationsEnabled());
         notifyCheckBox.addActionListener(e -> {
             boolean enabled = notifyCheckBox.isSelected();
@@ -185,7 +168,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         return tab;
     }
 
-    /** The form to record a donation. Only the fields for the chosen method are visible. */
+    /** Form for recording a donation. Only shows fields for the chosen method. */
     private JPanel buildDonationForm() {
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Record donation"));
@@ -205,7 +188,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         return form;
     }
 
-    /** Shows only the fields that the chosen donation method needs. */
+    /** Shows only the fields the chosen method needs. */
     private void showFieldsForMethod() {
         DonationMethod method = (DonationMethod) methodBox.getSelectedItem();
         boolean cash = method == DonationMethod.CASH;
@@ -213,7 +196,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         boolean inKind = method == DonationMethod.IN_KIND;
         boolean cheque = method == DonationMethod.CHEQUE;
         setVisible(cash || online || cheque, amountLabel, amountField);
-        // Online and cheque both use the reference field; only its label changes.
+        // online and cheque share this field, only the label changes
         referenceLabel.setText(cheque ? "Cheque no." : "Transaction reference");
         FormHelper.placeholder(referenceField, cheque ? "e.g. 000123" : "e.g. TX-1001");
         setVisible(online || cheque, referenceLabel, referenceField);
@@ -253,9 +236,9 @@ public class DonationsPanel extends JPanel implements Refreshable {
         }
     }
 
-    /** Opens the selected donation's receipt (basic + thank-you + tax if applicable) in a pop-up. */
+    /** Shows the selected donation's receipt in a popup. */
     private void viewReceipt() {
-        int row = FormHelper.selectedModelRow(table); // correct even when sorted or filtered
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
         if (row < 0 || row >= currentDonations.size()) {
             statusBar.showResult(Result.fail("Select a donation first"));
             return;
@@ -266,7 +249,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
                 JOptionPane.PLAIN_MESSAGE);
     }
 
-    // ---------------- Donors tab ----------------
+    // ---- donors tab ----
 
     private JPanel buildDonorsTab() {
         JPanel tab = new JPanel(new BorderLayout(0, 8));
@@ -276,7 +259,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         return tab;
     }
 
-    /** The form to add or edit a donor, with Add / Update / Delete / Clear. */
+    /** Form for adding or editing a donor. */
     private JPanel buildDonorForm() {
         JPanel form = new JPanel(new GridBagLayout());
         form.setBorder(BorderFactory.createTitledBorder("Add or edit a donor"));
@@ -296,7 +279,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         return form;
     }
 
-    /** Enter in the donor form: update the selected donor, or add a new one if none is selected. */
+    /** Updates the selected donor, or adds a new one if nothing is selected. */
     private void onSaveDonor() {
         if (selectedDonor() == null) {
             onAddDonor();
@@ -332,12 +315,12 @@ public class DonationsPanel extends JPanel implements Refreshable {
         }
     }
 
-    /** Shows the result; on success clears the form and reloads, so the donor lists match the database. */
+    /** Shows the result. If it worked, clears the form and reloads. */
     private void showDonorResult(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
             clearDonorForm();
-            refresh(); // the donor table and the donor combo box on the Donations tab
+            refresh(); // reloads the donor table and combo box
         }
     }
 
@@ -347,7 +330,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     }
 
     private Donor selectedDonor() {
-        int row = FormHelper.selectedModelRow(donorTable); // correct even when sorted or filtered
+        int row = FormHelper.selectedModelRow(donorTable); // works with sorting and filtering
         return row < 0 || row >= donors.size() ? null : donors.get(row);
     }
 
@@ -372,9 +355,9 @@ public class DonationsPanel extends JPanel implements Refreshable {
         channelBox.setSelectedIndex(0);
     }
 
-    // ---------------- shared ----------------
+    // ---- shared ----
 
-    /** Adds one "label + field" row to a form that uses GridBagLayout. */
+    /** Adds a label and field row. */
     private void addRow(JPanel form, int row, JLabel label, JComponent field) {
         GridBagConstraints c = new GridBagConstraints();
         c.insets = new Insets(3, 4, 3, 4);
@@ -388,7 +371,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         form.add(field, c);
     }
 
-    /** Reloads the donors (table and combo box), the donation types and the donations table. */
+    /** Reloads donors, donation types and donations. */
     @Override
     public void refresh() {
         Donor selectedDonor = (Donor) donorBox.getSelectedItem();
@@ -402,7 +385,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
                     donor.getSocialHandle(), donor.getPreferredChannel()});
             donorBox.addItem(donor);
             if (selectedDonor != null && donor.getId() == selectedDonor.getId()) {
-                donorBox.setSelectedItem(donor); // keep the previous choice
+                donorBox.setSelectedItem(donor); // keep the old selection
             }
         }
         typeBox.removeAllItems();
@@ -419,7 +402,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
             tableModel.addRow(new Object[]{
                     donation.getReceiptNumber(),
                     donation.getCreatedAt().format(DATE_FORMAT),
-                    donation.getDonorDisplayName(), // "Anonymous donor" for anonymous donations
+                    donation.getDonorDisplayName(), // hidden if anonymous
                     donation.getDonationType().getName(),
                     donation.getMethod().getLabel(),
                     String.format(Locale.US, "EGP %,.2f", donation.getValue()),

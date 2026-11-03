@@ -11,16 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** Reads and writes the {@code donation_types} lookup table. */
+/** Database access for donation types. */
 public class DonationTypeRepository implements LookupRepository<DonationType> {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public DonationTypeRepository(Database database) {
         this.database = database;
     }

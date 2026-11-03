@@ -12,25 +12,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-/** Reads and writes the {@code donors} table. Contains SQL only, no business rules. */
+/** Database access for donors. */
 public class DonorRepository {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public DonorRepository(Database database) {
         this.database = database;
     }
 
-    /**
-     * Returns all donors sorted by name.
-     *
-     * @return all donors
-     */
+    /** All donors sorted by name. */
     public List<Donor> findAll() {
         String sql = "SELECT id, name, email, phone, social_handle, preferred_channel FROM donors ORDER BY name COLLATE NOCASE";
         try (Connection c = database.getConnection();
@@ -46,12 +38,7 @@ public class DonorRepository {
         }
     }
 
-    /**
-     * Finds one donor.
-     *
-     * @param id the donor's id
-     * @return the donor, or empty if there is no donor with that id
-     */
+    /** Finds a donor by id. */
     public Optional<Donor> findById(int id) {
         String sql = "SELECT id, name, email, phone, social_handle, preferred_channel FROM donors WHERE id = ?";
         try (Connection c = database.getConnection();
@@ -65,12 +52,7 @@ public class DonorRepository {
         }
     }
 
-    /**
-     * Saves a new donor and sets its generated id.
-     *
-     * @param donor the donor to save (its id is ignored)
-     * @return the same donor, now with its id
-     */
+    /** Saves a new donor and sets its id. */
     public Donor insert(Donor donor) {
         String sql = "INSERT INTO donors (name, email, phone, social_handle, preferred_channel) VALUES (?, ?, ?, ?, ?)";
         try (Connection c = database.getConnection();
@@ -90,11 +72,7 @@ public class DonorRepository {
         }
     }
 
-    /**
-     * Saves the changed details of an existing donor.
-     *
-     * @param donor the donor with its id and new details
-     */
+    /** Updates a donor. */
     public void update(Donor donor) {
         String sql = "UPDATE donors SET name = ?, email = ?, phone = ?, social_handle = ?, preferred_channel = ? "
                 + "WHERE id = ?";
@@ -112,11 +90,7 @@ public class DonorRepository {
         }
     }
 
-    /**
-     * Deletes a donor. The service checks first that the donor has no donations.
-     *
-     * @param id the donor's id
-     */
+    /** Deletes a donor. */
     public void delete(int id) {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement("DELETE FROM donors WHERE id = ?")) {
@@ -127,12 +101,7 @@ public class DonorRepository {
         }
     }
 
-    /**
-     * Counts the donations a donor has given (a donor with donations cannot be deleted).
-     *
-     * @param donorId the donor's id
-     * @return the number of donations
-     */
+    /** Number of donations by this donor. */
     public int countDonations(int donorId) {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement("SELECT COUNT(*) FROM donations WHERE donor_id = ?")) {
@@ -145,11 +114,7 @@ public class DonorRepository {
         }
     }
 
-    /**
-     * Counts the donors (used by the Dashboard).
-     *
-     * @return the number of donors
-     */
+    /** Number of donors. */
     public int count() {
         try (Connection c = database.getConnection();
              Statement statement = c.createStatement();

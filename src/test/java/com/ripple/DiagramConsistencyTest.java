@@ -18,32 +18,18 @@ import java.util.regex.Pattern;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Fails the build if {@code docs/class-diagram.md} and the code drift apart (Phase 1, Section 6).
- *
- * <p>The "complete diagram" in section 2 of the document is the team contract, so:
- * <ul>
- *   <li>every class drawn in it must exist in the code;</li>
- *   <li>every class in the code must be drawn in it, except the {@code app} package and the
- *       implementation helpers in {@link #NOT_DRAWN_HELPERS} (the diagram is at design level);</li>
- *   <li>each class must sit in the diagram namespace that matches its Java package;</li>
- *   <li>the small per-pattern diagrams may only use classes of the complete diagram.</li>
- * </ul>
- * It compares class names and packages, not every field and method.
+ * Checks that docs/class-diagram.md matches the code.
+ * Every class in the diagram must exist in the code and the other way around,
+ * and each class must be in the right package.
  */
 class DiagramConsistencyTest {
 
     private static final Path DIAGRAM = Path.of("docs", "class-diagram.md");
     private static final Pattern CLASS_LINE = Pattern.compile("(?m)^\\s*class\\s+(\\w+)");
     private static final Pattern NAMESPACE_BLOCK = Pattern.compile("(?ms)^namespace\\s+(\\w+)\\s*\\{(.*?)^\\}");
-    /**
-     * The composition root ({@code Main}) is not drawn: it is a "system" class that only wires
-     * objects together (rule 8 of the course's "Common Mistakes in Class Diagram").
-     */
+    /** Main is not in the diagram. */
     private static final String NOT_DRAWN_PACKAGE = "app";
-    /**
-     * Small utilities added while coding, not part of the design. They are listed in the
-     * "Implementation helpers" table of section 3 instead of being drawn.
-     */
+    /** Helper classes that aren't in the diagram. */
     private static final Set<String> NOT_DRAWN_HELPERS = Set.of("InputValidator", "ValidationException", "FormHelper");
     private static final Pattern MERMAID_BLOCK = Pattern.compile("(?s)```mermaid\\R(.*?)```");
 
@@ -116,7 +102,7 @@ class DiagramConsistencyTest {
         assertTrue(unknown.isEmpty(), "Used in a pattern diagram but not in the complete diagram: " + unknown);
     }
 
-    /** Class name -> namespace, for every class in section 2 ("Complete diagram") of the document. */
+    /** Class name to namespace, from the diagram. */
     private static Map<String, String> diagramClasses() throws IOException {
         String markdown = read();
         int start = markdown.indexOf("## 2. Complete diagram");
@@ -135,7 +121,7 @@ class DiagramConsistencyTest {
         return classes;
     }
 
-    /** Class name -> package folder, for every Java file in {@code src/main/java} except the {@code app} package. */
+    /** Class name to package, from the code. */
     private static Map<String, String> codeClasses() {
         Map<String, String> classes = new TreeMap<>();
         for (Path source : MainSources.all()) {

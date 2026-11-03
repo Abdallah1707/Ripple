@@ -4,23 +4,14 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 
 /**
- * A donation of money paid by cheque, identified by the cheque number.
- * ConcreteProduct in the Factory Method pattern, created by {@code ChequeDonationFactory}.
+ * A cheque donation.
  */
 public class ChequeDonation extends Donation {
 
     private final double amount;
     private final String chequeNumber;
 
-    /**
-     * Creates a cheque donation. Use {@code ChequeDonationFactory} instead of calling this directly.
-     *
-     * @param donor        who gave it
-     * @param donationType its lookup type
-     * @param createdAt    when it was recorded
-     * @param amount       amount in EGP
-     * @param chequeNumber the number printed on the cheque, e.g. {@code "000123"}
-     */
+    /** Creates a cheque donation. Use ChequeDonationFactory instead. */
     public ChequeDonation(Donor donor, DonationType donationType, LocalDateTime createdAt,
                           double amount, String chequeNumber) {
         super(donor, donationType, createdAt);

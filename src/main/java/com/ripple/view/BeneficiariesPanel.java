@@ -20,11 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Beneficiaries screen: a table of beneficiaries, a small form and
- * Add / Update / Delete / Clear buttons.
- *
- * <p>A <b>View</b> in MVC: it only shows things and calls {@link BeneficiaryController}.
- * The outcome of every action is shown in the status bar.
+ * The Beneficiaries screen: table, form and buttons.
  */
 public class BeneficiariesPanel extends JPanel implements Refreshable {
 
@@ -38,15 +34,10 @@ public class BeneficiariesPanel extends JPanel implements Refreshable {
     private final JTextField phoneField = new JTextField(14);
     private final JTextField addressField = new JTextField(30);
     private final JTextField needsField = new JTextField(30);
-    /** The beneficiaries currently shown, in the same order as the table rows. */
+    /** Beneficiaries in the same order as the table. */
     private List<Beneficiary> beneficiaries = new ArrayList<>();
 
-    /**
-     * Builds the screen.
-     *
-     * @param controller the beneficiary controller
-     * @param statusBar  where to show the outcome of each action
-     */
+    /** Builds the screen. */
     public BeneficiariesPanel(BeneficiaryController controller, StatusBar statusBar) {
         super(new BorderLayout(0, 8));
         this.controller = controller;
@@ -56,7 +47,7 @@ public class BeneficiariesPanel extends JPanel implements Refreshable {
         tableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Address", "Needs"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // editing happens in the form, not in the table
+                return false; // edit in the form, not the table
             }
         };
         table = new JTable(tableModel);
@@ -130,10 +121,7 @@ public class BeneficiariesPanel extends JPanel implements Refreshable {
         }
     }
 
-    /**
-     * Adds a field that grows with the form. Without the weight, a form narrower than its
-     * preferred width would shrink every field to its minimum size.
-     */
+    /** Adds a field that stretches with the form. */
     private static void addStretched(JPanel form, GridBagConstraints c, JTextField field) {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
@@ -142,7 +130,7 @@ public class BeneficiariesPanel extends JPanel implements Refreshable {
         c.weightx = 0;
     }
 
-    /** Enter in the form: update the selected row, or add a new one if no row is selected. */
+    /** Updates the selected row, or adds a new one if nothing is selected. */
     private void onSave() {
         if (selectedBeneficiary() == null) {
             onAdd();
@@ -177,7 +165,7 @@ public class BeneficiariesPanel extends JPanel implements Refreshable {
         }
     }
 
-    /** Shows the result; on success reloads the table so it matches the database. */
+    /** Shows the result and reloads the table if it worked. */
     private void showAndRefresh(Result result) {
         statusBar.showResult(result);
         if (result.success()) {
@@ -186,7 +174,7 @@ public class BeneficiariesPanel extends JPanel implements Refreshable {
     }
 
     private Beneficiary selectedBeneficiary() {
-        int row = FormHelper.selectedModelRow(table); // correct even when sorted or filtered
+        int row = FormHelper.selectedModelRow(table); // works with sorting and filtering
         return row < 0 ? null : beneficiaries.get(row);
     }
 

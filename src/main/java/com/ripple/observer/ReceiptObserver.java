@@ -8,21 +8,14 @@ import com.ripple.receipt.ThankYouMessageDecorator;
 import com.ripple.repository.ReceiptRepository;
 
 /**
- * Concrete observer in the Observer pattern that builds and saves a receipt for each new
- * donation, using the Decorator pattern.
- *
- * <p>Every receipt gets a thank-you message. A tax information section (CR4) is added only
- * when the donation's type is tax-deductible; {@code BasicReceipt} itself never changes.
+ * Builds and saves a receipt for each new donation.
+ * Tax info is only added for tax-deductible types (CR4).
  */
 public class ReceiptObserver implements DonationObserver {
 
     private final ReceiptRepository receiptRepository;
 
-    /**
-     * Creates the observer.
-     *
-     * @param receiptRepository where the rendered receipt is saved
-     */
+    /** Creates the observer. */
     public ReceiptObserver(ReceiptRepository receiptRepository) {
         this.receiptRepository = receiptRepository;
     }
@@ -33,13 +26,7 @@ public class ReceiptObserver implements DonationObserver {
         receiptRepository.save(donation.getId(), receipt.render());
     }
 
-    /**
-     * Builds the decorated receipt for a donation: a basic receipt, a thank-you message,
-     * and a tax information section if (and only if) the donation's type is tax-deductible.
-     *
-     * @param donation the donation to build a receipt for
-     * @return the fully decorated receipt
-     */
+    /** Builds the receipt: basic, thank-you, and tax info if needed. */
     public Receipt buildReceipt(Donation donation) {
         Receipt receipt = new ThankYouMessageDecorator(new BasicReceipt(donation), donation.getDonor().getName());
         if (donation.isTaxDeductible()) {

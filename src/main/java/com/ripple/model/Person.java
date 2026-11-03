@@ -1,12 +1,8 @@
 package com.ripple.model;
 
 /**
- * What every person Ripple knows has in common: an id, a name, an email and a phone.
- *
- * <p>{@link Donor}, {@link Volunteer}, {@link Beneficiary} and {@link Attendee} extend this class
- * instead of each repeating these four fields. It is abstract because nobody is "just a person":
- * they are always one of those four kinds. It implements {@link Contactable}, so every person can
- * receive messages.
+ * Base class for people: id, name, email and phone.
+ * Donor, Volunteer, Beneficiary and Attendee extend it.
  */
 public abstract class Person implements Contactable {
 
@@ -15,14 +11,7 @@ public abstract class Person implements Contactable {
     private final String email;
     private final String phone;
 
-    /**
-     * Sets the fields shared by every kind of person.
-     *
-     * @param id    database id, or 0 if not saved yet
-     * @param name  display name
-     * @param email email address, or {@code null} / an empty string if there is none
-     * @param phone phone number, or {@code null} / an empty string if there is none
-     */
+    /** Sets the shared fields. Email and phone can be null or empty. */
     protected Person(int id, String name, String email, String phone) {
         this.id = id;
         this.name = name;
@@ -34,11 +23,7 @@ public abstract class Person implements Contactable {
         return id;
     }
 
-    /**
-     * Sets the id given by the database after the person is saved.
-     *
-     * @param id the generated id
-     */
+    /** Sets the id after saving. */
     public void setId(int id) {
         this.id = id;
     }

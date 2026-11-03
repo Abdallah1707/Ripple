@@ -11,8 +11,7 @@ import com.ripple.service.ValidationException;
 import java.time.LocalDateTime;
 
 /**
- * Concrete Creator in the Factory Method pattern: creates {@link InKindDonation}s (goods
- * instead of money), which need an item, a quantity above 0 and an estimated value.
+ * Creates in-kind donations (goods instead of money).
  */
 public class InKindDonationFactory extends DonationFactory {
 
@@ -23,7 +22,7 @@ public class InKindDonationFactory extends DonationFactory {
         if (request.quantity() <= 0) {
             throw new ValidationException("Quantity must be greater than 0");
         }
-        if (!(request.estimatedValue() >= 0)) { // written this way so NaN is rejected too
+        if (!(request.estimatedValue() >= 0)) { // also rejects NaN
             throw new ValidationException("Estimated value cannot be negative");
         }
         return new InKindDonation(donor, type, createdAt, item, request.quantity(), request.estimatedValue());

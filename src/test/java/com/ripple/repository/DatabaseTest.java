@@ -28,7 +28,7 @@ class DatabaseTest {
     @Test
     void initializeSeedsLookupsOnlyOnce() throws SQLException {
         Database db = TestDatabase.create(tempDir);
-        db.initialize(); // second start of the app
+        db.initialize(); // second app start
         assertEquals(4, count(db, "SELECT COUNT(*) FROM donation_types"));
         assertEquals(3, count(db, "SELECT COUNT(*) FROM event_categories"));
         assertEquals(1, count(db, "SELECT COUNT(*) FROM donation_types WHERE name = 'Food Supplies' "
@@ -39,14 +39,14 @@ class DatabaseTest {
     void initializeAddsTheSocialHandleColumnToAnOlderDatabase() throws SQLException {
         Database db = new Database(tempDir.resolve("old.db").toString());
         try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
-            // the donors table as it was before social media was added
+            // old donors table without social handle
             s.execute("CREATE TABLE donors (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, "
                     + "email TEXT, phone TEXT, preferred_channel TEXT NOT NULL)");
             s.execute("INSERT INTO donors (name, email, preferred_channel) VALUES ('Mona', 'm@x.com', 'EMAIL')");
         }
 
         db.initialize();
-        db.initialize(); // a second start must not try to add the column again
+        db.initialize(); // shouldn't add the column again
 
         assertEquals(1, count(db, "SELECT COUNT(*) FROM pragma_table_info('donors') WHERE name = 'social_handle'"));
         assertEquals(1, count(db, "SELECT COUNT(*) FROM donors WHERE name = 'Mona'")); // old rows are kept
@@ -56,14 +56,14 @@ class DatabaseTest {
     void initializeAddsTheDonationExtrasColumnsToAnOlderDatabase() throws SQLException {
         Database db = new Database(tempDir.resolve("old-donations.db").toString());
         try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
-            // the donations table as it was before urgent / gift / anonymous were added
+            // old donations table without the extras
             s.execute("CREATE TABLE donations (id INTEGER PRIMARY KEY AUTOINCREMENT, donor_id INTEGER NOT NULL, "
                     + "donation_type_id INTEGER NOT NULL, method TEXT NOT NULL, amount REAL, transaction_ref TEXT, "
                     + "item_description TEXT, quantity INTEGER, estimated_value REAL, created_at TEXT NOT NULL)");
         }
 
         db.initialize();
-        db.initialize(); // a second start must not add them again
+        db.initialize(); // shouldn't add them again
 
         assertEquals(3, count(db, "SELECT COUNT(*) FROM pragma_table_info('donations') "
                 + "WHERE name IN ('urgent', 'gift_honoree', 'anonymous')"));
@@ -73,7 +73,7 @@ class DatabaseTest {
     void foreignKeysAreSwitchedOn() throws SQLException {
         Database db = TestDatabase.create(tempDir);
         assertEquals(1, count(db, "PRAGMA foreign_keys"));
-        // A donation pointing at a donor that does not exist must be rejected.
+        // donation with a missing donor should fail
         try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
             assertThrows(SQLException.class, () -> s.executeUpdate(
                     "INSERT INTO donations (donor_id, donation_type_id, method, created_at) "

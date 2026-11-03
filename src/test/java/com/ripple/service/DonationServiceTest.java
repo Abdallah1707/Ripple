@@ -31,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the donor rules, recording donations, and the Observer behaviour of DonationService. */
+/** Tests for DonationService. */
 class DonationServiceTest {
 
-    /** A simple observer that counts how many times it was told about a donation. */
+    /** Counts how many times it was called. */
     private static class CountingObserver implements DonationObserver {
         int calls = 0;
         Donation last;
@@ -46,7 +46,7 @@ class DonationServiceTest {
         }
     }
 
-    /** An observer that always fails. */
+    /** Always throws. */
     private static class BrokenObserver implements DonationObserver {
         @Override
         public void update(Donation donation) {
@@ -79,7 +79,7 @@ class DonationServiceTest {
         return new DonationRequest(amount, null, null, 0, 0, null);
     }
 
-    // ---------------- donation extras (Decorator) ----------------
+    // ---- donation extras ----
 
     @Test
     void chosenExtrasDecorateTheDonationBeforeObserversHearOfIt() {
@@ -88,9 +88,9 @@ class DonationServiceTest {
 
         assertTrue(donation.isUrgent() && donation.isAnonymous());
         assertEquals("URGENT: Cash donation of EGP 500.00 (gift in honor of Hana Ali)", donation.describe());
-        assertSame(donation, observer.last); // observers get the decorated donation
+        assertSame(donation, observer.last); // gets the decorated donation
         assertEquals("Anonymous donor", observer.last.getDonorDisplayName());
-        assertEquals("Mona Ali", observer.last.getDonor().getName()); // the real donor is still known
+        assertEquals("Mona Ali", observer.last.getDonor().getName()); // real donor is still there
     }
 
     @Test
@@ -104,7 +104,7 @@ class DonationServiceTest {
         assertTrue(service.findAllDonations().isEmpty());
     }
 
-    // ---------------- donor rules ----------------
+    // ---- donor rules ----
 
     @Test
     void registerDonorSavesDonorWithPreferredChannel() {
@@ -143,7 +143,7 @@ class DonationServiceTest {
                 () -> service.registerDonor("Sara", "", "", "", ContactChannel.SOCIAL));
         assertThrows(ValidationException.class,
                 () -> service.registerDonor("Sara", "", "", "sara_s", ContactChannel.SOCIAL)); // no @
-        // a typed handle must be valid even when the donor prefers another channel
+        // handle must be valid even if another channel is preferred
         assertThrows(ValidationException.class,
                 () -> service.registerDonor("Sara", "sara@example.com", "", "@", ContactChannel.EMAIL));
 
@@ -160,12 +160,12 @@ class DonationServiceTest {
                 () -> service.registerDonor("Sara", "sara@example.com", "010123456789", "", ContactChannel.EMAIL)); // 12 digits
         assertThrows(ValidationException.class,
                 () -> service.registerDonor("Sara", "", "0101234567", "", ContactChannel.SMS));
-        // exactly 11 digits is accepted (spaces and dashes are ignored)
+        // 11 digits is ok, spaces and dashes are ignored
         assertTrue(service.registerDonor("Sara", "sara@example.com", "01012345678", "", ContactChannel.EMAIL).getId() > 0);
         assertTrue(service.registerDonor("Omar", "", "010-1234-5678", "", ContactChannel.SMS).getId() > 0);
     }
 
-    // ---------------- update and delete donors ----------------
+    // ---- update and delete donors ----
 
     @Test
     void updateDonorSavesTheNewDetails() {
@@ -204,7 +204,7 @@ class DonationServiceTest {
         assertEquals(1, service.findAllDonors().size());
     }
 
-    // ---------------- recording each kind of donation ----------------
+    // ---- each kind of donation ----
 
     @Test
     void recordsCashDonation() {
@@ -231,7 +231,7 @@ class DonationServiceTest {
         assertEquals(1500, donation.getValue());
     }
 
-    // ---------------- bad input ----------------
+    // ---- bad input ----
 
     @Test
     void badInputIsRejectedAndNoObserverIsTold() {
@@ -246,7 +246,7 @@ class DonationServiceTest {
                 () -> service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(0)));
 
         assertEquals(0, observer.calls);
-        assertTrue(service.findAllDonations().isEmpty()); // nothing was saved either
+        assertTrue(service.findAllDonations().isEmpty()); // nothing saved
     }
 
     @Test
@@ -258,13 +258,13 @@ class DonationServiceTest {
         assertEquals(0, observer.calls);
     }
 
-    // ---------------- Observer behaviour ----------------
+    // ---- observers ----
 
     @Test
     void attachedObserverIsNotifiedWithTheSavedDonation() {
         Donation donation = service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(100));
         assertEquals(1, observer.calls);
-        assertEquals(donation.getId(), observer.last.getId()); // it already has its id
+        assertEquals(donation.getId(), observer.last.getId()); // already has its id
     }
 
     @Test
@@ -277,7 +277,7 @@ class DonationServiceTest {
 
     @Test
     void attachingTwiceNotifiesOnlyOnce() {
-        service.registerObserver(observer); // already attached in setUp
+        service.registerObserver(observer); // already added in setUp
         service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(100));
         assertEquals(1, observer.calls);
     }
@@ -292,6 +292,6 @@ class DonationServiceTest {
 
         assertEquals(1, observer.calls);
         assertEquals(1, after.calls);
-        assertEquals(1, service.findAllDonations().size()); // the donation is still saved
+        assertEquals(1, service.findAllDonations().size()); // donation is still saved
     }
 }

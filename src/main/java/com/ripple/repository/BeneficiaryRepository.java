@@ -10,25 +10,17 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Reads and writes the {@code beneficiaries} table. Contains SQL only, no business rules. */
+/** Database access for beneficiaries. */
 public class BeneficiaryRepository {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public BeneficiaryRepository(Database database) {
         this.database = database;
     }
 
-    /**
-     * Returns all beneficiaries sorted by name.
-     *
-     * @return all beneficiaries
-     */
+    /** All beneficiaries sorted by name. */
     public List<Beneficiary> findAll() {
         String sql = "SELECT id, name, email, phone, address, needs FROM beneficiaries ORDER BY name COLLATE NOCASE";
         try (Connection c = database.getConnection();
@@ -45,12 +37,7 @@ public class BeneficiaryRepository {
         }
     }
 
-    /**
-     * Saves a new beneficiary and sets its generated id.
-     *
-     * @param beneficiary the beneficiary to save (its id is ignored)
-     * @return the same beneficiary, now with its id
-     */
+    /** Saves a new beneficiary and sets its id. */
     public Beneficiary insert(Beneficiary beneficiary) {
         String sql = "INSERT INTO beneficiaries (name, email, phone, address, needs) VALUES (?, ?, ?, ?, ?)";
         try (Connection c = database.getConnection();
@@ -70,11 +57,7 @@ public class BeneficiaryRepository {
         }
     }
 
-    /**
-     * Updates an existing beneficiary (matched by id).
-     *
-     * @param beneficiary the beneficiary with its new values
-     */
+    /** Updates a beneficiary. */
     public void update(Beneficiary beneficiary) {
         String sql = "UPDATE beneficiaries SET name = ?, email = ?, phone = ?, address = ?, needs = ? WHERE id = ?";
         try (Connection c = database.getConnection();
@@ -91,11 +74,7 @@ public class BeneficiaryRepository {
         }
     }
 
-    /**
-     * Deletes a beneficiary.
-     *
-     * @param id the beneficiary's id
-     */
+    /** Deletes a beneficiary. */
     public void delete(int id) {
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement("DELETE FROM beneficiaries WHERE id = ?")) {
@@ -106,11 +85,7 @@ public class BeneficiaryRepository {
         }
     }
 
-    /**
-     * Counts the beneficiaries (used by the Dashboard).
-     *
-     * @return the number of beneficiaries
-     */
+    /** Number of beneficiaries. */
     public int count() {
         try (Connection c = database.getConnection();
              Statement statement = c.createStatement();

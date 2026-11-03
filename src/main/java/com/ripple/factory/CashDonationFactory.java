@@ -8,7 +8,7 @@ import com.ripple.model.Donor;
 
 import java.time.LocalDateTime;
 
-/** Concrete Creator in the Factory Method pattern: creates {@link CashDonation}s. */
+/** Creates cash donations. */
 public class CashDonationFactory extends DonationFactory {
 
     @Override

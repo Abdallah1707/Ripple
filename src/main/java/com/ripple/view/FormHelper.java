@@ -20,37 +20,21 @@ import java.awt.event.MouseEvent;
 import java.util.regex.Pattern;
 
 /**
- * Small helpers that every screen uses to be easier to work with: hints inside empty fields,
- * a search box above each table, double-click to edit, Enter to save, tooltips and one
- * "Are you sure?" dialog for deletes.
- *
- * <p>Part of the <b>View</b> in MVC: it only deals with Swing components and never calls a
- * controller. Keeping these in one place means the six screens behave the same way.
+ * Small UI helpers used by all screens: hints, search boxes, double-click to edit,
+ * Enter to save, tooltips and delete confirmation.
  */
 public final class FormHelper {
 
     private FormHelper() {
-        // static helpers only
+        // no instances
     }
 
-    /**
-     * Shows a grey hint inside an empty text field, e.g. the expected date format.
-     *
-     * @param field the field
-     * @param hint  the text shown while the field is empty
-     */
+    /** Shows a grey hint in an empty field. */
     public static void placeholder(JTextField field, String hint) {
         field.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, hint);
     }
 
-    /**
-     * Creates a button with a tooltip that says what it does.
-     *
-     * @param text    the button's label
-     * @param tooltip shown when the mouse rests on the button
-     * @param action  what happens when it is clicked
-     * @return the new button
-     */
+    /** Creates a button with a tooltip. */
     public static JButton button(String text, String tooltip, Runnable action) {
         JButton button = new JButton(text);
         button.setToolTipText(tooltip);
@@ -59,15 +43,8 @@ public final class FormHelper {
     }
 
     /**
-     * Makes the table sortable (click a column header) and returns a search box that hides
-     * every row which does not contain the typed text, ignoring case.
-     *
-     * <p>After this, the row the user sees is no longer the row in the list behind the table,
-     * so screens must use {@link #selectedModelRow(JTable)} instead of
-     * {@code table.getSelectedRow()}.
-     *
-     * @param table the table to filter
-     * @return the search field to place above the table
+     * Makes the table sortable and returns a search box that filters its rows.
+     * Use selectedModelRow after this, not getSelectedRow.
      */
     public static JTextField searchField(JTable table) {
         TableRowSorter<TableModel> sorter = new TableRowSorter<>(table.getModel());
@@ -96,13 +73,7 @@ public final class FormHelper {
         return search;
     }
 
-    /**
-     * The table in a scroll pane, with its search box above it on the left.
-     *
-     * @param table the table to show
-     * @return a panel ready to add to the screen
-     * @see #searchField(JTable)
-     */
+    /** The table with a search box above it. */
     public static JPanel tableWithSearch(JTable table) {
         JPanel searchRow = new JPanel(new BorderLayout());
         searchRow.add(searchField(table), BorderLayout.WEST);
@@ -114,32 +85,20 @@ public final class FormHelper {
 
     private static void filter(TableRowSorter<TableModel> sorter, String text) {
         if (text.isBlank()) {
-            sorter.setRowFilter(null); // show every row
+            sorter.setRowFilter(null); // show all rows
         } else {
-            // Pattern.quote: characters like "(" or "." are searched for as they are typed.
+            // quote so ( and . are searched as normal text
             sorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(text.trim())));
         }
     }
 
-    /**
-     * Returns the index of the selected row in the table's model, which is the same index as
-     * in the list the screen filled the table from. This stays correct when the table is
-     * sorted or filtered.
-     *
-     * @param table the table
-     * @return the model row index, or {@code -1} if nothing is selected
-     */
+    /** The selected row in the model, or -1. Works with sorting and filtering. */
     public static int selectedModelRow(JTable table) {
         int viewRow = table.getSelectedRow();
         return viewRow < 0 ? -1 : table.convertRowIndexToModel(viewRow);
     }
 
-    /**
-     * Runs an action when a row of the table is double-clicked, e.g. "edit this row".
-     *
-     * @param table  the table
-     * @param action what to do
-     */
+    /** Runs the action when a row is double-clicked. */
     public static void onDoubleClick(JTable table, Runnable action) {
         table.addMouseListener(new MouseAdapter() {
             @Override
@@ -151,25 +110,14 @@ public final class FormHelper {
         });
     }
 
-    /**
-     * Runs an action when Enter is pressed in any of the given fields, e.g. "save the form".
-     *
-     * @param action what to do
-     * @param fields the fields that react to Enter
-     */
+    /** Runs the action when Enter is pressed in any of the fields. */
     public static void onEnter(Runnable action, JTextField... fields) {
         for (JTextField field : fields) {
-            field.addActionListener(e -> action.run()); // a text field fires its action on Enter
+            field.addActionListener(e -> action.run()); // fires on Enter
         }
     }
 
-    /**
-     * Asks "Are you sure?" before something is deleted.
-     *
-     * @param parent  the screen asking
-     * @param message what will be deleted, e.g. "Delete 'Zakat'?"
-     * @return {@code true} if the user clicked Yes
-     */
+    /** Asks for confirmation before deleting. Returns true if Yes was clicked. */
     public static boolean confirmDelete(Component parent, String message) {
         return JOptionPane.showConfirmDialog(parent, message, "Confirm delete",
                 JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;

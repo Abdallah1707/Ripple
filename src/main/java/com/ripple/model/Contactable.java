@@ -1,40 +1,20 @@
 package com.ripple.model;
 
 /**
- * Anything Ripple can send a message to: donors, volunteers, attendees and beneficiaries.
- *
- * <p>Thanks to this interface the communication code treats all of them the same way
- * (polymorphism). Email or phone may be empty if the person did not give one.
+ * Anyone we can send a message to. Email or phone can be empty.
  */
 public interface Contactable {
 
-    /**
-     * Returns the person's display name.
-     *
-     * @return the name
-     */
+    /** The person's name. */
     String getName();
 
-    /**
-     * Returns the email address.
-     *
-     * @return the email address, or an empty string if there is none
-     */
+    /** Email, or empty. */
     String getEmail();
 
-    /**
-     * Returns the phone number.
-     *
-     * @return the phone number, or an empty string if there is none
-     */
+    /** Phone, or empty. */
     String getPhone();
 
-    /**
-     * Returns the social media handle. Only donors have one, so the default is empty; a
-     * {@code default} method lets the social media strategy ask anyone without checking their class.
-     *
-     * @return the handle, e.g. {@code "@mona_ali"}, or an empty string if there is none
-     */
+    /** Social media handle, or empty. Only donors have one. */
     default String getSocialHandle() {
         return "";
     }

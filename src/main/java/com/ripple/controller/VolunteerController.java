@@ -10,44 +10,22 @@ import java.util.List;
 
 /**
  * Controller for the Volunteers screen.
- *
- * <p>Checks the typed values (a name is required; an email or phone must be valid if it is
- * filled in), calls {@link VolunteerRepository}, and turns the outcome into a
- * {@link Result} for the status bar. It never throws to the view.
  */
 public class VolunteerController {
 
     private final VolunteerRepository volunteerRepository;
 
-    /**
-     * Creates the controller.
-     *
-     * @param volunteerRepository where volunteers are stored
-     */
+    /** Creates the controller. */
     public VolunteerController(VolunteerRepository volunteerRepository) {
         this.volunteerRepository = volunteerRepository;
     }
 
-    /**
-     * Returns all volunteers, e.g. for the table and the "assign" combo box.
-     *
-     * @return the volunteers sorted by name
-     */
+    /** All volunteers sorted by name. */
     public List<Volunteer> listVolunteers() {
         return volunteerRepository.findAll();
     }
 
-    /**
-     * Adds a new volunteer ({@code id == null}) or updates an existing one.
-     *
-     * @param id           the volunteer's id, or {@code null} to add a new one
-     * @param name         the name typed by the user (required)
-     * @param email        the email typed by the user (optional, must be valid if filled in)
-     * @param phone        the phone typed by the user (optional, must be valid if filled in)
-     * @param skills       the skills typed by the user
-     * @param availability the availability typed by the user
-     * @return what happened, for the status bar
-     */
+    /** Adds a volunteer if id is null, otherwise updates it. */
     public Result saveVolunteer(Integer id, String name, String email, String phone, String skills,
                                 String availability) {
         boolean adding = id == null;
@@ -72,12 +50,7 @@ public class VolunteerController {
         }
     }
 
-    /**
-     * Deletes a volunteer. Their event assignments are removed with them.
-     *
-     * @param id the volunteer's id
-     * @return what happened, for the status bar
-     */
+    /** Deletes a volunteer and their event assignments. */
     public Result deleteVolunteer(int id) {
         try {
             String name = volunteerRepository.findAll().stream().filter(v -> v.getId() == id)
@@ -93,14 +66,7 @@ public class VolunteerController {
         }
     }
 
-    /**
-     * Assigns a volunteer to an event. Assigning the same volunteer to the same event twice
-     * does not create a duplicate; the user is told they were already assigned.
-     *
-     * @param volunteerId the volunteer's id
-     * @param eventId     the event's id
-     * @return what happened, for the status bar
-     */
+    /** Assigns a volunteer to an event. Assigning twice does nothing. */
     public Result assignToEvent(int volunteerId, int eventId) {
         if (volunteerId <= 0) {
             return Result.fail("Please choose a volunteer");

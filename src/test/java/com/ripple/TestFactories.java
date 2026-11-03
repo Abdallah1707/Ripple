@@ -15,24 +15,14 @@ import java.util.EnumMap;
 import java.util.Map;
 
 /**
- * Test helper: the same creators map that {@code Main} builds (one Factory Method creator per
- * donation method), so tests wire services and repositories exactly like the app.
- *
- * <pre>{@code
- * DonationRepository repository = new DonationRepository(database, TestFactories.all());
- * Donation cash = TestFactories.create(DonationMethod.CASH, donor, type, request);
- * }</pre>
+ * Test helper with the same factories map that Main builds.
  */
 public final class TestFactories {
 
     private TestFactories() {
     }
 
-    /**
-     * Returns a new map with one creator for every donation method.
-     *
-     * @return method → creator
-     */
+    /** A new map with a factory for every method. */
     public static Map<DonationMethod, DonationFactory> all() {
         Map<DonationMethod, DonationFactory> factories = new EnumMap<>(DonationMethod.class);
         DonationFactory[] creators = {new CashDonationFactory(), new OnlineDonationFactory(),
@@ -43,15 +33,7 @@ public final class TestFactories {
         return factories;
     }
 
-    /**
-     * Creates a donation through the creator for {@code method}.
-     *
-     * @param method  how it was given
-     * @param donor   who gave it
-     * @param type    its donation type
-     * @param request the details
-     * @return the new (unsaved) donation
-     */
+    /** Creates a donation with the factory for the method. */
     public static Donation create(DonationMethod method, Donor donor, DonationType type, DonationRequest request) {
         return all().get(method).orderDonation(donor, type, request);
     }

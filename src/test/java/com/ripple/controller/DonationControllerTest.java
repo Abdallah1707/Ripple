@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that the controller turns screen texts into results and handles the notify checkbox. */
+/** Tests for DonationController and the notify checkbox. */
 class DonationControllerTest {
 
     @TempDir
@@ -52,7 +52,7 @@ class DonationControllerTest {
         DonorNotificationObserver notifier = new DonorNotificationObserver(
                 new CommunicationService(new MessageLogRepository(db)),
                 Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy()));
-        service.registerObserver(notifier); // like Main: notifications start on
+        service.registerObserver(notifier); // on by default like Main
         ReceiptRepository receiptRepository = new ReceiptRepository(db);
         service.registerObserver(new ReceiptObserver(receiptRepository));
         controller = new DonationController(service, receiptRepository, notifier);
@@ -102,7 +102,7 @@ class DonationControllerTest {
     @Test
     void onlyTheFieldsOfTheChosenMethodAreRead() {
         Result result = controller.recordDonation(donor.getId(), typeId, "IN_KIND", "abc", "", "Blankets", "3", "900");
-        assertTrue(result.success()); // the bad "amount" text is ignored for in-kind
+        assertTrue(result.success()); // amount is ignored for in-kind
     }
 
     @Test

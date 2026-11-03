@@ -24,44 +24,28 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reads and writes the {@code donations} table. Contains SQL only, no business rules.
- *
- * <p>When donations are loaded, each row is turned back into the right {@code Donation}
- * subclass by the {@link DonationFactory} creator for its method, so every donation object
- * in the app comes from a creator (Factory Method pattern). Its saved extras (urgent, gift,
- * anonymous) are then put back as decorators by {@link DonationOptions#decorate(Donation)}.
+ * Database access for donations. Loaded rows are rebuilt with the right factory
+ * and their extras are put back as decorators.
  */
 public class DonationRepository {
 
     private final Database database;
     private final Map<DonationMethod, DonationFactory> factories;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     * @param factories one creator per donation method, used to rebuild donations from rows
-     */
+    /** Creates the repository. */
     public DonationRepository(Database database, Map<DonationMethod, DonationFactory> factories) {
         this.database = database;
         this.factories = factories;
     }
 
-    /**
-     * Saves a donation and sets its generated id (which gives it its receipt number).
-     * The donor and the donation type must already be saved. A decorated donation is saved as
-     * its plain donation plus the extras it was decorated with.
-     *
-     * @param donation the donation to save (plain or decorated)
-     * @return the same donation, now with its id
-     */
+    /** Saves a donation and sets its id. Decorated donations save their extras too. */
     public Donation insert(Donation donation) {
         String sql = "INSERT INTO donations (donor_id, donation_type_id, method, amount, transaction_ref, "
                 + "item_description, quantity, estimated_value, created_at, urgent, gift_honoree, anonymous) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        Donation base = donation.getBase(); // only the plain donation knows its own fields
+        Donation base = donation.getBase(); // plain donation without decorators
 
-        // Only the columns for this kind of donation are filled; the others stay NULL.
+        // only fill the columns for this donation type
         Double amount = null;
         String transactionRef = null;
         String item = null;
@@ -74,7 +58,7 @@ public class DonationRepository {
             transactionRef = online.getTransactionReference();
         } else if (base instanceof ChequeDonation cheque) {
             amount = cheque.getAmount();
-            transactionRef = cheque.getChequeNumber(); // the cheque number shares the reference column
+            transactionRef = cheque.getChequeNumber(); // cheque number uses the same column
         } else if (base instanceof InKindDonation inKind) {
             item = inKind.getItemDescription();
             quantity = inKind.getQuantity();
@@ -105,12 +89,7 @@ public class DonationRepository {
         }
     }
 
-    /**
-     * Returns all donations: urgent ones first, then newest first. Each one is rebuilt through
-     * its creator and decorated with its saved extras.
-     *
-     * @return all donations
-     */
+    /** All donations, urgent first, then newest first. */
     public List<Donation> findAll() {
         String sql = """
                 SELECT d.id, d.method, d.amount, d.transaction_ref, d.item_description,
@@ -137,11 +116,7 @@ public class DonationRepository {
         }
     }
 
-    /**
-     * Counts the donations (used by the Dashboard).
-     *
-     * @return the number of donations
-     */
+    /** Number of donations. */
     public int count() {
         try (Connection c = database.getConnection();
              Statement statement = c.createStatement();
@@ -152,12 +127,7 @@ public class DonationRepository {
         }
     }
 
-    /**
-     * Adds up the value of all donations (used by the Dashboard): the amount for money
-     * donations and the estimated value for in-kind donations.
-     *
-     * @return the total value in EGP, or 0 if there are no donations
-     */
+    /** Total value of all donations in EGP. */
     public double totalValue() {
         String sql = "SELECT COALESCE(SUM(CASE WHEN method = 'IN_KIND' THEN estimated_value ELSE amount END), 0) "
                 + "FROM donations";
@@ -170,7 +140,7 @@ public class DonationRepository {
         }
     }
 
-    /** Turns one joined row into a donation: the creator for its method builds it, then its extras are re-applied. */
+    /** Builds a donation from a row. */
     private Donation toDonation(ResultSet row) throws SQLException {
         Donor donor = new Donor(row.getInt("donor_id"), row.getString("donor_name"),
                 row.getString("donor_email"), row.getString("donor_phone"), row.getString("social_handle"),
@@ -183,8 +153,8 @@ public class DonationRepository {
                 row.getString("item_description"),
                 row.getInt("quantity"),
                 row.getDouble("estimated_value"),
-                LocalDateTime.parse(row.getString("created_at"))); // keep the stored time (CR3)
-        DonationMethod method = DonationMethod.valueOf(row.getString("method")); // stored as the enum name
+                LocalDateTime.parse(row.getString("created_at"))); // keep the saved time (CR3)
+        DonationMethod method = DonationMethod.valueOf(row.getString("method")); // saved as the enum name
         DonationFactory factory = factories.get(method);
         if (factory == null) {
             throw new IllegalStateException("No creator for stored donation method " + method);
@@ -193,6 +163,6 @@ public class DonationRepository {
         base.setId(row.getInt("id"));
         DonationOptions options = new DonationOptions(row.getInt("urgent") == 1, row.getString("gift_honoree"),
                 row.getInt("anonymous") == 1);
-        return options.decorate(base); // put the saved extras back as decorators
+        return options.decorate(base); // add the extras back
     }
 }

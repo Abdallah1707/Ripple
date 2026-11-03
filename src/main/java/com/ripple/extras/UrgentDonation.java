@@ -5,17 +5,12 @@ import com.ripple.model.Donation;
 import java.util.List;
 
 /**
- * Concrete decorator: marks a donation as meant for an urgent need, so staff handle it first.
- * The donations table lists urgent donations at the top, and the description starts with
- * "URGENT: " everywhere it is shown (table, log, receipt).
+ * Decorator for urgent donations. They show at the top of the table
+ * and the description starts with "URGENT: ".
  */
 public class UrgentDonation extends DonationDecorator {
 
-    /**
-     * Makes a donation urgent.
-     *
-     * @param wrapped the donation to decorate
-     */
+    /** Makes a donation urgent. */
     public UrgentDonation(Donation wrapped) {
         super(wrapped);
     }

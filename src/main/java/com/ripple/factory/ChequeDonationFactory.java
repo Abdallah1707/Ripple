@@ -10,12 +10,7 @@ import com.ripple.service.InputValidator;
 import java.time.LocalDateTime;
 
 /**
- * Concrete Creator in the Factory Method pattern: creates {@link ChequeDonation}s, which need
- * an amount and the cheque number. The cheque number travels in
- * {@link DonationRequest#transactionReference()}.
- *
- * <p>Adding cheques needed only this class and {@code ChequeDonation}: the Creator, the
- * service and the repository did not change.
+ * Creates cheque donations. The cheque number is in transactionReference.
  */
 public class ChequeDonationFactory extends DonationFactory {
 

@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that attendees hear about a new date or location, by Email or else by SMS. */
+/** Tests that attendees get told about date or location changes. */
 class AttendeeNotificationObserverTest {
 
     @TempDir
@@ -92,7 +92,7 @@ class AttendeeNotificationObserverTest {
                 "Giza", ""));
         events.addAttendee(new Attendee(0, other.getId(), "Hana", "hana@example.com", ""));
 
-        moveTheEventToTheTwentieth(); // the food drive has no attendees
+        moveTheEventToTheTwentieth(); // no attendees
 
         assertTrue(log.findAll().isEmpty());
     }

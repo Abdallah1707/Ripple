@@ -9,13 +9,9 @@ import com.ripple.repository.EventRepository;
 import java.util.List;
 
 /**
- * Concrete observer for events: when an event's date or location changes, it messages every
- * attendee of that event about the change.
- *
- * <p>Attendees have no preferred channel, so each one gets the first strategy in the list
- * that has a valid address for them (Email, then SMS, as built in {@code Main}). Someone with
- * neither is still "sent" by the first strategy, so the failure appears in the message log
- * instead of being silently skipped. It uses the Strategy pattern from inside the Observer.
+ * Messages all attendees when an event's date or location changes.
+ * Each attendee gets the first strategy that has a valid address for them
+ * (email, then SMS). If none works, the first one is used so the failure is logged.
  */
 public class AttendeeNotificationObserver implements EventObserver {
 
@@ -24,13 +20,7 @@ public class AttendeeNotificationObserver implements EventObserver {
     private final List<CommunicationStrategy> strategies;
 
     /**
-     * Creates the observer.
-     *
-     * @param eventRepository      where the event's attendees are read from
-     * @param communicationService sends and logs the messages; give it its own instance, so
-     *                             switching strategies here never changes the Communication screen's
-     * @param strategies           the channels to try for each attendee, in order of preference
-     * @throws IllegalArgumentException if no strategy is given
+     * Creates the observer. Throws IllegalArgumentException if no strategy is given.
      */
     public AttendeeNotificationObserver(EventRepository eventRepository, CommunicationService communicationService,
                                         List<CommunicationStrategy> strategies) {
@@ -44,7 +34,7 @@ public class AttendeeNotificationObserver implements EventObserver {
 
     @Override
     public void update(Event event, String change) {
-        // Short on purpose, so it also fits in one SMS.
+        // kept short so it fits in one SMS
         String body = event.getName() + ": " + change + ". - Ripple";
         for (Attendee attendee : eventRepository.findAttendees(event.getId())) {
             communicationService.setStrategy(strategyFor(attendee));
@@ -52,7 +42,7 @@ public class AttendeeNotificationObserver implements EventObserver {
         }
     }
 
-    /** The first strategy with a valid address for this attendee, or the first one if none has. */
+    /** First strategy with a valid address for the attendee, or the first one. */
     private CommunicationStrategy strategyFor(Attendee attendee) {
         for (CommunicationStrategy strategy : strategies) {
             if (strategy.isValidAddress(strategy.addressOf(attendee))) {

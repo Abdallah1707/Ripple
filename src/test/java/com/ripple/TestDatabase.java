@@ -5,25 +5,14 @@ import com.ripple.repository.Database;
 import java.nio.file.Path;
 
 /**
- * Test helper: gives each test its own fresh, initialized database in a temporary folder,
- * so tests never touch {@code data/ripple.db} and never affect each other.
- *
- * <pre>{@code
- * @TempDir Path tempDir;
- * Database db = TestDatabase.create(tempDir);
- * }</pre>
+ * Test helper that makes a fresh database in a temp folder for each test.
  */
 public final class TestDatabase {
 
     private TestDatabase() {
     }
 
-    /**
-     * Creates and initializes a database file inside {@code tempDir}.
-     *
-     * @param tempDir a JUnit {@code @TempDir} folder
-     * @return a ready-to-use database with the schema and seed data
-     */
+    /** Creates and sets up a database in tempDir. */
     public static Database create(Path tempDir) {
         Database database = new Database(tempDir.resolve("test.db").toString());
         database.initialize();

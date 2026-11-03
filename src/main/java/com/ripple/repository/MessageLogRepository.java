@@ -14,30 +14,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Reads and writes the {@code message_log} table: every message Ripple tried to send,
- * whether it was sent or skipped. Contains SQL only, no business rules.
+ * Database access for the message log.
  */
 public class MessageLogRepository {
 
     private final Database database;
 
-    /**
-     * Creates the repository.
-     *
-     * @param database the database to use
-     */
+    /** Creates the repository. */
     public MessageLogRepository(Database database) {
         this.database = database;
     }
 
-    /**
-     * Saves one send attempt. A failed attempt keeps its reason in the status, e.g.
-     * {@code "FAILED: no valid phone number"}.
-     *
-     * @param channel the channel that was used
-     * @param message the message (its address may be empty if the person had none)
-     * @param result  what happened
-     */
+    /** Saves one send attempt. */
     public void save(ContactChannel channel, Message message, DeliveryResult result) {
         String sql = "INSERT INTO message_log (channel, recipient, subject, body, status, sent_at) VALUES (?, ?, ?, ?, ?, ?)";
         String recipient = message.address().isBlank()
@@ -58,11 +46,7 @@ public class MessageLogRepository {
         }
     }
 
-    /**
-     * Returns the whole message log, newest first.
-     *
-     * @return all log entries
-     */
+    /** The message log, newest first. */
     public List<MessageLogEntry> findAll() {
         String sql = "SELECT id, channel, recipient, subject, body, status, sent_at FROM message_log ORDER BY id DESC";
         try (Connection c = database.getConnection();

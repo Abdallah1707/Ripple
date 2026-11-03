@@ -11,17 +11,11 @@ import java.util.List;
 
 /**
  * Controller for the Dashboard screen.
- *
- * <p>It asks each module's repository for its count, adds the latest entries of the
- * {@link ApplicationLogger} (the Singleton), and hands everything to the view as one
- * {@link DashboardSummary}. This is why the Dashboard view needs no repository of its own.
- *
- * <p>Like every controller it never throws to the view: if the database cannot be read,
- * the problem is logged and the Dashboard shows zeros and an explanation.
+ * Gets the counts from the repositories and the latest log lines.
  */
 public class DashboardController {
 
-    /** How many log lines the Dashboard shows under "Recent activity". */
+    /** How many log lines to show. */
     public static final int RECENT_ACTIVITY_LIMIT = 10;
 
     private final DonorRepository donorRepository;
@@ -31,15 +25,7 @@ public class DashboardController {
     private final BeneficiaryRepository beneficiaryRepository;
     private final ApplicationLogger logger = ApplicationLogger.getInstance();
 
-    /**
-     * Creates the controller.
-     *
-     * @param donorRepository       where the donor count comes from
-     * @param donationRepository    where the donation count and total value come from
-     * @param volunteerRepository   where the volunteer count comes from
-     * @param eventRepository       where the event count comes from
-     * @param beneficiaryRepository where the beneficiary count comes from
-     */
+    /** Creates the controller. */
     public DashboardController(DonorRepository donorRepository, DonationRepository donationRepository,
                                VolunteerRepository volunteerRepository, EventRepository eventRepository,
                                BeneficiaryRepository beneficiaryRepository) {
@@ -50,11 +36,7 @@ public class DashboardController {
         this.beneficiaryRepository = beneficiaryRepository;
     }
 
-    /**
-     * Collects the current totals and the latest activity.
-     *
-     * @return the numbers and log lines to show; never {@code null}
-     */
+    /** Gets the current totals and recent activity. */
     public DashboardSummary getSummary() {
         try {
             return new DashboardSummary(

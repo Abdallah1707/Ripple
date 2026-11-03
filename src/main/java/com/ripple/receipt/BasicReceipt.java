@@ -6,9 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /**
- * Concrete component in the Decorator pattern: the receipt number, date, donor, type,
- * method and value, and nothing else. No thank-you or tax logic lives here; decorators
- * add those sections without changing this class.
+ * The basic receipt with the main donation details. Decorators add the extra sections.
  */
 public class BasicReceipt implements Receipt {
 
@@ -16,11 +14,7 @@ public class BasicReceipt implements Receipt {
 
     private final Donation donation;
 
-    /**
-     * Creates the basic receipt for a donation.
-     *
-     * @param donation the donation the receipt is for
-     */
+    /** Creates the basic receipt. */
     public BasicReceipt(Donation donation) {
         this.donation = donation;
     }
@@ -30,8 +24,8 @@ public class BasicReceipt implements Receipt {
         return String.format(Locale.US,
                 "Receipt %s%nDate: %s%nDonor: %s%nType: %s%nMethod: %s%nValue: EGP %,.2f%nDetails: %s",
                 donation.getReceiptNumber(), donation.getCreatedAt().format(DATE_FORMAT),
-                donation.getDonor().getName(), // the receipt is the donor's own, so it keeps their name
+                donation.getDonor().getName(), // real name, the receipt is for the donor
                 donation.getDonationType().getName(), donation.getMethod().getLabel(), donation.getValue(),
-                donation.describe()); // shows the donation decorators: "URGENT: ... (gift in honor of ...)"
+                donation.describe()); // includes urgent / gift text
     }
 }

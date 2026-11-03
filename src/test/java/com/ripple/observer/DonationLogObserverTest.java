@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that DonationLogObserver writes a line to the application log. */
+/** Tests for DonationLogObserver. */
 class DonationLogObserverTest {
 
     @TempDir

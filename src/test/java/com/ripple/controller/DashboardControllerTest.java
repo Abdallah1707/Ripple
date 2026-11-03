@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that the Dashboard's numbers follow the data and that its activity list comes from the logger. */
+/** Tests the dashboard numbers and recent activity. */
 class DashboardControllerTest {
 
     @TempDir
@@ -92,7 +92,7 @@ class DashboardControllerTest {
                 new DonationRequest(0, null, "Blankets", 5, 25.0, null));
         DashboardSummary afterThree = dashboard.getSummary();
         assertEquals(3, afterThree.donations());
-        // 100 cash + 50 online + 25 estimated value of the in-kind gift
+        // 100 + 50 + 25
         assertEquals(175.0, afterThree.totalDonationValue(), 0.0001);
     }
 
@@ -137,7 +137,7 @@ class DashboardControllerTest {
 
     @Test
     void aDatabaseProblemGivesZerosAndAnExplanationInsteadOfAnException() {
-        // A database file that was never initialized has no tables, so every count fails.
+        // no tables, so every count fails
         Database broken = new Database(tempDir.resolve("broken.db").toString());
         DashboardController brokenDashboard = new DashboardController(new DonorRepository(broken),
                 new DonationRepository(broken, TestFactories.all()), new VolunteerRepository(broken),

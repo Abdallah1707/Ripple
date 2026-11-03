@@ -10,8 +10,7 @@ import com.ripple.service.InputValidator;
 import java.time.LocalDateTime;
 
 /**
- * Concrete Creator in the Factory Method pattern: creates {@link OnlineDonation}s, which also
- * need the payment's transaction reference.
+ * Creates online donations. Needs a transaction reference.
  */
 public class OnlineDonationFactory extends DonationFactory {
 

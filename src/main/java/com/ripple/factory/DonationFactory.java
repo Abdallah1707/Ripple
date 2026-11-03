@@ -9,31 +9,15 @@ import com.ripple.service.ValidationException;
 import java.time.LocalDateTime;
 
 /**
- * Creator in the Factory Method pattern (like {@code PizzaStore} in the lab slides).
- *
- * <p>{@link #orderDonation} is the common workflow that every kind of donation goes through
- * (like {@code orderPizza()}): check the shared details, stamp the time, then call the
- * <b>factory method</b> {@link #createDonation}. Each subclass ({@link CashDonationFactory},
- * {@link OnlineDonationFactory}, {@link InKindDonationFactory}, {@link ChequeDonationFactory})
- * is a Concrete Creator: it decides which {@link Donation} subclass to create and checks the
- * fields that only that kind needs.
- *
- * <p>Callers hold a {@code DonationFactory} and never name a concrete donation class. Adding a
- * new method means one new product and one new creator; this class and its callers do not
- * change ("closed for modification, open for extension").
+ * Factory Method creator for donations.
+ * orderDonation does the shared checks and then calls createDonation,
+ * which each subclass implements for its own donation type.
  */
 public abstract class DonationFactory {
 
     /**
-     * The common workflow: checks what every donation needs, then lets the subclass create it.
-     * It is {@code final} so a subclass can change <i>what</i> is created but not the steps
-     * (the Hollywood principle: "don't call us, we'll call you").
-     *
-     * @param donor   who gave it
-     * @param type    its donation type (lookup)
-     * @param request the details; each creator reads only its own fields
-     * @return the new donation (not saved yet)
-     * @throws ValidationException if anything is missing or the details are invalid
+     * Checks the common fields and then creates the donation.
+     * Final so subclasses can't change the steps.
      */
     public final Donation orderDonation(Donor donor, DonationType type, DonationRequest request) {
         if (donor == null) {
@@ -45,42 +29,23 @@ public abstract class DonationFactory {
         if (request == null) {
             throw new ValidationException("Donation details are required");
         }
-        // New donations are stamped with the current time (CR3); loaded ones keep their stored time.
+        // new donations get the current time (CR3), loaded ones keep their saved time
         LocalDateTime createdAt = request.createdAt() != null ? request.createdAt() : LocalDateTime.now();
 
         Donation donation = createDonation(donor, type, request, createdAt);
         return donation;
     }
 
-    /**
-     * The factory method: creates this creator's kind of donation and checks its own fields.
-     *
-     * @param donor     who gave it (never {@code null})
-     * @param type      its donation type (never {@code null})
-     * @param request   the details (never {@code null})
-     * @param createdAt when it was recorded
-     * @return the new donation
-     * @throws ValidationException if the details are invalid for this kind of donation
-     */
+    /** Creates this kind of donation and checks its own fields. */
     protected abstract Donation createDonation(Donor donor, DonationType type, DonationRequest request,
                                                LocalDateTime createdAt);
 
-    /**
-     * Tells which method this creator handles. {@code Main} uses it as the key of the
-     * creators map, so the right creator is picked without any {@code if/else}.
-     *
-     * @return the donation method this creator makes
-     */
+    /** The donation method this factory handles. */
     public abstract DonationMethod getMethod();
 
-    /**
-     * Shared rule for the money donations (cash, online, cheque).
-     *
-     * @param amount the amount in EGP
-     * @throws ValidationException if the amount is not greater than 0
-     */
+    /** Amount must be more than 0. */
     protected static void requirePositiveAmount(double amount) {
-        if (!(amount > 0)) { // written this way so NaN is rejected too
+        if (!(amount > 0)) { // also rejects NaN
             throw new ValidationException("Amount must be greater than 0");
         }
     }

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that BasicReceipt has no extra sections and each decorator adds only its own. */
+/** Tests for the receipt decorators. */
 class ReceiptDecoratorTest {
 
     private final Donor donor = new Donor(1, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
@@ -45,7 +45,7 @@ class ReceiptDecoratorTest {
         String text = new BasicReceipt(donation).render();
 
         assertTrue(text.contains("Details: URGENT: Cash donation of EGP 500.00 (gift in honor of Hana Ali)"), text);
-        assertTrue(text.contains("Donor: Mona Ali"), text); // the receipt is the donor's own copy
+        assertTrue(text.contains("Donor: Mona Ali"), text); // donor's own copy
         assertTrue(text.contains("Receipt RCP-"), text);
     }
 

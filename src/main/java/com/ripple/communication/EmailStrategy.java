@@ -5,11 +5,7 @@ import com.ripple.model.Contactable;
 import com.ripple.service.InputValidator;
 
 /**
- * Concrete strategy in the Strategy pattern: sends a message by email, using the person's
- * email address.
- *
- * <p><b>Simulated:</b> no real email is sent. The result is status {@code SIMULATED},
- * and {@code CommunicationService} records the message in the message log shown on screen.
+ * Sends a message by email. Simulated, no real email is sent.
  */
 public class EmailStrategy implements CommunicationStrategy {
 

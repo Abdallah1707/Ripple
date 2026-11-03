@@ -30,7 +30,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests that donors get an automatic thank-you on their preferred channel (CR5). */
+/** Tests that donors get a thank-you on their preferred channel (CR5). */
 class DonorNotificationObserverTest {
 
     @TempDir

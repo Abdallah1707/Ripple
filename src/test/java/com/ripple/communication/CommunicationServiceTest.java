@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the Strategy pattern: swapping Email / SMS / Social, skipping bad addresses and the message log. */
+/** Tests for the communication strategies and the message log. */
 class CommunicationServiceTest {
 
     @TempDir
@@ -89,7 +89,7 @@ class CommunicationServiceTest {
         List<DeliveryResult> results = service.sendToAll(List.of(donor, mona), "Hello", "Thank you!");
 
         assertTrue(results.get(0).success());
-        assertFalse(results.get(1).success()); // a beneficiary has no social handle
+        assertFalse(results.get(1).success()); // beneficiaries have no handle
         assertEquals("no valid social media handle", results.get(1).detail());
         List<MessageLogEntry> entries = log.findAll(); // newest first
         assertEquals(ContactChannel.SOCIAL, entries.get(1).channel());

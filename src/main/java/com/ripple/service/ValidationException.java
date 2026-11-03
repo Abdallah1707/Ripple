@@ -1,16 +1,11 @@
 package com.ripple.service;
 
 /**
- * Thrown when user input breaks a business rule. The message is written for the user
- * and is shown as-is (in red) in the status bar.
+ * Thrown when input breaks a rule. The message is shown in the status bar.
  */
 public class ValidationException extends RuntimeException {
 
-    /**
-     * Creates the exception.
-     *
-     * @param message what is wrong, in plain English, e.g. "Name is required"
-     */
+    /** Creates the exception. */
     public ValidationException(String message) {
         super(message);
     }
