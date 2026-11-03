@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -188,5 +189,20 @@ class DonationControllerTest {
         assertTrue(result.success(), result.message());
         assertTrue(controller.listDonors().isEmpty());
         assertFalse(controller.deleteDonor(donor.getId()).success()); // already gone
+    }
+
+    @Test
+    void taxStatementShowsTheTaxDeductibleDonationsOrARedMessage() {
+        String thisYear = String.valueOf(LocalDate.now().getYear());
+        controller.recordDonation(donor.getId(), typeId, "CASH", "500", "", "", "", "");
+
+        Result result = controller.getTaxStatement(donor.getId(), thisYear);
+        assertTrue(result.success(), result.message());
+        assertTrue(result.message().contains("Donor: Mona Ali"), result.message());
+        assertTrue(result.message().endsWith("Total deductible amount: EGP 500.00"), result.message());
+
+        assertEquals("Year must be a whole number", controller.getTaxStatement(donor.getId(), "20x6").message());
+        assertFalse(controller.getTaxStatement(donor.getId(), "").success());
+        assertFalse(controller.getTaxStatement(999, thisYear).success());
     }
 }

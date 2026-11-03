@@ -21,6 +21,7 @@ Rows are the functions a staff member can use on the **Donations** screen (two t
 | F6 | Record a donation (cash, online, in-kind or cheque) | **R** | **C** | **R** | **C** | **C** |
 | F7 | View all donations (*Donations* table) | **R** | **R** | **R** | | |
 | F8 | View a donation's receipt (*View receipt*) | | | | **R** | |
+| F9 | Create a donor's yearly tax statement (*Donors* tab → Tax statement) | **R** | **R** | **R** | | |
 | **Total** | | **C R U D** | **C R** | **R** | **C R** | **C** |
 
 Notes on the cells:
@@ -29,6 +30,7 @@ Notes on the cells:
 - **F4 — Donation R:** before deleting, the donor's donations are counted. A donor with donations **cannot be deleted** ("'Mona Ali' has 2 donation(s) and cannot be deleted"), so receipts and the donation history stay complete. This is the same rule as CR2 for lookup values that are in use.
 - **F6 — Receipt C and MessageLog C** are done by **observers**, not by the donation code itself (Observer pattern): `ReceiptObserver` saves the decorated receipt, and `DonorNotificationObserver` sends the thank-you and logs it. MessageLog **C** only happens while "Notify donors on new donation" is ticked. The new donation itself is created by the creator for its method (Factory Method pattern).
 - **F7 — Donor R, DonationType R:** each donation row is loaded together with its donor and type (one SQL join).
+- **F9 — Donor R, Donation R, DonationType R:** the tax statement is built when it is asked for and is not saved. It reads the donor, their donations of the chosen year, and each donation's type, and keeps only the donations whose type is tax-deductible.
 
 ## 2. Why some cells are empty
 
@@ -53,6 +55,7 @@ Every function goes through the same MVC path: **View → Controller → Service
 | F6 | *Record donation* button | `recordDonation(...)` | `recordDonation(...)` → creator `orderDonation(...)` → `notifyObservers(...)` | `DonorRepository.findById`, `DonationTypeRepository.findById`, `DonationRepository.insert`; observers: `ReceiptRepository.save`, `MessageLogRepository.save` |
 | F7 | `refresh()` | `listDonations()` | `findAllDonations()` | `DonationRepository.findAll` → `SELECT ... JOIN donors JOIN donation_types` |
 | F8 | *View receipt* button | `getReceipt(id)` | — | `ReceiptRepository.findByDonationId` → `SELECT content FROM receipts` |
+| F9 | *Tax statement* button (asks for the year) | `getTaxStatement(donorId, year)` | `buildTaxStatement(donorId, year)` | `DonorRepository.findById`, `DonationRepository.findAll`; the service keeps the donor's tax-deductible donations of that year |
 
 ## 4. Tests that cover the matrix
 
@@ -62,3 +65,4 @@ Every function goes through the same MVC path: **View → Controller → Service
 | Donation **C R** for all four methods | `DonationServiceTest`, `DonationRepositoryTest` (including a cheque saved and loaded back), `DonationControllerTest` |
 | Receipt **C R** | `ReceiptObserverTest`, `ReceiptRepositoryTest`, `DonationControllerTest` (receipt with and without tax information) |
 | MessageLog **C** | `DonorNotificationObserverTest` |
+| F9 tax statement (Donor, Donation, DonationType **R**) | `TaxStatementTest`, `DonationServiceTest` (tax statements section), `DonationControllerTest` |

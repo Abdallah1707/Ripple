@@ -8,6 +8,7 @@ import com.ripple.model.Donation;
 import com.ripple.model.DonationMethod;
 import com.ripple.model.Donor;
 import com.ripple.observer.DonorNotificationObserver;
+import com.ripple.receipt.TaxStatement;
 import com.ripple.repository.ReceiptRepository;
 import com.ripple.service.DonationService;
 import com.ripple.service.InputValidator;
@@ -119,6 +120,21 @@ public class DonationController {
     public String getReceipt(int donationId) {
         return receiptRepository.findByDonationId(donationId)
                 .orElse("No receipt was saved for this donation yet.");
+    }
+
+    /** Builds a donor's tax statement for a year. If it works, the message is the statement text. */
+    public Result getTaxStatement(int donorId, String year) {
+        try {
+            TaxStatement statement = donationService.buildTaxStatement(donorId, InputValidator.parseInt(year, "Year"));
+            ApplicationLogger.getInstance().info("Tax statement " + statement.getYear() + " created for '"
+                    + statement.getDonor().getName() + "'");
+            return Result.ok(statement.render());
+        } catch (ValidationException e) {
+            return Result.fail(e.getMessage());
+        } catch (IllegalStateException e) {
+            ApplicationLogger.getInstance().error(e.getMessage());
+            return Result.fail("Could not create the tax statement because of a database error. Details are in logs/ripple.log.");
+        }
     }
 
     /** Turns the donor thank-you messages on or off. */

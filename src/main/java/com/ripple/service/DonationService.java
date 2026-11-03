@@ -11,11 +11,14 @@ import com.ripple.model.DonationType;
 import com.ripple.model.Donor;
 import com.ripple.observer.DonationObserver;
 import com.ripple.observer.DonationSubject;
+import com.ripple.receipt.TaxStatement;
 import com.ripple.repository.DonationRepository;
 import com.ripple.repository.DonorRepository;
 import com.ripple.repository.LookupRepository;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -185,5 +188,24 @@ public class DonationService implements DonationSubject {
     /** All donations, newest first. */
     public List<Donation> findAllDonations() {
         return donationRepository.findAll();
+    }
+
+    /**
+     * Builds a donor's tax statement for one year: their donations to tax-deductible
+     * types, oldest first. The year can't be in the future.
+     */
+    public TaxStatement buildTaxStatement(int donorId, int year) {
+        Donor donor = requireExistingDonor(donorId);
+        int thisYear = LocalDate.now().getYear();
+        if (year < 2000 || year > thisYear) {
+            throw new ValidationException("Year must be between 2000 and " + thisYear);
+        }
+        List<Donation> deductible = donationRepository.findAll().stream()
+                .filter(donation -> donation.getDonor().getId() == donorId)
+                .filter(donation -> donation.getCreatedAt().getYear() == year)
+                .filter(Donation::isTaxDeductible)
+                .sorted(Comparator.comparing(Donation::getCreatedAt))
+                .toList();
+        return new TaxStatement(donor, year, deductible);
     }
 }

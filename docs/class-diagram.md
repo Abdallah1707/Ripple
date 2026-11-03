@@ -70,7 +70,7 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 7 arrows above 5 are aggregations and are listed in section 4. |
 | 8 | No "system" class | `Main` (the composition root) is not drawn. |
 | 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
-| 10 | Real diagrams are large | 86 classes in 11 packages, every one of them in the code, with one smaller view per pattern in section 5. |
+| 10 | Real diagrams are large | 87 classes in 11 packages, every one of them in the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -343,6 +343,11 @@ namespace receipt {
         -Donation donation
         +render() String
     }
+    class TaxStatement {
+        -int year
+        +getTotalDeductible() double
+        +render() String
+    }
 }
 
 %% ===================== communication =====================
@@ -526,6 +531,7 @@ namespace service {
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request, DonationOptions options) Donation
         +findAllDonations() List~Donation~
+        +buildTaxStatement(int donorId, int year) TaxStatement
     }
     class EventService {
         <<Subject>>
@@ -588,6 +594,7 @@ namespace controller {
         +recordDonation(int donorId, int typeId, String method, String amount, String transactionRef, String item, String quantity, String estimatedValue, boolean urgent, String honoree, boolean anonymous) Result
         +listDonations() List~Donation~
         +getReceipt(int donationId) String
+        +getTaxStatement(int donorId, String year) Result
         +setDonorNotifications(boolean enabled) void
         +isDonorNotificationsEnabled() boolean
     }
@@ -721,6 +728,10 @@ TaxInformationDecorator --> "1" Donation
 ReceiptObserver ..> BasicReceipt : «create»
 ReceiptObserver ..> ThankYouMessageDecorator : «create»
 ReceiptObserver ..> TaxInformationDecorator : «create»
+TaxStatement --> "1" Donor
+TaxStatement --> "*" Donation : donations
+DonationService ..> TaxStatement : «create»
+DonationController ..> TaxStatement
 DonationDecorator --|> Donation
 DonationDecorator o-- "1" Donation : wrapped
 UrgentDonation --|> DonationDecorator
@@ -881,6 +892,7 @@ StatusBar ..> Result
 | `ReceiptDecorator` | abstract class | Holds a wrapped `Receipt` and delegates to it. |
 | `ThankYouMessageDecorator` | class | Appends a personal thank-you. |
 | `TaxInformationDecorator` | class | Appends the tax-deductible statement and amount. |
+| `TaxStatement` | class | Not part of the pattern: a donor's yearly tax document, listing their donations to tax-deductible types and the total deductible amount. Built by `DonationService.buildTaxStatement(...)`. |
 
 ### `com.ripple.extras` — Decorator pattern (donation extras)
 | Class | Kind | Responsibility |
@@ -914,7 +926,7 @@ StatusBar ..> Result
 | Class | Responsibility |
 |---|---|
 | `LookupService<T>` | One implementation of the lookup rules (CR1, CR2) used for both tables. |
-| `DonationService` | Registers donors, records donations through the creator for the chosen method, and is the Observer **Subject** for donations. |
+| `DonationService` | Registers donors, records donations through the creator for the chosen method, builds yearly tax statements, and is the Observer **Subject** for donations. |
 | `EventService` | Saves events and is the Observer **Subject** for events: notifies its observers when an event's date or location changes. |
 
 ### `com.ripple.controller` — Controllers
