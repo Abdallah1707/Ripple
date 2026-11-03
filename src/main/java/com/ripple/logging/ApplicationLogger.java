@@ -91,8 +91,8 @@ public final class ApplicationLogger {
             Files.writeString(logFile, entry + System.lineSeparator(),
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
-            // Logging must never crash the app; the entry is still in recentEntries.
-            System.err.println("Could not write to " + logFile + ": " + e.getMessage());
+            // Logging must never crash the app. The entry is still kept in recentEntries, so the
+            // Dashboard's "Recent activity" shows it even when the file cannot be written.
         }
     }
 }

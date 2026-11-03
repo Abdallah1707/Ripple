@@ -8,7 +8,8 @@ import com.ripple.service.InputValidator;
  * Concrete strategy in the Strategy pattern: sends a message by email, using the person's
  * email address.
  *
- * <p><b>Simulated:</b> no real email is sent; the message is printed to the console.
+ * <p><b>Simulated:</b> no real email is sent. The result is status {@code SIMULATED},
+ * and {@code CommunicationService} records the message in the message log shown on screen.
  */
 public class EmailStrategy implements CommunicationStrategy {
 
@@ -29,8 +30,6 @@ public class EmailStrategy implements CommunicationStrategy {
 
     @Override
     public DeliveryResult send(Message message) {
-        System.out.println("[SIMULATED EMAIL] To: " + message.recipientName() + " <" + message.address() + ">"
-                + " | Subject: " + message.subject() + " | " + message.body());
         return DeliveryResult.simulated("Email to " + message.address());
     }
 }

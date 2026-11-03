@@ -36,8 +36,8 @@ public interface CommunicationStrategy {
     boolean isValidAddress(String address);
 
     /**
-     * Sends one message. In Phase 1 this is simulated: it prints the message and returns
-     * status {@code SIMULATED}.
+     * Sends one message. In Phase 1 this is simulated: nothing leaves the computer and the
+     * result is status {@code SIMULATED}; the message log is the visible output.
      *
      * @param message the message, already addressed
      * @return what happened

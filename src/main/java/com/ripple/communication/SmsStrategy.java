@@ -9,7 +9,8 @@ import com.ripple.service.InputValidator;
  * phone number. An SMS has no subject, and messages over {@value #MAX_LENGTH} characters
  * are rejected.
  *
- * <p><b>Simulated:</b> no real SMS is sent; the message is printed to the console.
+ * <p><b>Simulated:</b> no real SMS is sent. The result is status {@code SIMULATED},
+ * and {@code CommunicationService} records the message in the message log shown on screen.
  */
 public class SmsStrategy implements CommunicationStrategy {
 
@@ -36,8 +37,6 @@ public class SmsStrategy implements CommunicationStrategy {
         if (message.body().length() > MAX_LENGTH) {
             return DeliveryResult.failed("message is longer than " + MAX_LENGTH + " characters");
         }
-        System.out.println("[SIMULATED SMS] To: " + message.recipientName() + " <" + message.address() + ">"
-                + " | " + message.body());
         return DeliveryResult.simulated("SMS to " + message.address());
     }
 }

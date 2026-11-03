@@ -7,12 +7,9 @@ import com.ripple.model.DonationType;
 import com.ripple.model.LookupEntry;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
@@ -78,8 +75,14 @@ public class LookupTablePanel extends JPanel implements Refreshable {
                 fillFormFromSelection();
             }
         });
+        FormHelper.onDoubleClick(table, nameField::requestFocusInWindow); // edit the row in the form
 
-        add(new JScrollPane(table), BorderLayout.CENTER);
+        FormHelper.placeholder(nameField, "2-50 characters");
+        FormHelper.placeholder(descriptionField, "Optional");
+        nameField.setToolTipText("2-50 characters; two entries cannot have the same name");
+        FormHelper.onEnter(this::onSave, nameField, descriptionField);
+
+        add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
         add(buildForm(), BorderLayout.SOUTH);
     }
 
@@ -124,10 +127,10 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         }
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.add(button("Add", this::onAdd));
-        buttons.add(button("Update", this::onUpdate));
-        buttons.add(button("Delete", this::onDelete));
-        buttons.add(button("Clear", this::clearForm));
+        buttons.add(FormHelper.button("Add", "Save the form as a new entry", this::onAdd));
+        buttons.add(FormHelper.button("Update", "Save the form over the selected row", this::onUpdate));
+        buttons.add(FormHelper.button("Delete", "Delete the selected row", this::onDelete));
+        buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearForm));
         c.gridx = 0;
         c.gridy = 1;
         c.gridwidth = 5;
@@ -135,10 +138,13 @@ public class LookupTablePanel extends JPanel implements Refreshable {
         return form;
     }
 
-    private static JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.addActionListener(e -> action.run());
-        return button;
+    /** Enter in the form: update the selected row, or add a new one if no row is selected. */
+    private void onSave() {
+        if (selectedEntry() == null) {
+            onAdd();
+        } else {
+            onUpdate();
+        }
     }
 
     private void onAdd() {
@@ -164,9 +170,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
             statusBar.showResult(Result.fail("Select a row to delete first."));
             return;
         }
-        int answer = JOptionPane.showConfirmDialog(this, "Delete '" + selected.getName() + "'?",
-                "Confirm delete", JOptionPane.YES_NO_OPTION);
-        if (answer == JOptionPane.YES_OPTION) {
+        if (FormHelper.confirmDelete(this, "Delete '" + selected.getName() + "'?")) {
             showAndRefresh(controller.delete(kind, selected.getId()));
         }
     }
@@ -180,7 +184,7 @@ public class LookupTablePanel extends JPanel implements Refreshable {
     }
 
     private LookupEntry selectedEntry() {
-        int row = table.getSelectedRow();
+        int row = FormHelper.selectedModelRow(table); // correct even when sorted or filtered
         return row < 0 ? null : entries.get(row);
     }
 

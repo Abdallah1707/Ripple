@@ -1,12 +1,12 @@
 # Ripple — NGO Management System
 
-Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory and Singleton**.
+Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory Method and Singleton**.
 
-> **Status:** Phase 1 is complete (all 6 sections of [PHASE1.md](PHASE1.md)): database, lookup tables, Singleton, Factory, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, the Communication screen with Strategy (simulated Email / SMS and automatic donor thank-yous), and the Dashboard.
+> **Status:** Phase 1 is complete (all 6 sections of [PHASE1.md](PHASE1.md)): database, lookup tables, Singleton, Factory Method, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, the Communication screen with Strategy (simulated Email / SMS and automatic donor thank-yous), and the Dashboard.
 
 ![The Ripple Dashboard: totals for each module and the recent activity from the log](docs/images/dashboard.png)
 
-**Stack:** Java 21 · Swing · SQLite · Maven · JUnit 5
+**Stack:** Java 21 · Swing with [FlatLaf](https://www.formdev.com/flatlaf/) · SQLite · Maven · JUnit 5
 
 ---
 
@@ -52,7 +52,7 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 | Screen | What you can do |
 |---|---|
 | Dashboard | See totals (donors, donations and their total value, volunteers, events, beneficiaries) and the recent activity from the log |
-| Donations | Register donors, record Cash / Online / In-kind donations, view each donation's receipt, switch the automatic donor thank-you on or off |
+| Donations | Two tabs. *Donors*: add, edit and delete donors (a donor with donations cannot be deleted). *Donations*: record Cash / Online / In-kind / Cheque donations, view each donation's receipt, switch the automatic donor thank-you on or off. This is the complete module; see its [CRUD matrix](docs/crud-matrix.md). |
 | Volunteers | Add, edit and delete volunteers; assign a volunteer to an event |
 | Events | Add, edit and delete events; register attendees; see an event's attendees and volunteers |
 | Beneficiaries | Add, edit and delete beneficiaries |
@@ -71,9 +71,9 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 | Strategy | 1 | Communication screen: send by Email, then by SMS | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
 | Observer | 1 | Donations screen: record a donation, then untick "Notify donors" | `observer/`, `service/DonationService.java` | `DonationServiceTest`, `DonorNotificationObserverTest` |
 | Decorator | 1 | Donations screen: *View receipt* | `receipt/`, `observer/ReceiptObserver.java` | `ReceiptDecoratorTest`, `ReceiptObserverTest` |
-| Factory | 0.5 | Donations screen: record a donation | `factory/DonationFactory.java` | `DonationFactoryTest` |
+| Factory Method | 0.5 | Donations screen: record a donation of each method (Cheque was added as a new creator) | `factory/DonationFactory.java` (creator) + 4 concrete creators | `DonationFactoryTest` |
 | Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |
-| Lookup tables | 0.5 | Lookup Management screen | `service/LookupService.java` | `LookupServiceTest` |
+| Lookup tables | 0.5 | Lookup Management screen; CRUD matrix for the Donations module in [docs/crud-matrix.md](docs/crud-matrix.md) | `service/LookupService.java` | `LookupServiceTest` |
 | Extra client requirements | 0.5 | See the next table | — | — |
 
 ---
@@ -108,11 +108,11 @@ We had no real client, so these requirements are **our own assumptions**.
 ```
 pom.xml                          Maven build (also builds the runnable jar)
 PHASE1.md                        Work plan and requirements
-docs/                            Class diagram, architecture, images
+docs/                            Class diagram, architecture, CRUD matrix, images
 src/main/java/com/ripple/
   app/            Main — start-up and object wiring
   model/          Domain entities
-  factory/        Factory pattern
+  factory/        Factory Method pattern
   observer/       Observer pattern
   receipt/        Decorator pattern
   communication/  Strategy pattern

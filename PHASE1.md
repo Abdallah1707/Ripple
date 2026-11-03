@@ -109,7 +109,7 @@ The assignment asks us to add a few requirements from "the client". We had no re
   - Event categories: *Fundraiser*, *Workshop*, *Outreach*.
 
 **3. Main data classes** (the `model` folder)
-- [x] Donor, the three donation kinds (Cash, Online, In-kind) and their parent class Donation.
+- [x] Donor, the donation kinds (Cash, Online, In-kind; Cheque added in the gap fixes) and their parent class Donation.
 - [x] The two lookup classes: Donation Type (name, description, tax-deductible yes/no) and Event Category (name, description).
 - [x] A donation's receipt number looks like `RCP-2026-0007` (year + id).
 
@@ -121,12 +121,13 @@ The assignment asks us to add a few requirements from "the client". We had no re
 - [x] Create a single shared logger that writes to `logs/ripple.log` and remembers recent entries for the Dashboard.
 - [x] Make sure there can only ever be one: private constructor plus `getInstance()`.
 
-**6. Factory: `DonationFactory`**
+**6. Factory Method: `DonationFactory` and its creators**
 - [x] Given "Cash", "Online" or "In-kind", it builds the right donation object and checks the input:
   - amount above 0;
   - online donations need a transaction reference;
   - in-kind donations need an item and a quantity above 0.
-- [x] An unknown type such as "Cheque" gives the error *"Unsupported donation method"*.
+- [x] An unknown method gives the error *"Unsupported donation method"*.
+- [x] *(Gap fixes)* Rebuilt as the GoF **Factory Method** from the labs: the abstract creator `DonationFactory` has the fixed workflow `orderDonation(...)` and the abstract factory method `createDonation(...)`; one concrete creator per method. Cheque was then added as a new product and a new creator.
 
 **7. Lookup Management screen**
 - [x] Database code for both lookup tables, plus `LookupService` with the rules:
@@ -361,6 +362,18 @@ Send a message to donors by Email → send the same by SMS (different addresses 
 
 ### Demo for the instructor
 Start the app fresh → Dashboard shows zeros → walk through Sections 1–5 → return to the Dashboard to show the updated totals and activity.
+
+---
+
+## Gap fixes (after Section 6)
+
+A review against the lab slides, the "Common Mistakes in Class Diagram" slide and the project description found these gaps; all are fixed:
+
+- [x] Pattern code uses the slide names: `registerObserver` / `removeObserver` / `notifyObservers` and `update(donation)` (push model) for the Observer; `uniqueInstance` (Option B, eager) for the Singleton.
+- [x] The Simple Factory became the GoF **Factory Method** (see Section 1, step 6), and **Cheque** donations were added through it (the project description asks for cheques).
+- [x] **Donations is the complete module:** donors can now be edited and deleted (not while they have donations). Its CRUD matrix is in [docs/crud-matrix.md](docs/crud-matrix.md).
+- [x] No `System.out` / `System.err` in the code (common-mistakes rule 9).
+- [x] The class diagram follows the common-mistakes rules: no empty classes, no "system" class (`Main` is not drawn), and aggregation only where more than 5 methods are used. The checklist is at the top of [class-diagram.md](docs/class-diagram.md).
 
 ---
 

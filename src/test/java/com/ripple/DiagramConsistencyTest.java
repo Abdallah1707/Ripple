@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>The "complete diagram" in section 2 of the document is the team contract, so:
  * <ul>
  *   <li>every class drawn in it must exist in the code;</li>
- *   <li>every class in the code must be drawn in it;</li>
+ *   <li>every class in the code must be drawn in it, except the {@code app} package;</li>
  *   <li>each class must sit in the diagram namespace that matches its Java package;</li>
  *   <li>the small per-pattern diagrams may only use classes of the complete diagram.</li>
  * </ul>
@@ -34,6 +34,11 @@ class DiagramConsistencyTest {
     private static final Path DIAGRAM = Path.of("docs", "class-diagram.md");
     private static final Pattern CLASS_LINE = Pattern.compile("(?m)^\\s*class\\s+(\\w+)");
     private static final Pattern NAMESPACE_BLOCK = Pattern.compile("(?ms)^namespace\\s+(\\w+)\\s*\\{(.*?)^\\}");
+    /**
+     * The composition root ({@code Main}) is not drawn: it is a "system" class that only wires
+     * objects together (rule 8 of the course's "Common Mistakes in Class Diagram").
+     */
+    private static final String NOT_DRAWN_PACKAGE = "app";
     private static final Pattern MERMAID_BLOCK = Pattern.compile("(?s)```mermaid\\R(.*?)```");
 
     @Test
@@ -104,11 +109,13 @@ class DiagramConsistencyTest {
         return classes;
     }
 
-    /** Class name -> package folder, for every Java file in {@code src/main/java}. */
+    /** Class name -> package folder, for every Java file in {@code src/main/java} except the {@code app} package. */
     private static Map<String, String> codeClasses() {
         Map<String, String> classes = new TreeMap<>();
         for (Path source : MainSources.all()) {
-            classes.put(MainSources.classNameOf(source), MainSources.packageOf(source));
+            if (!MainSources.packageOf(source).equals(NOT_DRAWN_PACKAGE)) {
+                classes.put(MainSources.classNameOf(source), MainSources.packageOf(source));
+            }
         }
         return classes;
     }

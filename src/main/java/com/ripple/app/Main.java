@@ -1,5 +1,6 @@
 package com.ripple.app;
 
+import com.formdev.flatlaf.FlatLightLaf;
 import com.ripple.communication.CommunicationService;
 import com.ripple.communication.CommunicationStrategy;
 import com.ripple.communication.EmailStrategy;
@@ -81,7 +82,7 @@ public final class Main {
      * @param args command-line arguments (not used)
      */
     public static void main(String[] args) {
-        useNativeLookAndFeel();
+        useFlatLookAndFeel();
 
         // ---- Model objects (database, repositories, services, observers) ----
         // Section 1: Database, lookup repositories and LookupServices
@@ -178,13 +179,20 @@ public final class Main {
         });
     }
 
-    /** Makes Ripple look like a normal Windows (or Linux) app instead of Swing's default "Metal" theme. */
-    private static void useNativeLookAndFeel() {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            // The default look and feel still works, so this is not fatal.
-            System.err.println("Could not use the system look and feel: " + e.getMessage());
+    /**
+     * Gives Ripple the modern FlatLaf look (the same on Windows and Linux) instead of Swing's
+     * old default "Metal" theme, with rounded corners and a slightly larger font.
+     */
+    private static void useFlatLookAndFeel() {
+        if (!FlatLightLaf.setup()) {
+            // Swing's default look still works, so this is not fatal.
+            ApplicationLogger.getInstance().error("Could not use the FlatLaf look and feel");
+            return;
         }
+        UIManager.put("Button.arc", 8);
+        UIManager.put("Component.arc", 8);
+        UIManager.put("TextComponent.arc", 8);
+        UIManager.put("Table.showHorizontalLines", true);
+        UIManager.put("defaultFont", UIManager.getFont("defaultFont").deriveFont(13f));
     }
 }

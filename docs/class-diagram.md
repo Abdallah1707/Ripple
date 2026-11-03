@@ -4,6 +4,8 @@
 
 **This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart.
 
+**Printable picture:** [images/class-diagram.svg](images/class-diagram.svg) (zoomable vector) and [images/class-diagram.png](images/class-diagram.png) show the complete diagram below as one UML picture, grouped and coloured by layer and pattern. They are generated from section 2 with Graphviz; regenerate them whenever section 2 changes.
+
 Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [PHASE1.md](../PHASE1.md) (who builds what)
 
 ---
@@ -16,8 +18,8 @@ Related: [architecture.md](architecture.md) (layers, object wiring, sequence dia
 |---|---|---|---|
 | `A --\|> B` (solid line, hollow triangle) | **Generalization** (inheritance) | `A extends B` | `CashDonation --\|> Donation` |
 | `A ..\|> B` (dashed line, hollow triangle) | **Realization** | `A implements B` (B is an interface) | `EmailStrategy ..\|> CommunicationStrategy` |
-| `A --> B` (solid line, open arrow) | **Association** | `A` keeps a field of type `B` | `CommunicationService --> CommunicationStrategy` |
-| `A o-- B` (hollow diamond at A) | **Aggregation** | `A` holds `B` but does not own its life; `B` is created elsewhere and passed in | `DonationService o-- DonationObserver` |
+| `A --> B` (solid line, open arrow) | **Association** (the default) | `A` keeps a field of type `B` and calls **5 or fewer** of its methods | `DonationController --> ReceiptRepository` |
+| `A o-- B` (hollow diamond at A) | **Aggregation** | `A` keeps a field of type `B`, does not own its life (`B` is created elsewhere and passed in), and calls **more than 5** of its methods; also used where the pattern's own UML in the lab slides has a diamond (Observer's list, Decorator's `wrapped`, Strategy's context) | `LookupService o-- LookupRepository` (7 methods) |
 | `A *-- B` (filled diamond at A) | **Composition** | `A` creates and owns `B`; `B` lives and dies with `A` | `MainFrame *-- StatusBar` |
 | `A ..> B` (dashed line, open arrow) | **Dependency** | `A` uses `B` only inside a method (parameter, return, local, or `new`) | `CashDonationFactory ..> CashDonation : «create»` |
 
@@ -40,10 +42,26 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 ### What is left out on purpose
 
 - **Plain getters and setters** (`getName()`, `setName(...)`) for the attributes shown — they would double the diagram's size and add nothing. Getters with real logic (e.g. `getReceiptNumber()`) **are** shown.
-- **Constructors**, except where the constructor is part of the pattern (the Singleton's private constructor, the decorator's protected constructor).
+- **Constructors**, except where the constructor is part of the pattern (the Singleton's private constructor, the decorator's protected constructor) and for `EventCategory`, whose constructor is its only own member (no empty classes).
+- **`Main`**, the composition root that only creates and wires objects. It is a "system" class, so it is described in [architecture.md §4](architecture.md#4-composition-root-object-wiring) instead of drawn (common-mistakes rule 8).
 - **Swing widget fields inside views** (text fields, tables, buttons) and their small private helper methods. Views show only the controllers and status bar they depend on.
 - **`toString()` overrides** that only return a display name for combo boxes (`Donor`, `DonationMethod`).
 - **Swing and JDK classes** (`JPanel`, `JFrame`, `RuntimeException`). Inheritance from them is stated in the class tables below.
+
+### Checked against the course's "Common Mistakes in Class Diagram"
+
+| # | Rule | How this diagram follows it |
+|---|---|---|
+| 1 | No empty class | Every class shows at least one member, in the complete diagram and in the pattern views (`EventCategory` shows its constructor). |
+| 2 | No stand-alone class | Every class has at least one relationship. |
+| 3 | No inheritance cycles | All generalizations point one way (e.g. `CashDonation → Donation`, `ThankYouMessageDecorator → ReceiptDecorator`). |
+| 4 | Balance the relationship types | Generalization, realization, association, aggregation, composition and dependency are all used, each for its own meaning (table above). |
+| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 4, `DonationFactory` 4, `LookupEntry` 2, `ReceiptDecorator` 2). The one interface with a single implementer, `DonationSubject`, is the slides' Subject/WeatherData shape (see section 4). |
+| 6 | Use interfaces where possible | `Contactable`, `CommunicationStrategy`, `DonationSubject`, `DonationObserver`, `Receipt`, `LookupRepository<T>`, `Refreshable`. |
+| 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 8 arrows above 5 are aggregations and are listed in section 4. |
+| 8 | No "system" class | `Main` (the composition root) is not drawn. |
+| 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
+| 10 | Real diagrams are large | 78 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -134,7 +152,9 @@ namespace model {
     class DonationType {
         -boolean taxDeductible
     }
-    class EventCategory
+    class EventCategory {
+        +EventCategory(int id, String name, String description)
+    }
     class Volunteer {
         -int id
         -String name
@@ -299,7 +319,7 @@ namespace communication {
         +setStrategy(CommunicationStrategy strategy) void
         +getStrategy() CommunicationStrategy
         +send(Contactable recipient, String subject, String body) DeliveryResult
-        +sendToAll(List~Contactable~ recipients, String subject, String body) List~DeliveryResult~
+        +sendToAll(List~? extends Contactable~ recipients, String subject, String body) List~DeliveryResult~
     }
     class Message {
         <<record>>
@@ -583,6 +603,16 @@ namespace view {
     class StatusBar {
         +showResult(Result result) void
     }
+    class FormHelper {
+        +placeholder(JTextField field, String hint)$ void
+        +button(String text, String tooltip, Runnable action)$ JButton
+        +tableWithSearch(JTable table)$ JPanel
+        +searchField(JTable table)$ JTextField
+        +selectedModelRow(JTable table)$ int
+        +onDoubleClick(JTable table, Runnable action)$ void
+        +onEnter(Runnable action, JTextField... fields)$ void
+        +confirmDelete(Component parent, String message)$ boolean
+    }
     class MainFrame {
         -CardLayout cards
         -JPanel content
@@ -640,13 +670,6 @@ namespace view {
     }
 }
 
-%% ===================== app =====================
-namespace app {
-    class Main {
-        +main(String[] args)$ void
-    }
-}
-
 %% ---------- model relationships ----------
 Donor ..|> Contactable
 Volunteer ..|> Contactable
@@ -696,7 +719,7 @@ ReceiptDecorator ..|> Receipt
 ReceiptDecorator o-- "1" Receipt : wrapped
 ThankYouMessageDecorator --|> ReceiptDecorator
 TaxInformationDecorator --|> ReceiptDecorator
-BasicReceipt --> "1" Donation
+BasicReceipt o-- "1" Donation : 6 getters
 TaxInformationDecorator --> "1" Donation
 ReceiptObserver ..> BasicReceipt : «create»
 ReceiptObserver ..> ThankYouMessageDecorator : «create»
@@ -705,7 +728,7 @@ ReceiptObserver ..> TaxInformationDecorator : «create»
 %% ---------- Strategy ----------
 EmailStrategy ..|> CommunicationStrategy
 SmsStrategy ..|> CommunicationStrategy
-CommunicationService --> "0..1" CommunicationStrategy : strategy
+CommunicationService o-- "0..1" CommunicationStrategy : strategy
 CommunicationService --> "1" MessageLogRepository
 CommunicationService ..> Message
 CommunicationService ..> DeliveryResult
@@ -728,30 +751,36 @@ MessageLogRepository --> Database
 MessageLogRepository ..> MessageLogEntry
 
 %% ---------- services ----------
-LookupService --> "1" LookupRepository
+LookupService o-- "1" LookupRepository
 LookupService ..> InputValidator
 LookupService ..> ValidationException : throws
-DonationService o-- "4" DonationFactory : factories
-DonationService --> "1" DonorRepository
+DonationService --> "4" DonationFactory : factories
+DonationService o-- "1" DonorRepository
 DonationService --> "1" DonationRepository
 DonationService --> "1" LookupRepository : donation types
 DonationService ..> InputValidator
+DonationService ..> ApplicationLogger : failing observer
 
 %% ---------- controllers ----------
 LookupController --> "2" LookupService
 LookupController ..> LookupKind
 LookupController ..> ApplicationLogger : logs changes
-DonationController --> "1" DonationService
+DonationController o-- "1" DonationService
 DonationController --> "1" ReceiptRepository
 DonationController --> "1" DonorNotificationObserver : registerObserver / removeObserver
-VolunteerController --> "1" VolunteerRepository
-EventController --> "1" EventRepository
+VolunteerController o-- "1" VolunteerRepository
+EventController o-- "1" EventRepository
 EventController --> "1" VolunteerRepository
 BeneficiaryController --> "1" BeneficiaryRepository
 CommunicationController --> "1" CommunicationService
 CommunicationController --> "2" CommunicationStrategy : strategies
 CommunicationController --> "1" MessageLogRepository
 CommunicationController ..> Audience
+DonationController ..> ApplicationLogger : logs changes
+VolunteerController ..> ApplicationLogger : logs changes
+EventController ..> ApplicationLogger : logs changes
+BeneficiaryController ..> ApplicationLogger : logs changes
+CommunicationController ..> ApplicationLogger : logs sends
 DashboardController --> "1" ApplicationLogger
 DashboardController ..> DashboardSummary : «create»
 LookupController ..> Result
@@ -780,24 +809,27 @@ CommunicationPanel ..|> Refreshable
 LookupPanel ..|> Refreshable
 LookupTablePanel ..|> Refreshable
 DashboardPanel --> DashboardController
-DonationsPanel --> DonationController
+DonationsPanel o-- DonationController
 DonationsPanel --> LookupController
 VolunteersPanel --> VolunteerController
 VolunteersPanel --> EventController
-EventsPanel --> EventController
+EventsPanel o-- EventController
 EventsPanel --> LookupController
 BeneficiariesPanel --> BeneficiaryController
 CommunicationPanel --> CommunicationController
 CommunicationPanel --> EventController
 LookupTablePanel --> LookupController
 StatusBar ..> Result
+DonationsPanel ..> FormHelper
+VolunteersPanel ..> FormHelper
+EventsPanel ..> FormHelper
+BeneficiariesPanel ..> FormHelper
+CommunicationPanel ..> FormHelper
+LookupTablePanel ..> FormHelper
 
-%% ---------- composition root ----------
-Main ..> Database : «create»
-Main ..> MainFrame : «create»
 ```
 
-> `DashboardController` also holds the five counting repositories (`DonorRepository`, `DonationRepository`, `VolunteerRepository`, `EventRepository`, `BeneficiaryRepository`), and `CommunicationController` holds the four repositories it reads recipients from. Those arrows are listed as fields in the classes rather than drawn, to keep the picture readable.
+> `Main` is not drawn (see "What is left out on purpose"). `DashboardController` also holds the five counting repositories (`DonorRepository`, `DonationRepository`, `VolunteerRepository`, `EventRepository`, `BeneficiaryRepository`), and `CommunicationController` holds the four repositories it reads recipients from. Those arrows are listed as fields in the classes rather than drawn, to keep the picture readable.
 
 ---
 
@@ -846,7 +878,7 @@ Main ..> MainFrame : «create»
 | Class | Kind | Responsibility |
 |---|---|---|
 | `CommunicationStrategy` | interface | One way of sending a message: which address to use, how to validate it, how to send. |
-| `EmailStrategy`, `SmsStrategy` | classes | Simulated email / SMS (console output, status `SIMULATED`). |
+| `EmailStrategy`, `SmsStrategy` | classes | Simulated email / SMS (status `SIMULATED`; the message log is the visible output). |
 | `CommunicationService` | class | Context: holds the current strategy, validates, sends, writes the message log. |
 | `Message`, `DeliveryResult`, `MessageLogEntry` | records | Data passed in and out. |
 
@@ -886,12 +918,13 @@ Main ..> MainFrame : «create»
 | `DashboardPanel`, `DonationsPanel`, `VolunteersPanel`, `EventsPanel`, `BeneficiariesPanel`, `CommunicationPanel`, `LookupPanel` | `extends JPanel`. One screen each. |
 | `LookupTablePanel` | `extends JPanel`. Reusable list/add/edit/delete table, used once per `LookupKind`. |
 | `StatusBar` | `extends JLabel`. Shows a `Result` in green or red. |
+| `FormHelper` | Static helpers shared by the screens: hints in empty fields, a search box and sorting for each table (`selectedModelRow` keeps the selection correct when sorted or filtered), double-click to edit, Enter to save, tooltips and the delete confirmation. |
 | `Refreshable` | Implemented by every screen so `MainFrame` can reload data when a screen is shown. |
 
 ### `com.ripple.app`
 | Class | Responsibility |
 |---|---|
-| `Main` | Composition root (see [architecture.md §4](architecture.md#4-composition-root-object-wiring)). |
+| `Main` | Composition root (see [architecture.md §4](architecture.md#4-composition-root-object-wiring)). **Not drawn** in the diagram: it is a "system" class that only wires objects together (common-mistakes rule 8). |
 
 ---
 
@@ -903,9 +936,12 @@ Main ..> MainFrame : «create»
 | `Donation "*" --> "1" DonationType` | Each donation is classified by exactly one lookup value — this is what makes CR2 (no delete while in use) necessary. |
 | `Event "*" -- "*" Volunteer` | Many-to-many, stored in the `event_volunteers` join table. Neither class holds a list of the other; the repositories query the link. |
 | `Attendee "*" --> "1" Event` | An attendee row belongs to one event (`eventId`). |
-| `DonationService "1" o-- "0..*" DonationObserver` | **Aggregation**: observers are created in `Main` and attached; the service only holds them. Zero observers is valid. |
+| `DonationService "1" o-- "0..*" DonationObserver` | **Aggregation**, as in the Observer UML of the lab slides: observers are created in `Main` and registered; the service only holds them. Zero observers is valid. |
+| `DonationService ..\|> DonationSubject` | `DonationSubject` has a single implementer on purpose: it is the slides' `Subject` interface with `WeatherData` as the one concrete subject. The interface is what lets a test or another subject reuse the observers. |
 | `ReceiptDecorator o-- "1" Receipt` | The heart of Decorator: a decorator **is-a** `Receipt` (realization) and **has-a** `Receipt` (aggregation). |
-| `CommunicationService --> "0..1" CommunicationStrategy` | The context holds at most one current strategy and can swap it at runtime. |
+| `CommunicationService o-- "0..1" CommunicationStrategy` | **Aggregation**, as in the Strategy UML of the lab slides: the context holds at most one current strategy, created elsewhere, and swaps it at runtime. |
+| `LookupService o-- LookupRepository`, `DonationService o-- DonorRepository`, `DonationController o-- DonationService`, `VolunteerController o-- VolunteerRepository`, `EventController o-- EventRepository`, `DonationsPanel o-- DonationController`, `EventsPanel o-- EventController`, `BasicReceipt o-- Donation` | **Aggregation by the course rule**: each uses more than 5 methods of the other (7, 6, 9, 6, 7, 8, 6 and 6). Every other field is drawn as a plain association. |
+| `DonationService --> "4" DonationFactory` | Association, not aggregation: the service calls only `orderDonation(...)` on its creators. |
 | `CashDonationFactory ..> CashDonation : «create»` | Dependency, not association: a creator does not keep the objects it creates. |
 | `MainFrame *-- DashboardPanel` | **Composition**: the frame creates its panels and they live only inside it. |
 | `ApplicationLogger` → itself (static `uniqueInstance`) | The Singleton holds its own only instance in a private static field. |
@@ -937,7 +973,7 @@ class CommunicationService {
     -MessageLogRepository messageLog
     +setStrategy(CommunicationStrategy strategy) void
     +send(Contactable recipient, String subject, String body) DeliveryResult
-    +sendToAll(List~Contactable~ recipients, String subject, String body) List~DeliveryResult~
+    +sendToAll(List~? extends Contactable~ recipients, String subject, String body) List~DeliveryResult~
 }
 class CommunicationStrategy {
     <<interface>>
@@ -958,9 +994,15 @@ class SmsStrategy {
     +isValidAddress(String address) boolean
     +send(Message message) DeliveryResult
 }
-class CommunicationController
-class DonorNotificationObserver
-CommunicationService --> "0..1" CommunicationStrategy : strategy
+class CommunicationController {
+    -Map~ContactChannel, CommunicationStrategy~ strategies
+    +sendToGroup(Audience audience, Integer eventId, String channel, String subject, String body) Result
+}
+class DonorNotificationObserver {
+    -Map~ContactChannel, CommunicationStrategy~ strategies
+    +update(Donation donation) void
+}
+CommunicationService o-- "0..1" CommunicationStrategy : strategy
 EmailStrategy ..|> CommunicationStrategy
 SmsStrategy ..|> CommunicationStrategy
 CommunicationController --> CommunicationService : setStrategy() + sendToAll()
@@ -968,7 +1010,7 @@ DonorNotificationObserver --> CommunicationService : setStrategy() + send()
 ```
 
 **How it works:** the user picks "SMS" in the Communication screen → the controller calls `communicationService.setStrategy(strategies.get(SMS))` → `sendToAll(...)` asks the *current* strategy for each recipient's address (`addressOf`), validates it (`isValidAddress`) and sends (`send`). `CommunicationService` never mentions `EmailStrategy` or `SmsStrategy` by name.
-**Honesty note:** both strategies are simulations; they print to the console and return status `SIMULATED`.
+**Honesty note:** both strategies are simulations; nothing is really sent, they return status `SIMULATED`, and the message log on the Communication screen shows what would have gone out. Core classes never print to the console (common-mistakes rule 9).
 **Extending:** a real provider (e.g. WhatsApp) = one new class implementing `CommunicationStrategy`; nothing else changes.
 
 - **In the code:** [CommunicationStrategy.java](../src/main/java/com/ripple/communication/CommunicationStrategy.java), [EmailStrategy.java](../src/main/java/com/ripple/communication/EmailStrategy.java), [SmsStrategy.java](../src/main/java/com/ripple/communication/SmsStrategy.java) and the context [CommunicationService.java](../src/main/java/com/ripple/communication/CommunicationService.java) (`setStrategy(...)`, `send(...)`; no channel `if/else`). The clients pick a strategy from a `Map<ContactChannel, CommunicationStrategy>` built in `Main`: [CommunicationController.java](../src/main/java/com/ripple/controller/CommunicationController.java) and [DonorNotificationObserver.java](../src/main/java/com/ripple/observer/DonorNotificationObserver.java).
@@ -1027,7 +1069,7 @@ ReceiptObserver ..|> DonationObserver
 DonorNotificationObserver ..|> DonationObserver
 ```
 
-**How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `update` on each one. The donation code does not know *what* the observers do.
+**How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `update(donation)` on each one. This is the **push model** from the slides: the subject hands the new donation to each observer, so no observer has to ask the subject for it. The donation code does not know *what* the observers do.
 **Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `removeObserver(donorNotifier)` / `registerObserver(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
 **Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` uses the Strategy; `DonationLogObserver` uses the Singleton.
 
@@ -1182,7 +1224,7 @@ CashDonationFactory ..> CashDonation : «create»
 OnlineDonationFactory ..> OnlineDonation : «create»
 InKindDonationFactory ..> InKindDonation : «create»
 ChequeDonationFactory ..> ChequeDonation : «create»
-DonationService o-- "4" DonationFactory : factories
+DonationService --> "4" DonationFactory : factories
 DonationRepository --> "4" DonationFactory : rows from DB
 ```
 
@@ -1204,7 +1246,7 @@ DonationRepository --> "4" DonationFactory : rows from DB
 
 ### 5.5 Singleton — application logger
 
-**Role:** Singleton = `ApplicationLogger`. Used by `DonationLogObserver` (writes) and `DashboardController` (reads recent entries).
+**Role:** Singleton = `ApplicationLogger`. Written to by `DonationLogObserver`, `DonationService` and every controller that changes data; read by `DashboardController` (recent entries).
 
 ```mermaid
 classDiagram
@@ -1219,18 +1261,24 @@ class ApplicationLogger {
     +error(String message) void
     +getRecentEntries(int limit) List~String~
 }
-class DonationLogObserver
-class DashboardController
+class DonationLogObserver {
+    -ApplicationLogger logger
+    +update(Donation donation) void
+}
+class DashboardController {
+    -ApplicationLogger logger
+    +getSummary() DashboardSummary
+}
 ApplicationLogger --> ApplicationLogger : uniqueInstance
 DonationLogObserver --> ApplicationLogger : info()
 DashboardController --> ApplicationLogger : getRecentEntries()
 ```
 
-**How it works:** the constructor is `private`, so no other class can call `new ApplicationLogger()`. The single instance is created when the class is loaded (`private static final ApplicationLogger uniqueInstance = new ApplicationLogger();`), which the JVM guarantees happens once, so it is thread-safe without `synchronized`.
+**How it works:** the constructor is `private`, so no other class can call `new ApplicationLogger()`. The single instance is created when the class is loaded (`private static final ApplicationLogger uniqueInstance = new ApplicationLogger();`), which the JVM guarantees happens once, so it is thread-safe without `synchronized`. This is **Option B (eager instantiation)** from the lab slides; Option A would be a `synchronized getInstance()` with lazy creation. The trade-off of Option B is that the logger exists even if nothing logs, which costs nothing here because Ripple logs "Ripple started" on every launch.
 **Why this class deserves to be a Singleton:** there is one log file (`logs/ripple.log`) and one recent-activity feed on the Dashboard. Two logger objects would write the same file independently and each would see only half the activity.
 **Why nothing else is a Singleton:** `Database` and the services are passed through constructors so tests can give each one its own temporary database.
 
-- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `uniqueInstance` and `getInstance()`. Used by `Main` ("Ripple started"), `LookupController` (every add, update or delete) and `DonationLogObserver` (every donation), and read by `DashboardController` for the Dashboard's "Recent activity".
+- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `uniqueInstance` and `getInstance()`. Used by `Main` ("Ripple started"), every controller that changes data (each add, update, delete or send), `DonationService` (an observer that fails) and `DonationLogObserver` (every donation), and read by `DashboardController` for the Dashboard's "Recent activity".
 - **Demo:** add or delete a lookup value, then open `logs/ripple.log` and show the new line. Point out that `new ApplicationLogger()` does not compile outside the class.
 - **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first; `src/test/java/com/ripple/controller/DashboardControllerTest.java` checks that the Dashboard's recent activity comes from the logger, newest first.
 
@@ -1249,42 +1297,61 @@ classDiagram
 direction LR
 class DonationsPanel {
     <<View>>
+    -DonationController donationController
+    +refresh() void
 }
 class LookupTablePanel {
     <<View>>
+    -LookupController controller
+    +refresh() void
 }
 class DonationController {
     <<Controller>>
+    +saveDonor(Integer id, String name, String email, String phone, String channel) Result
+    +recordDonation(int donorId, int typeId, String method, ...) Result
 }
 class LookupController {
     <<Controller>>
+    +save(LookupKind kind, Integer id, String name, String description, boolean taxDeductible) Result
+    +delete(LookupKind kind, int id) Result
 }
 class DonationService {
     <<Model · service>>
+    +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
 }
 class LookupService~T~ {
     <<Model · service>>
+    +add(T entry) T
+    +delete(int id) void
 }
 class DonationRepository {
     <<Model · repository>>
+    +insert(Donation donation) Donation
+    +findAll() List~Donation~
 }
 class LookupRepository~T~ {
     <<Model · repository>>
+    +insert(T entry) T
+    +countUsages(int id) int
 }
 class Donation {
     <<Model · entity>>
+    +getValue()* double
+    +describe()* String
 }
 class Result {
     <<record>>
+    +boolean success
+    +String message
 }
-DonationsPanel --> DonationController : user action
+DonationsPanel o-- DonationController : user action
 LookupTablePanel --> LookupController : user action
 DonationController ..> Result : returns
 LookupController ..> Result : returns
-DonationController --> DonationService
+DonationController o-- DonationService
 LookupController --> LookupService
 DonationService --> DonationRepository
-LookupService --> LookupRepository
+LookupService o-- LookupRepository
 DonationRepository ..> Donation
 ```
 

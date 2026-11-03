@@ -26,6 +26,14 @@
             <artifactId>sqlite-jdbc</artifactId>
             <version>3.46.1.3</version>
         </dependency>
+        <!-- FlatLaf: a modern, flat look for Swing (rounded fields, hints inside empty fields,
+             a clear button in search boxes). One small jar with no other dependencies, and it
+             looks the same on Windows and Linux. Used only by Main and the view package. -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5.4</version>
+        </dependency>
         <!-- JUnit 5, for tests only (not shipped with the app). -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

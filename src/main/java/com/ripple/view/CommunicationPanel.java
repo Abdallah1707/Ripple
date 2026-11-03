@@ -10,7 +10,6 @@ import com.ripple.model.ContactChannel;
 import com.ripple.model.Event;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
@@ -84,7 +83,7 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         JPanel logPanel = new JPanel(new BorderLayout());
         logPanel.setBorder(BorderFactory.createTitledBorder("Message log"));
-        logPanel.add(new JScrollPane(table), BorderLayout.CENTER);
+        logPanel.add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
         add(logPanel, BorderLayout.CENTER);
 
         audienceBox.addActionListener(e -> eventBox.setEnabled(audienceBox.getSelectedItem() == Audience.EVENT_ATTENDEES));
@@ -123,9 +122,12 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         addRow(form, 4, new JLabel("Message"), new JScrollPane(bodyArea));
         addRow(form, 5, new JLabel(), lengthLabel);
 
-        JButton sendButton = new JButton("Send");
-        sendButton.addActionListener(e -> send());
-        addRow(form, 6, new JLabel(), sendButton);
+        FormHelper.placeholder(subjectField, "e.g. Thank you for your support");
+        subjectField.setToolTipText("Used for email; SMS messages have no subject");
+        channelBox.setToolTipText("SMS messages are limited to " + SmsStrategy.MAX_LENGTH + " characters");
+        FormHelper.onEnter(this::send, subjectField);
+        addRow(form, 6, new JLabel(), FormHelper.button("Send",
+                "Send this message to everyone in the chosen group", this::send));
 
         JLabel simulatedNote = new JLabel("Simulated — no real email or SMS is sent.");
         simulatedNote.setForeground(new Color(180, 90, 0));

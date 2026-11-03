@@ -17,7 +17,6 @@ import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -125,6 +124,20 @@ public class DonationsPanel extends JPanel implements Refreshable {
                 fillDonorFormFromSelection();
             }
         });
+        FormHelper.onDoubleClick(donorTable, donorNameField::requestFocusInWindow); // edit the row in the form
+        FormHelper.onDoubleClick(table, this::viewReceipt);
+
+        FormHelper.placeholder(donorNameField, "Full name");
+        FormHelper.placeholder(donorEmailField, "name@example.com");
+        FormHelper.placeholder(donorPhoneField, "01012345678");
+        FormHelper.placeholder(amountField, "e.g. 500");
+        FormHelper.placeholder(itemField, "e.g. Blankets");
+        FormHelper.placeholder(quantityField, "e.g. 20");
+        FormHelper.placeholder(valueField, "e.g. 4000");
+        donorPhoneField.setToolTipText("Exactly 11 digits; required if the donor prefers SMS");
+        donorEmailField.setToolTipText("Required if the donor prefers Email");
+        FormHelper.onEnter(this::onSaveDonor, donorNameField, donorEmailField, donorPhoneField);
+        FormHelper.onEnter(this::recordDonation, amountField, referenceField, itemField, quantityField, valueField);
 
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Donations", buildDonationsTab());
@@ -141,7 +154,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         JPanel tab = new JPanel(new BorderLayout(0, 8));
         tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
         tab.add(buildDonationForm(), BorderLayout.NORTH);
-        tab.add(new JScrollPane(table), BorderLayout.CENTER);
+        tab.add(FormHelper.tableWithSearch(table), BorderLayout.CENTER);
 
         // Ticked when the screen first opens: donors are notified by default.
         notifyCheckBox.setSelected(donationController.isDonorNotificationsEnabled());
@@ -152,6 +165,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
                     ? "Donors will be notified about new donations"
                     : "Donor notifications are turned off"));
         });
+        viewReceiptButton.setToolTipText("Show the receipt of the selected donation (or double-click a row)");
         viewReceiptButton.addActionListener(e -> viewReceipt());
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.add(notifyCheckBox, BorderLayout.WEST);
@@ -172,9 +186,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
         addRow(form, 5, itemLabel, itemField);
         addRow(form, 6, quantityLabel, quantityField);
         addRow(form, 7, valueLabel, valueField);
-        JButton recordButton = new JButton("Record donation");
-        recordButton.addActionListener(e -> recordDonation());
-        addRow(form, 8, new JLabel(), recordButton);
+        addRow(form, 8, new JLabel(), FormHelper.button("Record donation",
+                "Save this donation; its receipt is created automatically", this::recordDonation));
         return form;
     }
 
@@ -188,6 +201,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         setVisible(cash || online || cheque, amountLabel, amountField);
         // Online and cheque both use the reference field; only its label changes.
         referenceLabel.setText(cheque ? "Cheque no." : "Transaction reference");
+        FormHelper.placeholder(referenceField, cheque ? "e.g. 000123" : "e.g. TX-1001");
         setVisible(online || cheque, referenceLabel, referenceField);
         setVisible(inKind, itemLabel, itemField, quantityLabel, quantityField, valueLabel, valueField);
         revalidate();
@@ -223,7 +237,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
 
     /** Opens the selected donation's receipt (basic + thank-you + tax if applicable) in a pop-up. */
     private void viewReceipt() {
-        int row = table.getSelectedRow();
+        int row = FormHelper.selectedModelRow(table); // correct even when sorted or filtered
         if (row < 0 || row >= currentDonations.size()) {
             statusBar.showResult(Result.fail("Select a donation first"));
             return;
@@ -239,7 +253,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private JPanel buildDonorsTab() {
         JPanel tab = new JPanel(new BorderLayout(0, 8));
         tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
-        tab.add(new JScrollPane(donorTable), BorderLayout.CENTER);
+        tab.add(FormHelper.tableWithSearch(donorTable), BorderLayout.CENTER);
         tab.add(buildDonorForm(), BorderLayout.SOUTH);
         return tab;
     }
@@ -254,12 +268,22 @@ public class DonationsPanel extends JPanel implements Refreshable {
         addRow(form, 3, new JLabel("Preferred channel"), channelBox);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        buttons.add(button("Add", this::onAddDonor));
-        buttons.add(button("Update", this::onUpdateDonor));
-        buttons.add(button("Delete", this::onDeleteDonor));
-        buttons.add(button("Clear", this::clearDonorForm));
+        buttons.add(FormHelper.button("Add", "Save the form as a new donor", this::onAddDonor));
+        buttons.add(FormHelper.button("Update", "Save the form over the selected donor", this::onUpdateDonor));
+        buttons.add(FormHelper.button("Delete", "Delete the selected donor (not possible once they have donations)",
+                this::onDeleteDonor));
+        buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearDonorForm));
         addRow(form, 4, new JLabel(), buttons);
         return form;
+    }
+
+    /** Enter in the donor form: update the selected donor, or add a new one if none is selected. */
+    private void onSaveDonor() {
+        if (selectedDonor() == null) {
+            onAddDonor();
+        } else {
+            onUpdateDonor();
+        }
     }
 
     private void onAddDonor() {
@@ -283,9 +307,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
             statusBar.showResult(Result.fail("Select a donor to delete first."));
             return;
         }
-        int answer = JOptionPane.showConfirmDialog(this, "Delete donor '" + selected.getName() + "'?",
-                "Confirm delete", JOptionPane.YES_NO_OPTION);
-        if (answer == JOptionPane.YES_OPTION) {
+        if (FormHelper.confirmDelete(this, "Delete donor '" + selected.getName() + "'?")) {
             showDonorResult(donationController.deleteDonor(selected.getId()));
         }
     }
@@ -305,7 +327,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     }
 
     private Donor selectedDonor() {
-        int row = donorTable.getSelectedRow();
+        int row = FormHelper.selectedModelRow(donorTable); // correct even when sorted or filtered
         return row < 0 || row >= donors.size() ? null : donors.get(row);
     }
 
@@ -342,12 +364,6 @@ public class DonationsPanel extends JPanel implements Refreshable {
         c.fill = GridBagConstraints.HORIZONTAL;
         c.weightx = 1;
         form.add(field, c);
-    }
-
-    private static JButton button(String text, Runnable action) {
-        JButton button = new JButton(text);
-        button.addActionListener(e -> action.run());
-        return button;
     }
 
     /** Reloads the donors (table and combo box), the donation types and the donations table. */
