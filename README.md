@@ -79,15 +79,14 @@ The main window (`MainFrame`) has a sidebar with one button per screen. The stat
 | Grading item | Marks | In the app | In the code | Tests |
 |---|:-:|---|---|---|
 | Class diagram | 1 | Picture: [docs/images/class-diagram.png](docs/images/class-diagram.png) ([SVG](docs/images/class-diagram.svg)) | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
-| MVC structure | 0.5 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
-| User control panel | 0.5 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
 | Strategy | 0.5 | Communication screen: send by Email, then by SMS or Social | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
 | Observer | 0.5 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees get a message | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
 | Decorator | 0.5 | Donations screen: *View receipt*, and record a donation with Urgent / Anonymous / "In honor of" | `receipt/`, `observer/ReceiptObserver.java`, `extras/` | `ReceiptDecoratorTest`, `ReceiptObserverTest`, `DonationDecoratorTest` |
-| Factory Method | 0.5 | Donations screen: record a donation with each method | `factory/DonationFactory.java` and its 4 subclasses | `DonationFactoryTest` |
+| Factory | 0.5 | Donations screen: record a donation with each method | `factory/DonationFactory.java` and its 4 subclasses | `DonationFactoryTest` |
 | Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |
-| Lookup tables | 0.5 | Lookup Management screen | `service/LookupService.java` | `LookupServiceTest` |
-| Extra client requirements | 0.5 | See the next table | — | — |
+| MVC structure | 0.5 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
+| CRUD Lookup tables | 0.5 | Lookup Management screen | `service/LookupService.java` | `LookupServiceTest` |
+| client requirements | 0.5 | See the next table | — | — |
 
 ---
 
