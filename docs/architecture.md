@@ -13,12 +13,13 @@ Related: [class-diagram.md](class-diagram.md) (classes and pattern diagrams) · 
 |---|---|
 | **Java 21** | Same language as the course labs, so the pattern code looks like the lecture examples. |
 | **Swing** (built into the JDK) | Desktop UI with no extra install. Each screen is a `JPanel`, which maps cleanly to an MVC *View*. |
+| **FlatLaf** | A modern look for Swing that is the same on Windows and Linux. Used only by `Main` and the `view` package. |
 | **SQLite** via `sqlite-jdbc` | A single file database (`data/ripple.db`). No server to install, works on Windows and Linux. |
 | **Plain JDBC** (no ORM) | Every SQL statement is visible in one layer, which makes the Model easy to explain. |
 | **Maven** | Standard build: `mvn test`, `mvn compile exec:java`, `mvn package`. |
 | **JUnit 5** | Tests for business rules and for each pattern. |
 
-Only two libraries are used: `sqlite-jdbc` (the database driver) and `junit-jupiter` (tests only).
+Only three libraries are used: `sqlite-jdbc` (the database driver), `flatlaf` (the look of the UI) and `junit-jupiter` (tests only).
 
 ---
 
@@ -63,7 +64,7 @@ flowchart LR
 | **Repository** (Model) | `repository` | The **only** place with SQL. Turns rows into entities and back. | Business rules. |
 | **Entity** (Model) | `model` | Domain data and small behaviour (`Donation.getValue()`, `getReceiptNumber()`). | Know about the database or the UI. |
 
-**Why a service layer?** Rules like "no duplicate lookup names" must not live in a button handler (view) and should not be repeated in every controller. Services are added **only** where there are real rules: `LookupService`, `DonationService`. Simple CRUD screens (volunteers, events, beneficiaries) go controller → repository directly, with shared input checks in `InputValidator`.
+**Why a service layer?** Rules like "no duplicate lookup names" must not live in a button handler (view) and should not be repeated in every controller. Services are added **only** where there are real rules: `LookupService`, `DonationService` and `EventService` (which notifies attendees when an event's date or location changes). Simple CRUD screens (volunteers, beneficiaries) go controller → repository directly, with shared input checks in `InputValidator`. The Events screen saves events through `EventService` and reads attendees and volunteers from the repositories.
 
 **How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. `ArchitectureRulesTest` checks this on every `mvn test`, and you can also run this grep, which must print nothing:
 
@@ -134,12 +135,12 @@ flowchart TD
 1. `Database` (reads `RIPPLE_DB_PATH`, default `data/ripple.db`) → `initialize()` creates tables and seed data.
 2. The donation creators, one `DonationFactory` subclass per method, in a `Map<DonationMethod, DonationFactory>` keyed by `getMethod()`; then repositories (the donation repository gets the map so it can rebuild donations from rows).
 3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy(), SOCIAL, new SocialMediaStrategy())`.
-4. Services: `LookupService` ×2, `DonationService`.
+4. Services: `LookupService` ×2, `DonationService`, `EventService`.
 5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`. Attached to `EventService`: `AttendeeNotificationObserver` (Email then SMS, with its own `CommunicationService`).
 6. Controllers, including `DashboardController` (it gets the five repositories it counts).
 7. On the Swing event thread: `MainFrame`, then each of the seven screens plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`.
 
-`Main.java` has a `// Section N:` comment at each of these places, showing which part of the plan added each line.
+`Main.java` groups these lines with `// Section N` comments (1 to 6), one per build stage of Phase 1: lookups, donations, receipts, volunteers / events / beneficiaries, communication, and the Dashboard.
 
 ---
 
@@ -164,18 +165,19 @@ sequenceDiagram
     Staff->>V: fill form, click "Record donation"
     V->>C: recordDonation(donorId, typeId, "ONLINE", "500", "TX-991", ...)
     C->>C: parse strings → DonationRequest
-    C->>S: recordDonation(method, request)
+    C->>S: recordDonation(method, donorId, typeId, request, options)
     S->>S: factory = factories.get(ONLINE)
     S->>F: orderDonation(donor, type, request)
     F->>F: shared checks + time stamp, then createDonation(...)
     F-->>S: OnlineDonation (validated)
+    S->>S: donation = options.decorate(base) (urgent / gift / anonymous, if ticked)
     S->>DR: insert(donation)
     DR-->>S: donation with id + createdAt
     S->>S: notifyObservers(donation)
     S->>LO: update(donation)
     LO->>LO: ApplicationLogger.getInstance().info(...)
     S->>RO: update(donation)
-    RO->>RO: new TaxInformationDecorator(new ThankYouMessageDecorator(new BasicReceipt(d)))
+    RO->>RO: new ThankYouMessageDecorator(new BasicReceipt(d), name), wrapped in TaxInformationDecorator only if tax-deductible
     RO->>RO: receipt.render() → save to receipts table
     S->>NO: update(donation)
     NO->>CS: setStrategy(strategy for donor.preferredChannel)
@@ -184,7 +186,7 @@ sequenceDiagram
     ST-->>CS: DeliveryResult SIMULATED
     CS->>CS: save to message_log
     S-->>C: donation
-    C-->>V: Result.ok("Donation RCP-2026-12 recorded")
+    C-->>V: Result.ok("Donation RCP-2026-0012 recorded")
     V->>Staff: green status message, table refreshed
 ```
 
@@ -201,11 +203,11 @@ sequenceDiagram
     participant R as DonationTypeRepository
 
     Staff->>V: select "Zakat", click Delete, confirm
-    V->>C: deleteDonationType(id)
+    V->>C: delete(LookupKind.DONATION_TYPE, id)
     C->>S: delete(id)
     S->>R: countUsages(id)
     R-->>S: 3
-    S-->>C: throws ValidationException("'Zakat' is used by 3 donation(s) and cannot be deleted")
+    S-->>C: throws ValidationException("'Zakat' is used by 3 record(s) and cannot be deleted")
     C-->>V: Result.fail(message)
     V->>Staff: red status message, row stays
 ```

@@ -5,6 +5,7 @@ import com.ripple.communication.CommunicationService;
 import com.ripple.communication.EmailStrategy;
 import com.ripple.communication.MessageLogEntry;
 import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.model.Attendee;
 import com.ripple.model.Beneficiary;
 import com.ripple.model.ContactChannel;
@@ -117,5 +118,12 @@ class CommunicationControllerTest {
         Result result = controller.sendToGroup(Audience.VOLUNTEERS, null, "SMS", "Hi", "x".repeat(161));
         assertFalse(result.success());
         assertEquals("Sent 0, skipped 1 (message is longer than 160 characters)", result.message());
+    }
+
+    @Test
+    void messageLimitsComeFromTheStrategies() {
+        assertEquals(SmsStrategy.MAX_LENGTH, controller.getMessageLimit(ContactChannel.SMS));
+        assertEquals(SocialMediaStrategy.MAX_LENGTH, controller.getMessageLimit(ContactChannel.SOCIAL));
+        assertEquals(0, controller.getMessageLimit(ContactChannel.EMAIL)); // no limit
     }
 }
