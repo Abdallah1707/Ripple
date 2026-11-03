@@ -249,31 +249,31 @@ Record a *Zakat* donation → view its receipt (has a tax section) → record a 
 ### Steps
 
 **1. Data classes and database code**
-- [ ] Volunteer (name, email, phone, skills, availability).
-- [ ] Event (name, category, date, location, description) and Attendee (name, email, phone).
-- [ ] Beneficiary (name, email, phone, address, needs).
-- [ ] Database code for each, including: assign a volunteer to an event, list an event's volunteers, register and list attendees.
+- [x] Volunteer (name, email, phone, skills, availability).
+- [x] Event (name, category, date, location, description) and Attendee (name, email, phone).
+- [x] Beneficiary (name, email, phone, address, needs).
+- [x] Database code for each, including: assign a volunteer to an event, list an event's volunteers, register and list attendees.
 
 **2. Controllers** (with input checks)
-- [ ] A name is always required, and an email or phone must be valid if it's filled in.
-- [ ] Event dates use the format `2026-12-15`. Every event needs a category.
-- [ ] Assigning the same volunteer to the same event twice doesn't create a duplicate.
+- [x] A name is always required, and an email or phone must be valid if it's filled in.
+- [x] Event dates use the format `2026-12-15`. Every event needs a category.
+- [x] Assigning the same volunteer to the same event twice doesn't create a duplicate.
 
 **3. Screens**
 Use the same layout idea as the Lookup screen: a table, a form, and **Add / Update / Delete / Clear** buttons.
-- [ ] **Volunteers**, plus an "Assign to event" option.
-- [ ] **Events**, with the category picked from the Event Categories lookup, and lists of attendees and assigned volunteers for the selected event.
-- [ ] **Beneficiaries.**
-- [ ] Plug all three screens in from `Main.java`.
+- [x] **Volunteers**, plus an "Assign to event" option.
+- [x] **Events**, with the category picked from the Event Categories lookup, and lists of attendees and assigned volunteers for the selected event.
+- [x] **Beneficiaries.**
+- [x] Plug all three screens in from `Main.java`.
 
 **4. Tests**
-- [ ] Add, edit and delete work for all three.
-- [ ] Deleting an event also removes its attendees.
-- [ ] An event category that's in use can't be deleted.
+- [x] Add, edit and delete work for all three.
+- [x] Deleting an event also removes its attendees.
+- [x] An event category that's in use can't be deleted.
 
 ### It works when…
-- [ ] All three screens work, and the data is still there after a restart.
-- [ ] Trying to delete a category that's used by an event shows a red message.
+- [x] All three screens work, and the data is still there after a restart.
+- [x] Trying to delete a category that's used by an event shows a red message.
 
 ### Demo for the instructor
 Create an event under *Outreach* → register two attendees → add a volunteer and assign them → try deleting *Outreach* in Lookup Management (blocked) → add, edit and delete a beneficiary.
