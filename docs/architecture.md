@@ -58,7 +58,7 @@ flowchart LR
 |---|---|---|---|
 | **View** | `view` | Builds widgets, reads form fields, calls one controller method, shows the returned data or `Result` message. | SQL, validation rules, creating domain objects with business meaning, talking to repositories. |
 | **Controller** | `controller` | Converts UI strings into typed values, calls the right service or repository, catches `ValidationException` and returns a `Result`. | Build widgets, write SQL. |
-| **Service** (Model) | `service` | Business rules: lookup uniqueness and in-use checks, donor validation, recording donations and notifying observers. | Know about Swing. |
+| **Service** (Model) | `service` | Business rules: lookup uniqueness and in-use checks, donor validation, recording donations, saving events, and notifying observers. | Know about Swing. |
 | **Pattern packages** (Model) | `factory`, `observer`, `receipt`, `communication`, `logging` | The five design patterns. | Know about Swing. |
 | **Repository** (Model) | `repository` | The **only** place with SQL. Turns rows into entities and back. | Business rules. |
 | **Entity** (Model) | `model` | Domain data and small behaviour (`Donation.getValue()`, `getReceiptNumber()`). | Know about the database or the UI. |
@@ -111,12 +111,12 @@ flowchart TD
 | `com.ripple.app` | `Main` — the **composition root**: builds every object once and wires them together. It is described here and not drawn in the class diagram (common-mistakes rule 8: no "system" class). |
 | `com.ripple.model` | Entities (the `Person` hierarchy: `Donor`, `Volunteer`, `Attendee`, `Beneficiary`; the `Donation` hierarchy; `Event`, ...), lookup entities, enums, the `Contactable` interface. |
 | `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
-| `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers. |
+| `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers; `EventSubject`, `EventObserver` and `AttendeeNotificationObserver` for event changes. |
 | `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
 | `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy`, context `CommunicationService`. |
 | `com.ripple.logging` | **Singleton**: `ApplicationLogger`. |
 | `com.ripple.repository` | `Database` and one repository per table group. |
-| `com.ripple.service` | `LookupService`, `DonationService`, `InputValidator`, `ValidationException`. |
+| `com.ripple.service` | `LookupService`, `DonationService`, `EventService`, `InputValidator`, `ValidationException`. |
 | `com.ripple.controller` | One controller per screen, plus `Result` and `DashboardSummary`. |
 | `com.ripple.view` | `MainFrame` (the control panel), one panel per screen, `StatusBar`, `Refreshable`. |
 
@@ -130,7 +130,7 @@ flowchart TD
 2. The donation creators, one `DonationFactory` subclass per method, in a `Map<DonationMethod, DonationFactory>` keyed by `getMethod()`; then repositories (the donation repository gets the map so it can rebuild donations from rows).
 3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy(), SOCIAL, new SocialMediaStrategy())`.
 4. Services: `LookupService` ×2, `DonationService`.
-5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
+5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`. Attached to `EventService`: `AttendeeNotificationObserver` (Email then SMS, with its own `CommunicationService`).
 6. Controllers, including `DashboardController` (it gets the five repositories it counts).
 7. On the Swing event thread: `MainFrame`, then each of the seven screens plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`.
 

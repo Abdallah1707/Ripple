@@ -69,7 +69,7 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 | MVC structure | 2 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
 | User control panel | 1 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
 | Strategy | 1 | Communication screen: send by Email, then by SMS | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
-| Observer | 1 | Donations screen: record a donation, then untick "Notify donors" | `observer/`, `service/DonationService.java` | `DonationServiceTest`, `DonorNotificationObserverTest` |
+| Observer | 1 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees are messaged | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
 | Decorator | 1 | Donations screen: *View receipt* | `receipt/`, `observer/ReceiptObserver.java` | `ReceiptDecoratorTest`, `ReceiptObserverTest` |
 | Factory Method | 0.5 | Donations screen: record a donation of each method (Cheque was added as a new creator) | `factory/DonationFactory.java` (creator) + 4 concrete creators | `DonationFactoryTest` |
 | Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |

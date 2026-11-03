@@ -23,6 +23,7 @@ import com.ripple.model.ContactChannel;
 import com.ripple.model.DonationMethod;
 import com.ripple.model.DonationType;
 import com.ripple.model.EventCategory;
+import com.ripple.observer.AttendeeNotificationObserver;
 import com.ripple.observer.DonationLogObserver;
 import com.ripple.observer.DonorNotificationObserver;
 import com.ripple.observer.ReceiptObserver;
@@ -37,6 +38,7 @@ import com.ripple.repository.MessageLogRepository;
 import com.ripple.repository.ReceiptRepository;
 import com.ripple.repository.VolunteerRepository;
 import com.ripple.service.DonationService;
+import com.ripple.service.EventService;
 import com.ripple.service.LookupService;
 import com.ripple.view.BeneficiariesPanel;
 import com.ripple.view.CommunicationPanel;
@@ -51,6 +53,7 @@ import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -120,9 +123,10 @@ public final class Main {
         // Section 3: ReceiptRepository, ReceiptObserver
         ReceiptRepository receiptRepository = new ReceiptRepository(database);
         donationService.registerObserver(new ReceiptObserver(receiptRepository));
-        // Section 4: VolunteerRepository, EventRepository, BeneficiaryRepository
+        // Section 4: VolunteerRepository, EventRepository, EventService, BeneficiaryRepository
         VolunteerRepository volunteerRepository = new VolunteerRepository(database);
         EventRepository eventRepository = new EventRepository(database);
+        EventService eventService = new EventService(eventRepository);
         BeneficiaryRepository beneficiaryRepository = new BeneficiaryRepository(database);
         // Section 5: strategies map, MessageLogRepository, CommunicationService, DonorNotificationObserver
         Map<ContactChannel, CommunicationStrategy> strategies =
@@ -133,6 +137,12 @@ public final class Main {
         // Donor notification starts attached (CR5); the Donations screen checkbox can detach it.
         DonorNotificationObserver donorNotifier = new DonorNotificationObserver(communicationService, strategies);
         donationService.registerObserver(donorNotifier);
+        // Event changes (Observer): attendees hear about a new date or location by Email, or by SMS if they
+        // have no email. The observer gets its own CommunicationService, so switching its strategy never
+        // changes the one the Communication screen is using.
+        eventService.registerObserver(new AttendeeNotificationObserver(eventRepository,
+                new CommunicationService(messageLogRepository),
+                List.of(strategies.get(ContactChannel.EMAIL), strategies.get(ContactChannel.SMS))));
 
         // ---- Controllers ----
         // Section 1: LookupController
@@ -142,7 +152,7 @@ public final class Main {
                 new DonationController(donationService, receiptRepository, donorNotifier);
         // Section 4: VolunteerController, EventController, BeneficiaryController
         VolunteerController volunteerController = new VolunteerController(volunteerRepository);
-        EventController eventController = new EventController(eventRepository, volunteerRepository);
+        EventController eventController = new EventController(eventService, eventRepository, volunteerRepository);
         BeneficiaryController beneficiaryController = new BeneficiaryController(beneficiaryRepository);
         // Section 5: CommunicationController
         CommunicationController communicationController = new CommunicationController(communicationService,

@@ -7,6 +7,7 @@ import com.ripple.model.EventCategory;
 import com.ripple.model.Volunteer;
 import com.ripple.repository.EventRepository;
 import com.ripple.repository.VolunteerRepository;
+import com.ripple.service.EventService;
 import com.ripple.service.InputValidator;
 import com.ripple.service.ValidationException;
 
@@ -18,21 +19,26 @@ import java.util.List;
  * Controller for the Events screen (and for screens that need the list of events).
  *
  * <p>Checks the typed values (a name and a category are required, the date must look like
- * {@code 2026-12-15}), calls the repositories, and turns the outcome into a {@link Result}
- * for the status bar. It never throws to the view.
+ * {@code 2026-12-15}), saves events through {@link EventService} (which notifies attendees when
+ * the date or location changes), reads the rest from the repositories, and turns the outcome
+ * into a {@link Result} for the status bar. It never throws to the view.
  */
 public class EventController {
 
+    private final EventService eventService;
     private final EventRepository eventRepository;
     private final VolunteerRepository volunteerRepository;
 
     /**
      * Creates the controller.
      *
-     * @param eventRepository     where events and attendees are stored
+     * @param eventService        saves events and is the Observer subject for event changes
+     * @param eventRepository     where events and attendees are read from (and deleted)
      * @param volunteerRepository where the volunteers assigned to an event are read from
      */
-    public EventController(EventRepository eventRepository, VolunteerRepository volunteerRepository) {
+    public EventController(EventService eventService, EventRepository eventRepository,
+                           VolunteerRepository volunteerRepository) {
+        this.eventService = eventService;
         this.eventRepository = eventRepository;
         this.volunteerRepository = volunteerRepository;
     }
@@ -69,12 +75,12 @@ public class EventController {
             // Only the id matters for saving; the repository reads the full category back when it loads events.
             Event event = new Event(adding ? 0 : id, cleanName, new EventCategory(categoryId, "", ""), eventDate,
                     clean(location), clean(description));
-            if (adding) {
-                eventRepository.insert(event);
-            } else {
-                eventRepository.update(event);
-            }
             String message = "Event '" + cleanName + "' " + (adding ? "added" : "updated");
+            if (adding) {
+                eventService.addEvent(event);
+            } else if (eventService.updateEvent(event)) { // true when the date or location changed
+                message += "; attendees were notified of the change";
+            }
             ApplicationLogger.getInstance().info(message);
             return Result.ok(message);
         } catch (ValidationException e) {

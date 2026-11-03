@@ -17,6 +17,7 @@ import com.ripple.repository.EventCategoryRepository;
 import com.ripple.repository.EventRepository;
 import com.ripple.repository.VolunteerRepository;
 import com.ripple.service.DonationService;
+import com.ripple.service.EventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -56,7 +57,7 @@ class DashboardControllerTest {
         dashboard = new DashboardController(donors, donations, volunteers, events, beneficiaries);
         donationService = new DonationService(factories, donors, donations, donationTypes);
         volunteerController = new VolunteerController(volunteers);
-        eventController = new EventController(events, volunteers);
+        eventController = new EventController(new EventService(events), events, volunteers);
         beneficiaryController = new BeneficiaryController(beneficiaries);
     }
 

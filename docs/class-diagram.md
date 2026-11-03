@@ -56,12 +56,12 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | 2 | No stand-alone class | Every class has at least one relationship. |
 | 3 | No inheritance cycles | All generalizations point one way (e.g. `CashDonation → Donation`, `ThankYouMessageDecorator → ReceiptDecorator`). |
 | 4 | Balance the relationship types | Generalization, realization, association, aggregation, composition and dependency are all used, each for its own meaning (table above). |
-| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 4, `DonationFactory` 4, `Person` 4, `LookupEntry` 2, `ReceiptDecorator` 2). The one interface with a single implementer, `DonationSubject`, is the slides' Subject/WeatherData shape (see section 4). |
-| 6 | Use interfaces where possible | `Contactable`, `CommunicationStrategy`, `DonationSubject`, `DonationObserver`, `Receipt`, `LookupRepository<T>`, `Refreshable`. |
-| 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 8 arrows above 5 are aggregations and are listed in section 4. |
+| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 4, `DonationFactory` 4, `Person` 4, `LookupEntry` 2, `ReceiptDecorator` 2). The two interfaces with a single implementer, `DonationSubject` and `EventSubject`, are the slides' Subject/WeatherData shape (see section 4). |
+| 6 | Use interfaces where possible | `Contactable`, `CommunicationStrategy`, `DonationSubject`, `DonationObserver`, `EventSubject`, `EventObserver`, `Receipt`, `LookupRepository<T>`, `Refreshable`. |
+| 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 7 arrows above 5 are aggregations and are listed in section 4. |
 | 8 | No "system" class | `Main` (the composition root) is not drawn. |
 | 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
-| 10 | Real diagrams are large | 80 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
+| 10 | Real diagrams are large | 84 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -251,6 +251,24 @@ namespace observer {
         -CommunicationService communicationService
         -Map~ContactChannel, CommunicationStrategy~ strategies
         +update(Donation donation) void
+    }
+    class EventSubject {
+        <<interface>>
+        +registerObserver(EventObserver observer) void
+        +removeObserver(EventObserver observer) void
+        +notifyObservers(Event event, String change) void
+    }
+    class EventObserver {
+        <<interface>>
+        +update(Event event, String change) void
+    }
+    class AttendeeNotificationObserver {
+        <<Observer>>
+        -EventRepository eventRepository
+        -CommunicationService communicationService
+        -List~CommunicationStrategy~ strategies
+        +update(Event event, String change) void
+        -strategyFor(Attendee attendee) CommunicationStrategy
     }
 }
 
@@ -495,6 +513,18 @@ namespace service {
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
         +findAllDonations() List~Donation~
     }
+    class EventService {
+        <<Subject>>
+        -List~EventObserver~ observers
+        -EventRepository eventRepository
+        +registerObserver(EventObserver observer) void
+        +removeObserver(EventObserver observer) void
+        +notifyObservers(Event event, String change) void
+        +isRegistered(EventObserver observer) boolean
+        +addEvent(Event event) Event
+        +updateEvent(Event event) boolean
+        -describeChange(Event before, Event after)$ String
+    }
 }
 
 %% ===================== controller =====================
@@ -561,6 +591,7 @@ namespace controller {
         +assignToEvent(int volunteerId, int eventId) Result
     }
     class EventController {
+        -EventService eventService
         -EventRepository eventRepository
         -VolunteerRepository volunteerRepository
         +listEvents() List~Event~
@@ -717,6 +748,14 @@ DonationLogObserver --> "1" ApplicationLogger
 ReceiptObserver --> "1" ReceiptRepository
 DonorNotificationObserver --> "1" CommunicationService
 DonorNotificationObserver --> "2" CommunicationStrategy : strategies
+EventService ..|> EventSubject
+EventService "1" o-- "0..*" EventObserver : observers
+AttendeeNotificationObserver ..|> EventObserver
+AttendeeNotificationObserver --> "1" EventRepository
+AttendeeNotificationObserver --> "1" CommunicationService
+AttendeeNotificationObserver --> "*" CommunicationStrategy : strategies
+EventService --> "1" EventRepository
+EventService ..> ApplicationLogger : failing observer
 
 %% ---------- Decorator ----------
 BasicReceipt ..|> Receipt
@@ -775,7 +814,8 @@ DonationController o-- "1" DonationService
 DonationController --> "1" ReceiptRepository
 DonationController --> "1" DonorNotificationObserver : registerObserver / removeObserver
 VolunteerController o-- "1" VolunteerRepository
-EventController o-- "1" EventRepository
+EventController --> "1" EventService
+EventController --> "1" EventRepository
 EventController --> "1" VolunteerRepository
 BeneficiaryController --> "1" BeneficiaryRepository
 CommunicationController --> "1" CommunicationService
@@ -872,6 +912,9 @@ LookupTablePanel ..> FormHelper
 | `DonationLogObserver` | class | Writes the donation to the application log. |
 | `ReceiptObserver` | class | Builds the decorated receipt and stores it. |
 | `DonorNotificationObserver` | class | Picks the strategy for the donor's preferred channel and sends a thank-you. |
+| `EventSubject` | interface | registerObserver / removeObserver / notifyObservers, for events. |
+| `EventObserver` | interface | `update(event, change)` (push model: the event and the change in words are passed in). |
+| `AttendeeNotificationObserver` | class | Messages every attendee of a changed event: by Email, or by SMS if they have no valid email. |
 
 ### `com.ripple.receipt` — Decorator pattern
 | Class | Kind | Responsibility |
@@ -907,7 +950,8 @@ LookupTablePanel ..> FormHelper
 | Class | Responsibility |
 |---|---|
 | `LookupService<T>` | One implementation of the lookup rules (CR1, CR2) used for both tables. |
-| `DonationService` | Registers donors, records donations through the creator for the chosen method, and is the Observer **Subject**. |
+| `DonationService` | Registers donors, records donations through the creator for the chosen method, and is the Observer **Subject** for donations. |
+| `EventService` | Saves events and is the Observer **Subject** for events: notifies its observers when an event's date or location changes. |
 | `InputValidator` | Shared static checks and parsing (text length, email, phone, numbers). |
 | `ValidationException` | `extends RuntimeException`; carries a message meant for the user. |
 
@@ -947,9 +991,10 @@ LookupTablePanel ..> FormHelper
 | `Attendee "*" --> "1" Event` | An attendee row belongs to one event (`eventId`). |
 | `DonationService "1" o-- "0..*" DonationObserver` | **Aggregation**, as in the Observer UML of the lab slides: observers are created in `Main` and registered; the service only holds them. Zero observers is valid. |
 | `DonationService ..\|> DonationSubject` | `DonationSubject` has a single implementer on purpose: it is the slides' `Subject` interface with `WeatherData` as the one concrete subject. The interface is what lets a test or another subject reuse the observers. |
+| `EventService ..\|> EventSubject`, `EventService "1" o-- "0..*" EventObserver` | The same Observer shape a second time, for events. A separate pair of interfaces, because event observers need the event and the change, not a donation. `EventController --> EventService`: the controller saves through the subject, so it cannot forget to notify. |
 | `ReceiptDecorator o-- "1" Receipt` | The heart of Decorator: a decorator **is-a** `Receipt` (realization) and **has-a** `Receipt` (aggregation). |
 | `CommunicationService o-- "0..1" CommunicationStrategy` | **Aggregation**, as in the Strategy UML of the lab slides: the context holds at most one current strategy, created elsewhere, and swaps it at runtime. |
-| `LookupService o-- LookupRepository`, `DonationService o-- DonorRepository`, `DonationController o-- DonationService`, `VolunteerController o-- VolunteerRepository`, `EventController o-- EventRepository`, `DonationsPanel o-- DonationController`, `EventsPanel o-- EventController`, `BasicReceipt o-- Donation` | **Aggregation by the course rule**: each uses more than 5 methods of the other (7, 6, 9, 6, 7, 8, 6 and 6). Every other field is drawn as a plain association. |
+| `LookupService o-- LookupRepository`, `DonationService o-- DonorRepository`, `DonationController o-- DonationService`, `VolunteerController o-- VolunteerRepository`, `DonationsPanel o-- DonationController`, `EventsPanel o-- EventController`, `BasicReceipt o-- Donation` | **Aggregation by the course rule**: each uses more than 5 methods of the other (7, 6, 9, 6, 8, 6 and 6). `EventController --> EventRepository` became a plain association once saving moved to `EventService` (5 methods left). Every other field is drawn as a plain association. |
 | `DonationService --> "4" DonationFactory` | Association, not aggregation: the service calls only `orderDonation(...)` on its creators. |
 | `CashDonationFactory ..> CashDonation : «create»` | Dependency, not association: a creator does not keep the objects it creates. |
 | `MainFrame *-- DashboardPanel` | **Composition**: the frame creates its panels and they live only inside it. |
@@ -964,7 +1009,7 @@ One small diagram per design pattern (sized for a slide), cut out of the complet
 | Pattern | Rubric | Package | Problem it solves | Section |
 |---|---|---|---|---|
 | Strategy | 1 | `communication` | Choose Email, SMS or Social at runtime without `if/else` on the channel | 5 |
-| Observer | 1 | `observer` + `DonationService` | Several things must happen after a donation is recorded, without the donation code knowing them | 2 |
+| Observer | 1 | `observer` + `DonationService`, `EventService` | Several things must happen after a donation is recorded or an event changes, without that code knowing them | 2 |
 | Decorator | 1 | `receipt` | Add optional receipt sections (thank-you, tax info) without changing the basic receipt | 3 |
 | Factory Method | 0.5 | `factory` | Each creator subclass decides which `Donation` subclass to build and validates it; new kinds need no edits | 1 |
 | Singleton | 0.5 | `logging` | Exactly one shared application log | 1 |
@@ -1041,9 +1086,10 @@ DonorNotificationObserver --> CommunicationService : setStrategy() + send()
 
 ---
 
-### 5.2 Observer — reacting to a new donation
+### 5.2 Observer — reacting to a new donation or a changed event
 
 **Roles:** Subject = `DonationSubject` / concrete subject `DonationService` · Observer = `DonationObserver` · Concrete observers = `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
+**Second subject:** Subject = `EventSubject` / concrete subject `EventService` · Observer = `EventObserver` · Concrete observer = `AttendeeNotificationObserver`.
 
 ```mermaid
 classDiagram
@@ -1083,20 +1129,43 @@ DonationService "1" o-- "0..*" DonationObserver : observers
 DonationLogObserver ..|> DonationObserver
 ReceiptObserver ..|> DonationObserver
 DonorNotificationObserver ..|> DonationObserver
+class EventSubject {
+    <<interface>>
+    +registerObserver(EventObserver observer) void
+    +removeObserver(EventObserver observer) void
+    +notifyObservers(Event event, String change) void
+}
+class EventService {
+    <<Subject>>
+    -List~EventObserver~ observers
+    +updateEvent(Event event) boolean
+}
+class EventObserver {
+    <<interface>>
+    +update(Event event, String change) void
+}
+class AttendeeNotificationObserver {
+    <<Observer>>
+    -List~CommunicationStrategy~ strategies
+}
+EventService ..|> EventSubject
+EventService "1" o-- "0..*" EventObserver : observers
+AttendeeNotificationObserver ..|> EventObserver
 ```
 
 **How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `update(donation)` on each one. This is the **push model** from the slides: the subject hands the new donation to each observer, so no observer has to ask the subject for it. The donation code does not know *what* the observers do.
 **Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `removeObserver(donorNotifier)` / `registerObserver(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
-**Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` uses the Strategy; `DonationLogObserver` uses the Singleton.
+**Events:** `EventService.updateEvent(...)` loads the stored event, saves the new one, and only if the **date or location** changed calls `notifyObservers(event, "date changed from ... to ...")`. A new name or description notifies nobody. `AttendeeNotificationObserver` then messages each attendee of that event.
+**Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` and `AttendeeNotificationObserver` use the Strategy (the attendee observer tries Email, then SMS, by asking each strategy `isValidAddress(addressOf(attendee))`); `DonationLogObserver` uses the Singleton.
 
-- **In the code:** [DonationSubject.java](../src/main/java/com/ripple/observer/DonationSubject.java), [DonationObserver.java](../src/main/java/com/ripple/observer/DonationObserver.java) and the subject [DonationService.java](../src/main/java/com/ripple/service/DonationService.java) (`registerObserver`, `removeObserver`, `notifyObservers`). The three observers are in `com.ripple.observer` and are attached in `Main`; the "Notify donors on new donation" checkbox in [DonationsPanel.java](../src/main/java/com/ripple/view/DonationsPanel.java) detaches and re-attaches `DonorNotificationObserver`.
-- **Demo:** register a donor and record an Online donation: open `logs/ripple.log` to see the line written by `DonationLogObserver`, then open *View receipt* (`ReceiptObserver`) and the Communication screen's message log (`DonorNotificationObserver`). Try an In-kind donation with quantity 0: it is rejected and no observer does anything. Untick "Notify donors", record again, and no thank-you is logged.
-- **Test:** `src/test/java/com/ripple/service/DonationServiceTest.java` checks that an attached observer is notified, a detached one is not, attaching twice notifies once, a failing observer does not stop the others, and bad input notifies nobody; `src/test/java/com/ripple/observer/DonationLogObserverTest.java` checks the log line.
+- **In the code:** [DonationSubject.java](../src/main/java/com/ripple/observer/DonationSubject.java), [DonationObserver.java](../src/main/java/com/ripple/observer/DonationObserver.java) and the subject [DonationService.java](../src/main/java/com/ripple/service/DonationService.java) (`registerObserver`, `removeObserver`, `notifyObservers`). The three observers are in `com.ripple.observer` and are attached in `Main`; the "Notify donors on new donation" checkbox in [DonationsPanel.java](../src/main/java/com/ripple/view/DonationsPanel.java) detaches and re-attaches `DonorNotificationObserver`. The event pair is [EventSubject.java](../src/main/java/com/ripple/observer/EventSubject.java), [EventObserver.java](../src/main/java/com/ripple/observer/EventObserver.java), the subject [EventService.java](../src/main/java/com/ripple/service/EventService.java) and [AttendeeNotificationObserver.java](../src/main/java/com/ripple/observer/AttendeeNotificationObserver.java), attached in `Main`.
+- **Demo:** register a donor and record an Online donation: open `logs/ripple.log` to see the line written by `DonationLogObserver`, then open *View receipt* (`ReceiptObserver`) and the Communication screen's message log (`DonorNotificationObserver`). Try an In-kind donation with quantity 0: it is rejected and no observer does anything. Untick "Notify donors", record again, and no thank-you is logged. Then on the Events screen register two attendees (one with an email, one with only a phone) and change the event's date: the status bar says attendees were notified, and the Communication log shows one EMAIL and one SMS "Event update". Changing only the name sends nothing.
+- **Test:** `src/test/java/com/ripple/service/DonationServiceTest.java` checks that an attached observer is notified, a detached one is not, attaching twice notifies once, a failing observer does not stop the others, and bad input notifies nobody; `src/test/java/com/ripple/observer/DonationLogObserverTest.java` checks the log line; `src/test/java/com/ripple/service/EventServiceTest.java` checks that only a new date or location notifies, with the change in words; `src/test/java/com/ripple/observer/AttendeeNotificationObserverTest.java` checks Email first, SMS as fallback, and that someone with neither is logged as failed.
 
 **Presentation note**
 
-- **Problem:** after a donation is saved, several things must happen (write the log, build the receipt, thank the donor) and the list will grow. `DonationService` should not have to know about them, and staff must be able to switch one off.
-- **How Ripple solves it:** `DonationService` is the subject: it keeps a list of `DonationObserver`s and calls `update(...)` on each after saving. `Main` attaches the observers, and the checkbox attaches or detaches one while the app runs.
+- **Problem:** after a donation is saved, several things must happen (write the log, build the receipt, thank the donor) and the list will grow. The same is true when an event moves to a new date or place: its attendees must be told. `DonationService` should not have to know about them, and staff must be able to switch one off.
+- **How Ripple solves it:** `DonationService` is the subject: it keeps a list of `DonationObserver`s and calls `update(...)` on each after saving. `Main` attaches the observers, and the checkbox attaches or detaches one while the app runs. `EventService` does the same for events, so the project description's own example ("when an event is updated") is covered.
 - **Why not just `if/else`:** calling `writeLog(d); buildReceipt(d); sendThankYou(d);` inside `recordDonation` ties the service to every feature, turns "stop thanking donors" into a flag inside the service, and means each new reaction edits the service. With observers the service knows none of them, and a test can attach a counting observer.
 
 ---

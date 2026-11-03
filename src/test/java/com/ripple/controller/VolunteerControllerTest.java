@@ -7,6 +7,7 @@ import com.ripple.repository.Database;
 import com.ripple.repository.EventCategoryRepository;
 import com.ripple.repository.EventRepository;
 import com.ripple.repository.VolunteerRepository;
+import com.ripple.service.EventService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -34,7 +35,7 @@ class VolunteerControllerTest {
         volunteers = new VolunteerRepository(db);
         EventRepository eventRepository = new EventRepository(db);
         controller = new VolunteerController(volunteers);
-        events = new EventController(eventRepository, volunteers);
+        events = new EventController(new EventService(eventRepository), eventRepository, volunteers);
         int categoryId = new EventCategoryRepository(db).findAll().get(0).getId();
         assertTrue(events.saveEvent(null, "Food drive", categoryId, "2026-12-15", "Cairo", "").success());
         eventId = events.listEvents().get(0).getId();
