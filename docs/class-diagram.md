@@ -2,7 +2,7 @@
 
 > The complete UML class diagram of **Ripple**, Phase 1, plus one focused diagram per design pattern (section 5). It is drawn at **design level**: what each class is for and how the classes connect, not every coding detail (see "What is left out on purpose").
 
-**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with these names and public methods**, and keep the relationships the arrows show. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart; the only code classes allowed to be missing here are the implementation helpers listed in section 3.
+**This diagram is the team contract.** Create classes **with these names and public methods**, and keep the relationships the arrows show. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart; the only code classes allowed to be missing here are the implementation helpers listed in section 3.
 
 **Printable picture:** [images/class-diagram.svg](images/class-diagram.svg) (zoomable vector) and [images/class-diagram.png](images/class-diagram.png) show the complete diagram below as one UML picture, grouped and coloured by layer and pattern, with the packages in left-to-right columns like the MVC layers. To keep it readable, a dashed "uses" arrow into the shared `ApplicationLogger` and `Result` is drawn only once; section 2 below lists all of them. They are generated from section 2 by [tools/render_class_diagram.py](tools/render_class_diagram.py) (Python 3 + Graphviz, no other dependencies); regenerate them whenever section 2 changes, from the project root:
 
@@ -12,7 +12,7 @@ dot -Tsvg docs/images/class-diagram.dot -o docs/images/class-diagram.svg
 dot -Tpng -Gdpi=96 docs/images/class-diagram.dot -o docs/images/class-diagram.png
 ```
 
-Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [PHASE1.md](../PHASE1.md) (who builds what)
+Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [README](../README.md) (how to run, grading items)
 
 ---
 
@@ -972,7 +972,7 @@ Small utilities added while coding. They are not part of the design, so they are
 
 ## 5. Pattern views
 
-One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. The section of `PHASE1.md` that implements a pattern adds a short **"In the code / Demo / Test"** note under its diagram, and Section 6 adds a **"Presentation note"** (the problem, how Ripple solves it, and why not a simple `if/else`) for the slides.
+One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. Each diagram has an **"In the code / Demo / Test"** note and a **"Presentation note"** (the problem, how Ripple solves it, and why not a simple `if/else`).
 
 | Pattern | Rubric | Package | Problem it solves | Section |
 |---|---|---|---|---|

@@ -3,7 +3,7 @@
 > Which **function** of the Donations module **C**reates, **R**eads, **U**pdates or **D**eletes which **entity**.
 > This is the one complete module required for Phase 1. The other modules use the same layers (see [architecture.md](architecture.md)).
 
-Related: [class-diagram.md](class-diagram.md) (classes and patterns) · [PHASE1.md](../PHASE1.md) (requirements)
+Related: [class-diagram.md](class-diagram.md) (classes and patterns) · [README](../README.md) (requirements)
 
 ---
 

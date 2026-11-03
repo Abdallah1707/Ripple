@@ -3,7 +3,7 @@
 > How Ripple is organised, why, and how one user action travels through the code.
 > Read this before writing code for any section. If your change makes something here untrue, update it in the same change.
 
-Related: [class-diagram.md](class-diagram.md) (classes and pattern diagrams) · [PHASE1.md](../PHASE1.md) (requirements and who builds what)
+Related: [class-diagram.md](class-diagram.md) (classes and pattern diagrams) · [README](../README.md) (how to run, grading items, client requirements)
 
 ---
 

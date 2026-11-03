@@ -1,8 +1,6 @@
 # Ripple — NGO Management System
 
-Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory Method and Singleton**.
-
-> **Status:** Phase 1 is complete (all 6 sections of [PHASE1.md](PHASE1.md)): database, lookup tables, Singleton, Factory Method, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, the Communication screen with Strategy (simulated Email / SMS / Social media and automatic donor thank-yous), and the Dashboard.
+Ripple is a desktop app that helps a non-profit organization manage its donations, volunteers, events, beneficiaries and messages. It is our Phase 1 submission for the CSE336 *Software Design Patterns* major task. It uses **MVC** and five design patterns inside real features: **Strategy, Observer, Decorator, Factory Method and Singleton**.
 
 ![The Ripple Dashboard: totals for each module and the recent activity from the log](docs/images/dashboard.png)
 
@@ -10,9 +8,24 @@ Ripple is a desktop application that helps a non-profit organization manage dona
 
 ---
 
-## Run in 2 minutes
+## Team
 
-You need **JDK 21+** and **Maven 3.9+** on your `PATH` (check with `java -version` and `mvn -version`). Same on Windows and Linux.
+| Name | ID |
+|---|---|
+| Abdallah Belal Momen | 22P0036 |
+| Habeba Adel Sallam | 22P0259 |
+| Nouran Mokhtar ElSayed | 22P0254 |
+| Sohila Ebrahim Glal | 22P0244 |
+| Sandra Ghayes Zarif | 22P0300 |
+| Mireille Maher Kamel | 22P0220 |
+
+---
+
+## How to run
+
+You need **JDK 21+** and **Maven 3.9+** (check with `java -version` and `mvn -version`). It works the same on Windows and Linux.
+
+Run the app:
 
 ```bash
 mvn compile exec:java
@@ -24,22 +37,22 @@ Run the tests:
 mvn test
 ```
 
-Build one runnable jar and start it. It contains Ripple and the SQLite driver, so it only needs Java 21 (no Maven) on the machine that runs it:
+Build one jar and run it. The jar includes the SQLite driver, so it only needs Java 21 to run:
 
 ```bash
 mvn package
 java -jar target/ripple.jar
 ```
 
-The app creates `data/ripple.db` (the database) and `logs/ripple.log` (the activity log) in the folder you start it from. Delete `data/ripple.db` to start again with an empty database.
+On first run the app creates `data/ripple.db` (the database, with some starting lookup data) and `logs/ripple.log` (the activity log) in the folder you start it from. Delete `data/ripple.db` to start over with an empty database.
 
 ### Configuration
 
-Ripple has no secrets. The only setting is where the database file is stored:
+There is only one setting, and it is optional:
 
 | Environment variable | Default | Meaning |
 |---|---|---|
-| `RIPPLE_DB_PATH` | `data/ripple.db` | Path of the SQLite database file |
+| `RIPPLE_DB_PATH` | `data/ripple.db` | Where the SQLite database file is stored |
 
 See [.env.example](.env.example).
 
@@ -47,33 +60,33 @@ See [.env.example](.env.example).
 
 ## The control panel
 
-The main window (`MainFrame`) has a sidebar with one button per screen and a status bar at the bottom that shows a green message when an action worked and a red one when it did not.
+The main window (`MainFrame`) has a sidebar with one button per screen. The status bar at the bottom shows a green message when an action works and a red one when it doesn't.
 
 | Screen | What you can do |
 |---|---|
-| Dashboard | See totals (donors, donations and their total value, volunteers, events, beneficiaries) and the recent activity from the log |
-| Donations | Two tabs. *Donors*: add, edit and delete donors (a donor with donations cannot be deleted). *Donations*: record Cash / Online / In-kind / Cheque donations, view each donation's receipt, switch the automatic donor thank-you on or off. This is the complete module; see its [CRUD matrix](docs/crud-matrix.md). |
-| Volunteers | Add, edit and delete volunteers; assign a volunteer to an event |
-| Events | Add, edit and delete events; register attendees; see an event's attendees and volunteers |
+| Dashboard | See the totals (donors, donations and their total value, volunteers, events, beneficiaries) and the recent activity from the log |
+| Donations | Two tabs. *Donors*: add, edit and delete donors (a donor with donations can't be deleted). *Donations*: record Cash, Online, In-kind or Cheque donations, mark them Urgent, Anonymous or a gift "in honor of" someone, view each donation's receipt, and turn the automatic donor thank-you on or off. This is the complete module, see its [CRUD matrix](docs/crud-matrix.md). |
+| Volunteers | Add, edit and delete volunteers, and assign a volunteer to an event |
+| Events | Add, edit and delete events, register attendees, and see each event's attendees and volunteers. Attendees get a message when an event's date or location changes |
 | Beneficiaries | Add, edit and delete beneficiaries |
-| Communication | Send a message to a group (donors, volunteers, beneficiaries or an event's attendees) by Email, SMS or Social media (donors with a handle), and read the message log. Sending is **simulated**: nothing is really sent |
+| Communication | Send a message to a group (donors, volunteers, beneficiaries or an event's attendees) by Email, SMS or Social media, and read the message log. Sending is **simulated**, nothing is really sent |
 | Lookup Management | Add, edit and delete Donation Types and Event Categories |
 
 ---
 
 ## Where to find each grading item
 
-| Grading item | Marks | See it in the app | In the code | Test |
+| Grading item | Marks | In the app | In the code | Tests |
 |---|:-:|---|---|---|
-| Class diagram | 2 | Printable picture: [docs/images/class-diagram.png](docs/images/class-diagram.png) ([SVG](docs/images/class-diagram.svg)) | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
+| Class diagram | 2 | Picture: [docs/images/class-diagram.png](docs/images/class-diagram.png) ([SVG](docs/images/class-diagram.svg)) | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
 | MVC structure | 2 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
 | User control panel | 1 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
-| Strategy | 1 | Communication screen: send by Email, then by SMS | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
-| Observer | 1 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees are messaged | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
-| Decorator | 1 | Donations screen: *View receipt*; record a donation with Urgent / Anonymous ticked and "In honor of" filled in | `receipt/`, `observer/ReceiptObserver.java`, `extras/` (`DonationDecorator` and its 3 subclasses) | `ReceiptDecoratorTest`, `ReceiptObserverTest`, `DonationDecoratorTest` |
-| Factory Method | 0.5 | Donations screen: record a donation of each method (Cheque was added as a new creator) | `factory/DonationFactory.java` (creator) + 4 concrete creators | `DonationFactoryTest` |
+| Strategy | 1 | Communication screen: send by Email, then by SMS or Social | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
+| Observer | 1 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees get a message | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
+| Decorator | 1 | Donations screen: *View receipt*, and record a donation with Urgent / Anonymous / "In honor of" | `receipt/`, `observer/ReceiptObserver.java`, `extras/` | `ReceiptDecoratorTest`, `ReceiptObserverTest`, `DonationDecoratorTest` |
+| Factory Method | 0.5 | Donations screen: record a donation with each method | `factory/DonationFactory.java` and its 4 subclasses | `DonationFactoryTest` |
 | Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |
-| Lookup tables | 0.5 | Lookup Management screen; CRUD matrix for the Donations module in [docs/crud-matrix.md](docs/crud-matrix.md) | `service/LookupService.java` | `LookupServiceTest` |
+| Lookup tables | 0.5 | Lookup Management screen | `service/LookupService.java` | `LookupServiceTest` |
 | Extra client requirements | 0.5 | See the next table | — | — |
 
 ---
@@ -82,14 +95,23 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 
 We had no real client, so these requirements are **our own assumptions**.
 
-| # | What we assumed the client wants | Where to see it |
+| # | Requirement | Where to see it |
 |:-:|---|---|
-| CR1 | No duplicate or empty names in lookup lists ("Zakat" and "zakat " count as the same) | Lookup Management: add "zakat" while "Zakat" exists → red message. `LookupServiceTest` |
-| CR2 | A lookup value that is in use cannot be deleted, and the app says how many records use it | Lookup Management: delete "Zakat" after recording a Zakat donation → red message. `LookupServiceTest` |
-| CR3 | Every donation gets the date and time automatically, plus a receipt number like `RCP-2026-0007` | Donations table (receipt no., date). `DonationFactoryTest`, `DonationTest` |
+| CR1 | No duplicate or empty names in lookup lists ("Zakat" and "zakat " count as the same) | Lookup Management: add "zakat" while "Zakat" exists and you get a red message. `LookupServiceTest` |
+| CR2 | A lookup value that is in use can't be deleted, and the app says how many records use it | Lookup Management: delete "Zakat" after recording a Zakat donation. `LookupServiceTest` |
+| CR3 | Every donation gets the date and time automatically, plus a receipt number like `RCP-2026-0007` | The donations table. `DonationFactoryTest`, `DonationTest` |
 | CR4 | Only tax-deductible donation types get tax information on their receipt | *View receipt* on a Zakat donation vs. a Food Supplies donation. `ReceiptObserverTest` |
-| CR5 | Each donor picks Email, SMS or Social and automatically gets a thank-you that way; staff can turn this off | Donor form, "Notify donors on new donation" checkbox, Communication message log. `DonorNotificationObserverTest` |
-| CR6 | Every action shows a clear success or error message | The status bar at the bottom of every screen. Every controller returns a `Result` |
+| CR5 | Each donor picks Email, SMS or Social and automatically gets a thank-you that way. Staff can turn this off | Donor form, the "Notify donors on new donation" checkbox, and the Communication message log. `DonorNotificationObserverTest` |
+| CR6 | Every action shows a clear success or error message | The status bar on every screen. Every controller returns a `Result` |
+
+---
+
+## Not included in Phase 1
+
+- The Phase 2 patterns (Command, Adapter, Facade, Template Method, Iterator, State, Proxy)
+- Logins, admin pages and payments
+- Volunteer hours, certificates, aid tracking and ticketing
+- Real email, SMS or social media sending (all sending is simulated and saved in the message log)
 
 ---
 
@@ -97,9 +119,9 @@ We had no real client, so these requirements are **our own assumptions**.
 
 | Document | What it covers |
 |---|---|
-| [PHASE1.md](PHASE1.md) | What was built, team rules, requirements (incl. client requirements CR1–CR6), and the 6 section checklists |
-| [docs/class-diagram.md](docs/class-diagram.md) | Complete UML class diagram, and one diagram per design pattern with a presentation note (problem, solution, why not `if/else`) |
-| [docs/architecture.md](docs/architecture.md) | MVC layers, packages, object wiring, sequence diagrams, database schema |
+| [docs/class-diagram.md](docs/class-diagram.md) | The full UML class diagram, plus one small diagram per design pattern |
+| [docs/architecture.md](docs/architecture.md) | MVC layers, packages, how objects are connected, sequence diagrams and the database schema |
+| [docs/crud-matrix.md](docs/crud-matrix.md) | CRUD matrix for the Donations module |
 
 ---
 
@@ -107,20 +129,19 @@ We had no real client, so these requirements are **our own assumptions**.
 
 ```
 pom.xml                          Maven build (also builds the runnable jar)
-PHASE1.md                        Work plan and requirements
 docs/                            Class diagram, architecture, CRUD matrix, images
 src/main/java/com/ripple/
-  app/            Main — start-up and object wiring
-  model/          Domain entities
+  app/            Main: starts the app and connects the objects
+  model/          Domain classes
   factory/        Factory Method pattern
   observer/       Observer pattern
   receipt/        Decorator pattern (receipts)
   extras/         Decorator pattern (donation extras: urgent, gift, anonymous)
   communication/  Strategy pattern
   logging/        Singleton pattern
-  repository/     SQL / persistence
+  repository/     Database code
   service/        Business rules
   controller/     MVC controllers
-  view/           MVC views (Swing) — MainFrame is the control panel
-src/test/java/com/ripple/         Unit tests, incl. DiagramConsistencyTest and ArchitectureRulesTest
+  view/           MVC views (Swing), MainFrame is the control panel
+src/test/java/com/ripple/         Unit tests, including DiagramConsistencyTest and ArchitectureRulesTest
 ```
