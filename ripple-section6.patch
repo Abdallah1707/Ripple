@@ -1,0 +1,1549 @@
+diff --git a/README.md b/README.md
+index 86a57d3..9e744bd 100644
+--- a/README.md
++++ b/README.md
+@@ -2,7 +2,9 @@
+ 
+ Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory and Singleton**.
+ 
+-> **Status:** Sections 1–5 of 6 are done: database, lookup tables (Lookup Management screen), Singleton, Factory, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, and the Communication screen with Strategy (simulated Email / SMS and automatic donor thank-yous). Screens not built yet say which section of [PHASE1.md](PHASE1.md) builds them.
++> **Status:** Phase 1 is complete (all 6 sections of [PHASE1.md](PHASE1.md)): database, lookup tables, Singleton, Factory, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, the Communication screen with Strategy (simulated Email / SMS and automatic donor thank-yous), and the Dashboard.
++
++![The Ripple Dashboard: totals for each module and the recent activity from the log](docs/images/dashboard.png)
+ 
+ **Stack:** Java 21 · Swing · SQLite · Maven · JUnit 5
+ 
+@@ -22,7 +24,14 @@ Run the tests:
+ mvn test
+ ```
+ 
+-The app creates `data/ripple.db` (the database) and `logs/ripple.log` (the activity log) in the folder you start it from. A single runnable `ripple.jar` comes in Section 6; until then, start the app with `mvn compile exec:java`.
++Build one runnable jar and start it. It contains Ripple and the SQLite driver, so it only needs Java 21 (no Maven) on the machine that runs it:
++
++```bash
++mvn package
++java -jar target/ripple.jar
++```
++
++The app creates `data/ripple.db` (the database) and `logs/ripple.log` (the activity log) in the folder you start it from. Delete `data/ripple.db` to start again with an empty database.
+ 
+ ### Configuration
+ 
+@@ -36,12 +45,60 @@ See [.env.example](.env.example).
+ 
+ ---
+ 
++## The control panel
++
++The main window (`MainFrame`) has a sidebar with one button per screen and a status bar at the bottom that shows a green message when an action worked and a red one when it did not.
++
++| Screen | What you can do |
++|---|---|
++| Dashboard | See totals (donors, donations and their total value, volunteers, events, beneficiaries) and the recent activity from the log |
++| Donations | Register donors, record Cash / Online / In-kind donations, view each donation's receipt, switch the automatic donor thank-you on or off |
++| Volunteers | Add, edit and delete volunteers; assign a volunteer to an event |
++| Events | Add, edit and delete events; register attendees; see an event's attendees and volunteers |
++| Beneficiaries | Add, edit and delete beneficiaries |
++| Communication | Send a message to a group (donors, volunteers, beneficiaries or an event's attendees) by Email or SMS, and read the message log. Sending is **simulated**: nothing is really sent |
++| Lookup Management | Add, edit and delete Donation Types and Event Categories |
++
++---
++
++## Where to find each grading item
++
++| Grading item | Marks | See it in the app | In the code | Test |
++|---|:-:|---|---|---|
++| Class diagram | 2 | — | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
++| MVC structure | 2 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
++| User control panel | 1 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
++| Strategy | 1 | Communication screen: send by Email, then by SMS | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
++| Observer | 1 | Donations screen: record a donation, then untick "Notify donors" | `observer/`, `service/DonationService.java` | `DonationServiceTest`, `DonorNotificationObserverTest` |
++| Decorator | 1 | Donations screen: *View receipt* | `receipt/`, `observer/ReceiptObserver.java` | `ReceiptDecoratorTest`, `ReceiptObserverTest` |
++| Factory | 0.5 | Donations screen: record a donation | `factory/DonationFactory.java` | `DonationFactoryTest` |
++| Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |
++| Lookup tables | 0.5 | Lookup Management screen | `service/LookupService.java` | `LookupServiceTest` |
++| Extra client requirements | 0.5 | See the next table | — | — |
++
++---
++
++## Client requirements (our own assumptions)
++
++We had no real client, so these requirements are **our own assumptions**.
++
++| # | What we assumed the client wants | Where to see it |
++|:-:|---|---|
++| CR1 | No duplicate or empty names in lookup lists ("Zakat" and "zakat " count as the same) | Lookup Management: add "zakat" while "Zakat" exists → red message. `LookupServiceTest` |
++| CR2 | A lookup value that is in use cannot be deleted, and the app says how many records use it | Lookup Management: delete "Zakat" after recording a Zakat donation → red message. `LookupServiceTest` |
++| CR3 | Every donation gets the date and time automatically, plus a receipt number like `RCP-2026-0007` | Donations table (receipt no., date). `DonationFactoryTest`, `DonationTest` |
++| CR4 | Only tax-deductible donation types get tax information on their receipt | *View receipt* on a Zakat donation vs. a Food Supplies donation. `ReceiptObserverTest` |
++| CR5 | Each donor picks Email or SMS and automatically gets a thank-you that way; staff can turn this off | Donor form, "Notify donors on new donation" checkbox, Communication message log. `DonorNotificationObserverTest` |
++| CR6 | Every action shows a clear success or error message | The status bar at the bottom of every screen. Every controller returns a `Result` |
++
++---
++
+ ## Documentation
+ 
+ | Document | What it covers |
+ |---|---|
+-| [PHASE1.md](PHASE1.md) | **Start here.** What is done, team rules, requirements (incl. client requirements CR1–CR6), and the 6 section checklists |
+-| [docs/class-diagram.md](docs/class-diagram.md) | Complete UML class diagram (the team contract) and one diagram per design pattern |
++| [PHASE1.md](PHASE1.md) | What was built, team rules, requirements (incl. client requirements CR1–CR6), and the 6 section checklists |
++| [docs/class-diagram.md](docs/class-diagram.md) | Complete UML class diagram, and one diagram per design pattern with a presentation note (problem, solution, why not `if/else`) |
+ | [docs/architecture.md](docs/architecture.md) | MVC layers, packages, object wiring, sequence diagrams, database schema |
+ 
+ ---
+@@ -49,9 +106,9 @@ See [.env.example](.env.example).
+ ## Project structure
+ 
+ ```
+-pom.xml                          Maven build
++pom.xml                          Maven build (also builds the runnable jar)
+ PHASE1.md                        Work plan and requirements
+-docs/                            Class diagram and architecture
++docs/                            Class diagram, architecture, images
+ src/main/java/com/ripple/
+   app/            Main — start-up and object wiring
+   model/          Domain entities
+@@ -64,4 +121,5 @@ src/main/java/com/ripple/
+   service/        Business rules
+   controller/     MVC controllers
+   view/           MVC views (Swing) — MainFrame is the control panel
++src/test/java/com/ripple/         Unit tests, incl. DiagramConsistencyTest and ArchitectureRulesTest
+ ```
+diff --git a/docs/architecture.md b/docs/architecture.md
+index f3c391f..d11e68f 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -65,7 +65,7 @@ flowchart LR
+ 
+ **Why a service layer?** Rules like "no duplicate lookup names" must not live in a button handler (view) and should not be repeated in every controller. Services are added **only** where there are real rules: `LookupService`, `DonationService`. Simple CRUD screens (volunteers, events, beneficiaries) go controller → repository directly, with shared input checks in `InputValidator`.
+ 
+-**How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. Section 6 checks it with this grep, which must print nothing:
++**How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. `ArchitectureRulesTest` checks this on every `mvn test`, and you can also run this grep, which must print nothing:
+ 
+ ```bash
+ grep -rlE "import (java\.sql|com\.ripple\.repository)" src/main/java/com/ripple/view
+@@ -131,10 +131,10 @@ flowchart TD
+ 3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy())`.
+ 4. Services: `LookupService` ×2, `DonationService`.
+ 5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
+-6. Controllers.
+-7. On the Swing event thread: `MainFrame`, then each screen plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`. Until a screen is plugged in, its sidebar button shows a placeholder naming the section that builds it.
++6. Controllers, including `DashboardController` (it gets the five repositories it counts).
++7. On the Swing event thread: `MainFrame`, then each of the seven screens plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`.
+ 
+-`Main.java` already contains a `// Section N:` comment at each of these places; add your lines there.
++`Main.java` has a `// Section N:` comment at each of these places, showing which part of the plan added each line.
+ 
+ ---
+ 
+@@ -203,6 +203,30 @@ sequenceDiagram
+     V->>Staff: red status message, row stays
+ ```
+ 
++### 5.3 Open the Dashboard (uses Singleton)
++
++```mermaid
++sequenceDiagram
++    actor Staff
++    participant F as MainFrame
++    participant V as DashboardPanel (View)
++    participant C as DashboardController
++    participant R as Repositories (donor, donation, volunteer, event, beneficiary)
++    participant L as ApplicationLogger (Singleton)
++
++    Staff->>F: click "Dashboard"
++    F->>V: refresh()
++    V->>C: getSummary()
++    C->>R: count() / totalValue()
++    R-->>C: numbers
++    C->>L: getInstance().getRecentEntries(10)
++    L-->>C: newest log lines
++    C-->>V: DashboardSummary
++    V->>Staff: cards and recent activity updated
++```
++
++`MainFrame` calls `refresh()` every time a `Refreshable` screen is opened, so the Dashboard always shows the current numbers. If the database cannot be read, the controller logs the error and returns zeros with an explanation instead of throwing to the view.
++
+ ---
+ 
+ ## 6. Data model
+diff --git a/docs/class-diagram.md b/docs/class-diagram.md
+index aa228ea..9380129 100644
+--- a/docs/class-diagram.md
++++ b/docs/class-diagram.md
+@@ -2,7 +2,7 @@
+ 
+ > The complete UML class diagram of **Ripple**, Phase 1, plus one focused diagram per design pattern (section 5).
+ 
+-**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. When the code is complete, `DiagramConsistencyTest` (Section 6) fails the build if code and diagram drift apart.
++**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart.
+ 
+ Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [PHASE1.md](../PHASE1.md) (who builds what)
+ 
+@@ -874,7 +874,7 @@ Main ..> MainFrame : «create»
+ 
+ ## 5. Pattern views
+ 
+-One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. The section of `PHASE1.md` that implements a pattern adds a short **"In the code / Demo / Test"** note under its diagram.
++One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. The section of `PHASE1.md` that implements a pattern adds a short **"In the code / Demo / Test"** note under its diagram, and Section 6 adds a **"Presentation note"** (the problem, how Ripple solves it, and why not a simple `if/else`) for the slides.
+ 
+ | Pattern | Rubric | Package | Problem it solves | Section |
+ |---|---|---|---|---|
+@@ -935,6 +935,12 @@ DonorNotificationObserver --> CommunicationService : setStrategy() + send()
+ - **Demo:** on the Communication screen send a message to *All donors* by Email, then the same by SMS: the message log shows email addresses the first time and phone numbers the second, and people without one are logged as `FAILED: no valid ...`. Record a donation and its thank-you appears in the log on the donor's preferred channel; untick "Notify donors on new donation" and record again: no thank-you.
+ - **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, and the 160-character SMS limit; `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel and stops after `detach`.
+ 
++**Presentation note**
++
++- **Problem:** Staff must be able to send a message by Email or by SMS, chosen while the app is running. The two channels use a different address (email or phone number) and have different rules (an SMS is limited to 160 characters).
++- **How Ripple solves it:** each channel is its own class that implements `CommunicationStrategy`. `CommunicationService` holds the current strategy and calls it, and the screen swaps it with `setStrategy(...)`. The message log is written in one place for every channel.
++- **Why not just `if/else`:** with `if (channel == EMAIL) ... else if (channel == SMS) ...` in the service, the controller and the thank-you observer, every new channel (WhatsApp, push) would mean editing all of them and re-testing code that already works. With a strategy, a new channel is one new class and nothing else changes.
++
+ ---
+ 
+ ### 5.2 Observer — reacting to a new donation
+@@ -985,6 +991,16 @@ DonorNotificationObserver ..|> DonationObserver
+ **Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `detach(donorNotifier)` / `attach(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
+ **Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` uses the Strategy; `DonationLogObserver` uses the Singleton.
+ 
++- **In the code:** [DonationSubject.java](../src/main/java/com/ripple/observer/DonationSubject.java), [DonationObserver.java](../src/main/java/com/ripple/observer/DonationObserver.java) and the subject [DonationService.java](../src/main/java/com/ripple/service/DonationService.java) (`attach`, `detach`, `notifyObservers`). The three observers are in `com.ripple.observer` and are attached in `Main`; the "Notify donors on new donation" checkbox in [DonationsPanel.java](../src/main/java/com/ripple/view/DonationsPanel.java) detaches and re-attaches `DonorNotificationObserver`.
++- **Demo:** register a donor and record an Online donation: open `logs/ripple.log` to see the line written by `DonationLogObserver`, then open *View receipt* (`ReceiptObserver`) and the Communication screen's message log (`DonorNotificationObserver`). Try an In-kind donation with quantity 0: it is rejected and no observer does anything. Untick "Notify donors", record again, and no thank-you is logged.
++- **Test:** `src/test/java/com/ripple/service/DonationServiceTest.java` checks that an attached observer is notified, a detached one is not, attaching twice notifies once, a failing observer does not stop the others, and bad input notifies nobody; `src/test/java/com/ripple/observer/DonationLogObserverTest.java` checks the log line.
++
++**Presentation note**
++
++- **Problem:** after a donation is saved, several things must happen (write the log, build the receipt, thank the donor) and the list will grow. `DonationService` should not have to know about them, and staff must be able to switch one off.
++- **How Ripple solves it:** `DonationService` is the subject: it keeps a list of `DonationObserver`s and calls `onDonationRecorded(...)` on each after saving. `Main` attaches the observers, and the checkbox attaches or detaches one while the app runs.
++- **Why not just `if/else`:** calling `writeLog(d); buildReceipt(d); sendThankYou(d);` inside `recordDonation` ties the service to every feature, turns "stop thanking donors" into a flag inside the service, and means each new reaction edits the service. With observers the service knows none of them, and a test can attach a counting observer.
++
+ ---
+ 
+ ### 5.3 Decorator — donation receipts
+@@ -1042,6 +1058,12 @@ String text = receipt.render();
+ - **Demo:** on the Donations screen, record a *Zakat* donation, select it and click "View receipt" (has a tax section); record a *Food Supplies* donation and view it (no tax section).
+ - **Test:** `src/test/java/com/ripple/receipt/ReceiptDecoratorTest.java` checks that `BasicReceipt` has neither section and that each decorator adds only its own; `src/test/java/com/ripple/observer/ReceiptObserverTest.java` checks that tax information is attached only when the donation type is tax-deductible.
+ 
++**Presentation note**
++
++- **Problem:** every receipt has the basic facts, but the thank-you line and the tax section are optional, and the tax section only applies to tax-deductible donation types (CR4). More extras may follow.
++- **How Ripple solves it:** `BasicReceipt` prints only the basic facts. `ThankYouMessageDecorator` and `TaxInformationDecorator` each wrap a `Receipt` and add their own section, and `ReceiptObserver` wraps the ones that apply at run time.
++- **Why not just `if/else`:** one `Receipt` class with `showThanks` / `showTax` flags and `if` blocks has to be edited for every new section, and the number of combinations grows with every flag. With decorators the sections are stacked in any combination, and the basic receipt never changes.
++
+ ---
+ 
+ ### 5.4 Factory — creating donations
+@@ -1100,6 +1122,12 @@ DonationRepository --> DonationFactory : rows from DB
+ - **Demo:** run `DonationFactoryTest` and show `create(...)`. From Section 2 on, the Donations screen records every donation through it (try an in-kind donation with quantity 0 to see the factory reject it).
+ - **Test:** `src/test/java/com/ripple/factory/DonationFactoryTest.java` checks that each method gives the right subclass, rejects invalid details and unsupported methods, and keeps stored timestamps.
+ 
++**Presentation note**
++
++- **Problem:** the three donation kinds need different fields and rules (an amount above 0; an online donation needs a transaction reference; an in-kind donation needs an item and a quantity above 0). Donations are created in more than one place (when recording and when loading rows), and an invalid one must never exist.
++- **How Ripple solves it:** `DonationFactory.create(...)` is the only code that picks the subclass and checks its fields. Callers receive a `Donation` and never name the concrete classes; an unknown method such as "Cheque" gives "Unsupported donation method".
++- **Why not just `if/else`:** `if (method.equals("Cash")) new CashDonation(...)` chains scattered over the service, the repository and the tests would copy the validation rules, and the copies would drift apart (one place forgets the quantity check). One factory is one place to fix and one place to add a new kind.
++
+ ---
+ 
+ ### 5.5 Singleton — application logger
+@@ -1130,9 +1158,15 @@ DashboardController --> ApplicationLogger : getRecentEntries()
+ **Why this class deserves to be a Singleton:** there is one log file (`logs/ripple.log`) and one recent-activity feed on the Dashboard. Two logger objects would write the same file independently and each would see only half the activity.
+ **Why nothing else is a Singleton:** `Database` and the services are passed through constructors so tests can give each one its own temporary database.
+ 
+-- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `INSTANCE` and `getInstance()`. Used by `Main` ("Ripple started") and `LookupController` (every add, update or delete), and later by `DonationLogObserver` and the Dashboard.
++- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `INSTANCE` and `getInstance()`. Used by `Main` ("Ripple started"), `LookupController` (every add, update or delete) and `DonationLogObserver` (every donation), and read by `DashboardController` for the Dashboard's "Recent activity".
+ - **Demo:** add or delete a lookup value, then open `logs/ripple.log` and show the new line. Point out that `new ApplicationLogger()` does not compile outside the class.
+-- **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first.
++- **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first; `src/test/java/com/ripple/controller/DashboardControllerTest.java` checks that the Dashboard's recent activity comes from the logger, newest first.
++
++**Presentation note**
++
++- **Problem:** there is one log file and one "recent activity" list. If each class made its own logger, each would write the same file independently and keep only part of the recent entries, so the Dashboard would show only a fraction of what happened.
++- **How Ripple solves it:** `ApplicationLogger` has a private constructor and a static `getInstance()`, so every class gets the same object. The file and the Dashboard's feed see everything. The instance is created when the class loads, which Java guarantees is thread-safe.
++- **Why not the obvious shortcut:** `new ApplicationLogger()` in every class gives several loggers with partial histories, and a public static field that anyone can replace gives no guarantee of one. It is the only Singleton on purpose: `Database` and the services are passed through constructors so each test can use its own temporary database.
+ 
+ ---
+ 
+@@ -1183,3 +1217,13 @@ DonationRepository ..> Donation
+ ```
+ 
+ **Rule:** arrows only point to the right. A view never imports a repository or `java.sql`; a service never imports Swing. Full explanation in [architecture.md](architecture.md#2-mvc-with-a-thin-service-layer).
++
++- **In the code:** one package per layer: [view](../src/main/java/com/ripple/view) (Swing screens), [controller](../src/main/java/com/ripple/controller), and the model in `service`, `repository`, `model` and the pattern packages. Example: `DashboardPanel` → `DashboardController` → the five repositories and the logger → `DashboardSummary` back to the panel.
++- **Demo:** run `grep -rlE "import (java\.sql|com\.ripple\.repository)" src/main/java/com/ripple/view` and show that it prints nothing, then open `DashboardPanel.java` and show that it only imports a controller.
++- **Test:** `src/test/java/com/ripple/ArchitectureRulesTest.java` fails the build if a view imports `java.sql` or a repository, if model, controller or pattern classes import Swing, if anything outside the views refers to the view package, or if a class has no Javadoc.
++
++**Presentation note**
++
++- **Problem:** if the screen, the rules and the SQL all sit in a button's click code, a rule such as "no duplicate lookup names" cannot be tested without opening a window, and two screens that need the same rule would each copy it.
++- **How Ripple solves it:** views only show things and call a controller; controllers turn text into typed values and return a `Result` for the status bar; services and repositories hold the rules and the SQL. Arrows only point one way, and a test enforces it.
++- **Why not just one big class per screen:** every change would touch the UI, the rules and the database at once, and none of it could be tested on its own. Here a rule is tested with a plain JUnit test and a screen can be redrawn without touching the rules.
+diff --git a/docs/images/dashboard.png b/docs/images/dashboard.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..12a1ed284ceccafcdcb6d542c3d9e01a58b681e7
+GIT binary patch
+literal 25218
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/pom.xml b/pom.xml
+index 6d0aa94..db409a3 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -66,6 +66,50 @@
+                     </archive>
+                 </configuration>
+             </plugin>
++            <!-- Section 6: `mvn package` builds ONE self-contained jar, target/ripple.jar, that holds
++                 Ripple plus the SQLite driver, so `java -jar target/ripple.jar` works on any machine
++                 that has Java 21 (no Maven, no extra files). Shade replaces the thin jar built above. -->
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-shade-plugin</artifactId>
++                <version>3.6.0</version>
++                <executions>
++                    <execution>
++                        <phase>package</phase>
++                        <goals>
++                            <goal>shade</goal>
++                        </goals>
++                        <configuration>
++                            <createDependencyReducedPom>false</createDependencyReducedPom>
++                            <transformers>
++                                <!-- Main-Class: which class `java -jar` starts. -->
++                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
++                                    <mainClass>${ripple.mainClass}</mainClass>
++                                    <manifestEntries>
++                                        <Multi-Release>true</Multi-Release>
++                                    </manifestEntries>
++                                </transformer>
++                                <!-- Merges META-INF/services files, so the SQLite JDBC driver is still registered. -->
++                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
++                            </transformers>
++                            <filters>
++                                <filter>
++                                    <artifact>*:*</artifact>
++                                    <excludes>
++                                        <!-- Signature files of the original libraries would make the merged jar fail to start. -->
++                                        <exclude>META-INF/*.SF</exclude>
++                                        <exclude>META-INF/*.DSA</exclude>
++                                        <exclude>META-INF/*.RSA</exclude>
++                                        <!-- Module descriptors are meaningless in a merged jar. -->
++                                        <exclude>module-info.class</exclude>
++                                        <exclude>META-INF/versions/*/module-info.class</exclude>
++                                    </excludes>
++                                </filter>
++                            </filters>
++                        </configuration>
++                    </execution>
++                </executions>
++            </plugin>
+         </plugins>
+     </build>
+ </project>
+diff --git a/src/main/java/com/ripple/app/Main.java b/src/main/java/com/ripple/app/Main.java
+index 90931e1..351c090 100644
+--- a/src/main/java/com/ripple/app/Main.java
++++ b/src/main/java/com/ripple/app/Main.java
+@@ -6,6 +6,7 @@ import com.ripple.communication.EmailStrategy;
+ import com.ripple.communication.SmsStrategy;
+ import com.ripple.controller.BeneficiaryController;
+ import com.ripple.controller.CommunicationController;
++import com.ripple.controller.DashboardController;
+ import com.ripple.controller.DonationController;
+ import com.ripple.controller.EventController;
+ import com.ripple.controller.LookupController;
+@@ -32,6 +33,7 @@ import com.ripple.service.DonationService;
+ import com.ripple.service.LookupService;
+ import com.ripple.view.BeneficiariesPanel;
+ import com.ripple.view.CommunicationPanel;
++import com.ripple.view.DashboardPanel;
+ import com.ripple.view.DonationsPanel;
+ import com.ripple.view.EventsPanel;
+ import com.ripple.view.LookupPanel;
+@@ -130,7 +132,12 @@ public final class Main {
+         CommunicationController communicationController = new CommunicationController(communicationService,
+                 strategies, donorRepository, volunteerRepository, beneficiaryRepository, eventRepository,
+                 messageLogRepository);
+-        // Section 6: DashboardController
++        // Section 6: DashboardController (reads the five counting repositories and the logger)
++        DashboardController dashboardController = new DashboardController(donorRepository, donationRepository,
++                volunteerRepository, eventRepository, beneficiaryRepository);
++
++        // Logged before the window is built, so it is always in the Dashboard's "Recent activity".
++        ApplicationLogger.getInstance().info("Ripple started");
+ 
+         // Swing is not thread-safe: every UI object must be created on the
+         // Event Dispatch Thread, which is what invokeLater does.
+@@ -153,9 +160,9 @@ public final class Main {
+             frame.addScreen(MainFrame.COMMUNICATION,
+                     new CommunicationPanel(communicationController, eventController, frame.getStatusBar()));
+             // Section 6: DASHBOARD     -> DashboardPanel
++            frame.addScreen(MainFrame.DASHBOARD, new DashboardPanel(dashboardController));
+             frame.setVisible(true);
+         });
+-        ApplicationLogger.getInstance().info("Ripple started");
+     }
+ 
+     /** Makes Ripple look like a normal Windows (or Linux) app instead of Swing's default "Metal" theme. */
+diff --git a/src/main/java/com/ripple/controller/DashboardController.java b/src/main/java/com/ripple/controller/DashboardController.java
+new file mode 100644
+index 0000000..1600a5a
+--- /dev/null
++++ b/src/main/java/com/ripple/controller/DashboardController.java
+@@ -0,0 +1,75 @@
++package com.ripple.controller;
++
++import com.ripple.logging.ApplicationLogger;
++import com.ripple.repository.BeneficiaryRepository;
++import com.ripple.repository.DonationRepository;
++import com.ripple.repository.DonorRepository;
++import com.ripple.repository.EventRepository;
++import com.ripple.repository.VolunteerRepository;
++
++import java.util.List;
++
++/**
++ * Controller for the Dashboard screen.
++ *
++ * <p>It asks each module's repository for its count, adds the latest entries of the
++ * {@link ApplicationLogger} (the Singleton), and hands everything to the view as one
++ * {@link DashboardSummary}. This is why the Dashboard view needs no repository of its own.
++ *
++ * <p>Like every controller it never throws to the view: if the database cannot be read,
++ * the problem is logged and the Dashboard shows zeros and an explanation.
++ */
++public class DashboardController {
++
++    /** How many log lines the Dashboard shows under "Recent activity". */
++    public static final int RECENT_ACTIVITY_LIMIT = 10;
++
++    private final DonorRepository donorRepository;
++    private final DonationRepository donationRepository;
++    private final VolunteerRepository volunteerRepository;
++    private final EventRepository eventRepository;
++    private final BeneficiaryRepository beneficiaryRepository;
++    private final ApplicationLogger logger = ApplicationLogger.getInstance();
++
++    /**
++     * Creates the controller.
++     *
++     * @param donorRepository       where the donor count comes from
++     * @param donationRepository    where the donation count and total value come from
++     * @param volunteerRepository   where the volunteer count comes from
++     * @param eventRepository       where the event count comes from
++     * @param beneficiaryRepository where the beneficiary count comes from
++     */
++    public DashboardController(DonorRepository donorRepository, DonationRepository donationRepository,
++                               VolunteerRepository volunteerRepository, EventRepository eventRepository,
++                               BeneficiaryRepository beneficiaryRepository) {
++        this.donorRepository = donorRepository;
++        this.donationRepository = donationRepository;
++        this.volunteerRepository = volunteerRepository;
++        this.eventRepository = eventRepository;
++        this.beneficiaryRepository = beneficiaryRepository;
++    }
++
++    /**
++     * Collects the current totals and the latest activity.
++     *
++     * @return the numbers and log lines to show; never {@code null}
++     */
++    public DashboardSummary getSummary() {
++        try {
++            return new DashboardSummary(
++                    donorRepository.count(),
++                    donationRepository.count(),
++                    donationRepository.totalValue(),
++                    volunteerRepository.count(),
++                    eventRepository.count(),
++                    beneficiaryRepository.count(),
++                    logger.getRecentEntries(RECENT_ACTIVITY_LIMIT));
++        } catch (IllegalStateException e) {
++            logger.error(e.getMessage());
++            return new DashboardSummary(0, 0, 0, 0, 0, 0,
++                    List.of("Could not load the totals because of a database error. "
++                            + "Details are in logs/ripple.log."));
++        }
++    }
++}
+diff --git a/src/main/java/com/ripple/controller/DashboardSummary.java b/src/main/java/com/ripple/controller/DashboardSummary.java
+new file mode 100644
+index 0000000..a604070
+--- /dev/null
++++ b/src/main/java/com/ripple/controller/DashboardSummary.java
+@@ -0,0 +1,32 @@
++package com.ripple.controller;
++
++import java.util.List;
++
++/**
++ * Everything the Dashboard screen shows, in one object: the totals for each module and
++ * the latest lines of the application log.
++ *
++ * <p>It is a plain data carrier between {@link DashboardController} and the Dashboard view,
++ * so the view never has to talk to a repository to get its numbers.
++ *
++ * @param donors             number of registered donors
++ * @param donations          number of recorded donations
++ * @param totalDonationValue value of all donations in EGP (money amounts plus in-kind estimates)
++ * @param volunteers         number of volunteers
++ * @param events             number of events
++ * @param beneficiaries      number of beneficiaries
++ * @param recentActivity     the newest log entries, newest first
++ */
++public record DashboardSummary(int donors,
++                               int donations,
++                               double totalDonationValue,
++                               int volunteers,
++                               int events,
++                               int beneficiaries,
++                               List<String> recentActivity) {
++
++    /** Keeps an unmodifiable copy, so a view can never change the controller's list. */
++    public DashboardSummary {
++        recentActivity = List.copyOf(recentActivity);
++    }
++}
+diff --git a/src/main/java/com/ripple/view/DashboardPanel.java b/src/main/java/com/ripple/view/DashboardPanel.java
+new file mode 100644
+index 0000000..a881e75
+--- /dev/null
++++ b/src/main/java/com/ripple/view/DashboardPanel.java
+@@ -0,0 +1,121 @@
++package com.ripple.view;
++
++import com.ripple.controller.DashboardController;
++import com.ripple.controller.DashboardSummary;
++
++import javax.swing.BorderFactory;
++import javax.swing.DefaultListModel;
++import javax.swing.JLabel;
++import javax.swing.JList;
++import javax.swing.JPanel;
++import javax.swing.JScrollPane;
++import javax.swing.ListSelectionModel;
++import java.awt.BorderLayout;
++import java.awt.Color;
++import java.awt.Font;
++import java.awt.GridLayout;
++import java.util.Locale;
++
++/**
++ * The Dashboard screen: six summary cards (donors, donations, total donation value,
++ * volunteers, events, beneficiaries) and a list of recent activity from the application log.
++ *
++ * <p>A <b>View</b> in MVC: it only shows what {@link DashboardController} gives it. It is
++ * {@link Refreshable}, so {@link MainFrame} reloads the numbers every time the user opens it.
++ */
++public class DashboardPanel extends JPanel implements Refreshable {
++
++    private final DashboardController controller;
++
++    private final JLabel donorsValue = newValueLabel();
++    private final JLabel donationsValue = newValueLabel();
++    private final JLabel totalValue = newValueLabel();
++    private final JLabel volunteersValue = newValueLabel();
++    private final JLabel eventsValue = newValueLabel();
++    private final JLabel beneficiariesValue = newValueLabel();
++    private final DefaultListModel<String> activityModel = new DefaultListModel<>();
++
++    /**
++     * Builds the screen.
++     *
++     * @param controller the dashboard controller that supplies the numbers
++     */
++    public DashboardPanel(DashboardController controller) {
++        super(new BorderLayout(0, 14));
++        this.controller = controller;
++        setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
++
++        JLabel title = new JLabel("Dashboard");
++        title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
++        add(title, BorderLayout.NORTH);
++
++        JPanel body = new JPanel(new BorderLayout(0, 14));
++        body.add(buildCards(), BorderLayout.NORTH);
++        body.add(buildActivity(), BorderLayout.CENTER);
++        add(body, BorderLayout.CENTER);
++    }
++
++    @Override
++    public void refresh() {
++        DashboardSummary summary = controller.getSummary();
++        donorsValue.setText(formatCount(summary.donors()));
++        donationsValue.setText(formatCount(summary.donations()));
++        totalValue.setText(String.format(Locale.US, "EGP %,.2f", summary.totalDonationValue()));
++        volunteersValue.setText(formatCount(summary.volunteers()));
++        eventsValue.setText(formatCount(summary.events()));
++        beneficiariesValue.setText(formatCount(summary.beneficiaries()));
++
++        activityModel.clear();
++        if (summary.recentActivity().isEmpty()) {
++            activityModel.addElement("No activity yet.");
++        } else {
++            activityModel.addAll(summary.recentActivity());
++        }
++    }
++
++    /** Two rows of three cards. */
++    private JPanel buildCards() {
++        JPanel cards = new JPanel(new GridLayout(2, 3, 12, 12));
++        cards.add(card("Donors", donorsValue));
++        cards.add(card("Donations", donationsValue));
++        cards.add(card("Total donation value", totalValue));
++        cards.add(card("Volunteers", volunteersValue));
++        cards.add(card("Events", eventsValue));
++        cards.add(card("Beneficiaries", beneficiariesValue));
++        return cards;
++    }
++
++    /** The "Recent activity" list, newest entry first. */
++    private JScrollPane buildActivity() {
++        JList<String> list = new JList<>(activityModel);
++        list.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
++        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
++        JScrollPane scroll = new JScrollPane(list);
++        scroll.setBorder(BorderFactory.createTitledBorder("Recent activity (newest first)"));
++        return scroll;
++    }
++
++    /** One summary card: a big number with a small caption under it. */
++    private static JPanel card(String caption, JLabel value) {
++        JPanel card = new JPanel(new BorderLayout(0, 4));
++        card.setBorder(BorderFactory.createCompoundBorder(
++                BorderFactory.createLineBorder(new Color(200, 205, 215)),
++                BorderFactory.createEmptyBorder(14, 16, 14, 16)));
++        JLabel captionLabel = new JLabel(caption);
++        captionLabel.setForeground(Color.GRAY);
++        card.add(value, BorderLayout.CENTER);
++        card.add(captionLabel, BorderLayout.SOUTH);
++        return card;
++    }
++
++    private static JLabel newValueLabel() {
++        JLabel label = new JLabel("0");
++        label.setFont(label.getFont().deriveFont(Font.BOLD, 26f));
++        label.setForeground(new Color(30, 60, 90));
++        return label;
++    }
++
++    private static String formatCount(int count) {
++        return String.format(Locale.US, "%,d", count);
++    }
++}
+diff --git a/src/main/java/com/ripple/view/MainFrame.java b/src/main/java/com/ripple/view/MainFrame.java
+index 9fbfdf3..e6d30a3 100644
+--- a/src/main/java/com/ripple/view/MainFrame.java
++++ b/src/main/java/com/ripple/view/MainFrame.java
+@@ -18,6 +18,7 @@ import java.awt.Component;
+ import java.awt.Dimension;
+ import java.awt.Font;
+ import java.util.HashMap;
++import java.util.List;
+ import java.util.Map;
+ 
+ /**
+@@ -32,9 +33,8 @@ import java.util.Map;
+  *
+  * <p>This is a <b>View</b> in MVC: it only arranges screens and switches between them.
+  *
+- * <p><b>Adding a screen:</b> every screen starts as a placeholder that names the section
+- * of {@code PHASE1.md} that builds it, so no button pretends to work. When your screen is
+- * ready, plug it in from {@code Main}:
++ * <p><b>Adding a screen:</b> {@code Main} plugs each screen in with
++ * {@link #addScreen(String, JPanel)}, using one of the screen-name constants:
+  * <pre>{@code
+  * frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()));
+  * }</pre>
+@@ -50,29 +50,25 @@ public class MainFrame extends JFrame {
+     public static final String COMMUNICATION = "Communication";
+     public static final String LOOKUPS = "Lookup Management";
+ 
++    /** Every screen, in the order of the sidebar buttons. */
++    private static final List<String> SCREEN_NAMES =
++            List.of(DASHBOARD, DONATIONS, VOLUNTEERS, EVENTS, BENEFICIARIES, COMMUNICATION, LOOKUPS);
++
+     private final CardLayout cards = new CardLayout();
+     private final JPanel content = new JPanel(cards);
+     private final StatusBar statusBar = new StatusBar();
+-    /** The component currently shown for each screen name (placeholder or real screen). */
++    /** The screen plugged in for each screen name. */
+     private final Map<String, JPanel> cardsByName = new HashMap<>();
+-    /** Screens that can reload their data when shown. Placeholders are not in here. */
++    /** Screens that can reload their data when shown. */
+     private final Map<String, Refreshable> screens = new HashMap<>();
+     private String currentScreen;
+ 
+-    /** Builds the window with a placeholder for every screen. */
++    /** Builds the empty window: sidebar, content area and status bar. Screens are added by {@code Main}. */
+     public MainFrame() {
+         super("Ripple — NGO Management System");
+         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+         setMinimumSize(new Dimension(1000, 650));
+ 
+-        addPlaceholder(DASHBOARD, "Totals and recent activity", 6);
+-        addPlaceholder(DONATIONS, "Donors, donations and receipts", 2);
+-        addPlaceholder(VOLUNTEERS, "Volunteer profiles and event assignment", 4);
+-        addPlaceholder(EVENTS, "Events, attendees and assigned volunteers", 4);
+-        addPlaceholder(BENEFICIARIES, "Beneficiaries and their needs", 4);
+-        addPlaceholder(COMMUNICATION, "Email / SMS messages to groups", 5);
+-        addPlaceholder(LOOKUPS, "Donation Types and Event Categories", 1);
+-
+         setLayout(new BorderLayout());
+         add(buildSidebar(), BorderLayout.WEST);
+         add(content, BorderLayout.CENTER);
+@@ -102,8 +98,7 @@ public class MainFrame extends JFrame {
+ 
+         // A ButtonGroup keeps exactly one toggle button pressed: the current screen.
+         ButtonGroup group = new ButtonGroup();
+-        String[] names = {DASHBOARD, DONATIONS, VOLUNTEERS, EVENTS, BENEFICIARIES, COMMUNICATION, LOOKUPS};
+-        for (String name : names) {
++        for (String name : SCREEN_NAMES) {
+             JToggleButton button = new JToggleButton(name);
+             button.setAlignmentX(Component.LEFT_ALIGNMENT);
+             button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+@@ -119,7 +114,8 @@ public class MainFrame extends JFrame {
+     }
+ 
+     /**
+-     * Replaces the placeholder for {@code name} with a real screen.
++     * Plugs a screen in for the sidebar button called {@code name}. Adding a screen for a name
++     * that already has one replaces it.
+      *
+      * <p>If the screen implements {@link Refreshable}, it is refreshed every time the
+      * user opens it.
+@@ -129,15 +125,18 @@ public class MainFrame extends JFrame {
+      * @throws IllegalArgumentException if {@code name} is not one of the constants
+      */
+     public void addScreen(String name, JPanel screen) {
+-        JPanel old = cardsByName.get(name);
+-        if (old == null) {
++        if (!SCREEN_NAMES.contains(name)) {
+             throw new IllegalArgumentException("Unknown screen: " + name);
+         }
+-        content.remove(old);
++        JPanel old = cardsByName.put(name, screen);
++        if (old != null) {
++            content.remove(old);
++        }
+         content.add(screen, name);
+-        cardsByName.put(name, screen);
+         if (screen instanceof Refreshable refreshable) {
+             screens.put(name, refreshable);
++        } else {
++            screens.remove(name);
+         }
+         if (name.equals(currentScreen)) {
+             showScreen(name); // the user is looking at it: swap it in now
+@@ -153,22 +152,6 @@ public class MainFrame extends JFrame {
+         return statusBar;
+     }
+ 
+-    /**
+-     * Adds a screen that is not built yet. It says what it will contain and which
+-     * section of {@code PHASE1.md} builds it.
+-     */
+-    private void addPlaceholder(String name, String purpose, int section) {
+-        JPanel panel = new JPanel(new BorderLayout());
+-        JLabel label = new JLabel("<html><div style='text-align:center'>"
+-                + "<h2>" + name + "</h2>"
+-                + "<p>" + purpose + "</p><br>"
+-                + "<p><i>Built in Section " + section + " of PHASE1.md.</i></p></div></html>",
+-                SwingConstants.CENTER);
+-        panel.add(label, BorderLayout.CENTER);
+-        content.add(panel, name);
+-        cardsByName.put(name, panel);
+-    }
+-
+     /** Shows the named screen and, if it can, reloads its data. */
+     private void showScreen(String name) {
+         currentScreen = name;
+diff --git a/src/test/java/com/ripple/ArchitectureRulesTest.java b/src/test/java/com/ripple/ArchitectureRulesTest.java
+new file mode 100644
+index 0000000..217e4dd
+--- /dev/null
++++ b/src/test/java/com/ripple/ArchitectureRulesTest.java
+@@ -0,0 +1,109 @@
++package com.ripple;
++
++import org.junit.jupiter.api.Test;
++
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Set;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
++
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++/**
++ * Checks the project's ground rules by reading the source files (Phase 1, Section 6), so the
++ * MVC separation cannot be broken by accident later:
++ * <ul>
++ *   <li>a view never imports {@code java.sql} or a repository (this replaces the manual
++ *       {@code grep} from {@code PHASE1.md});</li>
++ *   <li>only views (and {@code Main}, which builds the window) use Swing or AWT;</li>
++ *   <li>only {@code Main} and the views refer to the view package;</li>
++ *   <li>every class has a Javadoc comment.</li>
++ * </ul>
++ */
++class ArchitectureRulesTest {
++
++    /** Packages that are allowed to use Swing / AWT. */
++    private static final Set<String> SWING_ALLOWED = Set.of("view", "app");
++    /** Packages that are allowed to refer to {@code com.ripple.view}. */
++    private static final Set<String> VIEW_ALLOWED = Set.of("view", "app");
++
++    private static final Pattern TYPE_DECLARATION = Pattern.compile(
++            "(?m)^(public\\s+|protected\\s+|private\\s+)?(static\\s+)?(final\\s+|abstract\\s+|sealed\\s+)*"
++                    + "(class|interface|enum|record)\\s+\\w+");
++
++    @Test
++    void viewsNeverUseTheDatabaseOrRepositories() throws IOException {
++        List<String> offenders = filesImporting(MainSources.inPackage("view"),
++                "java\\.sql|com\\.ripple\\.repository");
++
++        assertTrue(offenders.isEmpty(), "A view must call a controller instead of using the database: " + offenders);
++    }
++
++    @Test
++    void onlyViewsAndMainUseSwing() throws IOException {
++        List<Path> others = MainSources.all().stream()
++                .filter(source -> !SWING_ALLOWED.contains(MainSources.packageOf(source))).toList();
++
++        List<String> offenders = filesImporting(others, "javax\\.swing|java\\.awt");
++
++        assertTrue(offenders.isEmpty(), "Model, controller and pattern classes must not know about Swing: "
++                + offenders);
++    }
++
++    @Test
++    void onlyViewsAndMainReferToTheViewPackage() throws IOException {
++        List<Path> others = MainSources.all().stream()
++                .filter(source -> !VIEW_ALLOWED.contains(MainSources.packageOf(source))).toList();
++
++        List<String> offenders = filesImporting(others, "com\\.ripple\\.view");
++
++        assertTrue(offenders.isEmpty(), "Dependencies must point from view to controller to model, "
++                + "never back: " + offenders);
++    }
++
++    @Test
++    void everyClassHasAJavadocComment() throws IOException {
++        List<String> without = new ArrayList<>();
++        for (Path source : MainSources.all()) {
++            if (!hasJavadocOnTopLevelType(Files.readString(source, StandardCharsets.UTF_8))) {
++                without.add(MainSources.classNameOf(source));
++            }
++        }
++
++        assertTrue(without.isEmpty(), "Add a short Javadoc comment on top of: " + without);
++    }
++
++    /** The files (as class names) that have an {@code import} line matching the given regex. */
++    private static List<String> filesImporting(List<Path> sources, String importRegex) throws IOException {
++        Pattern importLine = Pattern.compile("(?m)^import\\s+(static\\s+)?(" + importRegex + ")");
++        List<String> offenders = new ArrayList<>();
++        for (Path source : sources) {
++            if (importLine.matcher(Files.readString(source, StandardCharsets.UTF_8)).find()) {
++                offenders.add(MainSources.classNameOf(source));
++            }
++        }
++        return offenders;
++    }
++
++    /** True if the comment right above the class / interface / enum / record declaration is a Javadoc. */
++    private static boolean hasJavadocOnTopLevelType(String source) {
++        Matcher declaration = TYPE_DECLARATION.matcher(source);
++        if (!declaration.find()) {
++            return false;
++        }
++        List<String> above = new ArrayList<>(List.of(source.substring(0, declaration.start()).split("\\R")));
++        // Annotations (e.g. @FunctionalInterface) may sit between the comment and the declaration.
++        while (!above.isEmpty() && (above.get(above.size() - 1).isBlank()
++                || above.get(above.size() - 1).strip().startsWith("@"))) {
++            above.remove(above.size() - 1);
++        }
++        String text = String.join("\n", above).strip();
++        // The comment that ends right above the declaration must itself start with "/**".
++        return text.endsWith("*/") && text.startsWith("/**", text.lastIndexOf("/*"));
++    }
++}
+diff --git a/src/test/java/com/ripple/DiagramConsistencyTest.java b/src/test/java/com/ripple/DiagramConsistencyTest.java
+new file mode 100644
+index 0000000..4dd77a3
+--- /dev/null
++++ b/src/test/java/com/ripple/DiagramConsistencyTest.java
+@@ -0,0 +1,119 @@
++package com.ripple;
++
++import org.junit.jupiter.api.Test;
++
++import java.io.IOException;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++import java.util.TreeMap;
++import java.util.TreeSet;
++import java.util.regex.Matcher;
++import java.util.regex.Pattern;
++
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++/**
++ * Fails the build if {@code docs/class-diagram.md} and the code drift apart (Phase 1, Section 6).
++ *
++ * <p>The "complete diagram" in section 2 of the document is the team contract, so:
++ * <ul>
++ *   <li>every class drawn in it must exist in the code;</li>
++ *   <li>every class in the code must be drawn in it;</li>
++ *   <li>each class must sit in the diagram namespace that matches its Java package;</li>
++ *   <li>the small per-pattern diagrams may only use classes of the complete diagram.</li>
++ * </ul>
++ * It compares class names and packages, not every field and method.
++ */
++class DiagramConsistencyTest {
++
++    private static final Path DIAGRAM = Path.of("docs", "class-diagram.md");
++    private static final Pattern CLASS_LINE = Pattern.compile("(?m)^\\s*class\\s+(\\w+)");
++    private static final Pattern NAMESPACE_BLOCK = Pattern.compile("(?ms)^namespace\\s+(\\w+)\\s*\\{(.*?)^\\}");
++    private static final Pattern MERMAID_BLOCK = Pattern.compile("(?s)```mermaid\\R(.*?)```");
++
++    @Test
++    void everyClassInTheDiagramExistsInTheCode() throws IOException {
++        Set<String> missing = new TreeSet<>(diagramClasses().keySet());
++        missing.removeAll(codeClasses().keySet());
++
++        assertTrue(missing.isEmpty(), "Drawn in docs/class-diagram.md but not found in src/main/java: " + missing
++                + ". Create the class, or remove it from the diagram.");
++    }
++
++    @Test
++    void everyClassInTheCodeIsInTheDiagram() throws IOException {
++        Set<String> undrawn = new TreeSet<>(codeClasses().keySet());
++        undrawn.removeAll(diagramClasses().keySet());
++
++        assertTrue(undrawn.isEmpty(), "In src/main/java but missing from the complete diagram in "
++                + "docs/class-diagram.md: " + undrawn + ". Add it to the diagram (and to the class tables).");
++    }
++
++    @Test
++    void eachClassIsDrawnInTheNamespaceOfItsPackage() throws IOException {
++        Map<String, String> inDiagram = diagramClasses();
++        List<String> wrong = new ArrayList<>();
++        codeClasses().forEach((name, packageName) -> {
++            String namespace = inDiagram.get(name);
++            if (namespace != null && !namespace.equals(packageName)) {
++                wrong.add(name + " is in package '" + packageName + "' but drawn in namespace '" + namespace + "'");
++            }
++        });
++
++        assertTrue(wrong.isEmpty(), "Namespace and package disagree: " + wrong);
++    }
++
++    @Test
++    void patternDiagramsOnlyUseClassesOfTheCompleteDiagram() throws IOException {
++        Set<String> known = diagramClasses().keySet();
++        Set<String> unknown = new TreeSet<>();
++        Matcher block = MERMAID_BLOCK.matcher(read());
++        while (block.find()) {
++            Matcher cls = CLASS_LINE.matcher(block.group(1));
++            while (cls.find()) {
++                if (!known.contains(cls.group(1))) {
++                    unknown.add(cls.group(1));
++                }
++            }
++        }
++
++        assertTrue(unknown.isEmpty(), "Used in a pattern diagram but not in the complete diagram: " + unknown);
++    }
++
++    /** Class name -> namespace, for every class in section 2 ("Complete diagram") of the document. */
++    private static Map<String, String> diagramClasses() throws IOException {
++        String markdown = read();
++        int start = markdown.indexOf("## 2. Complete diagram");
++        int end = markdown.indexOf("## 3.", start);
++        assertTrue(start >= 0 && end > start,
++                "docs/class-diagram.md must contain the headings '## 2. Complete diagram' and '## 3.'");
++
++        Map<String, String> classes = new TreeMap<>();
++        Matcher namespace = NAMESPACE_BLOCK.matcher(markdown.substring(start, end));
++        while (namespace.find()) {
++            Matcher cls = CLASS_LINE.matcher(namespace.group(2));
++            while (cls.find()) {
++                classes.put(cls.group(1), namespace.group(1));
++            }
++        }
++        return classes;
++    }
++
++    /** Class name -> package folder, for every Java file in {@code src/main/java}. */
++    private static Map<String, String> codeClasses() {
++        Map<String, String> classes = new TreeMap<>();
++        for (Path source : MainSources.all()) {
++            classes.put(MainSources.classNameOf(source), MainSources.packageOf(source));
++        }
++        return classes;
++    }
++
++    private static String read() throws IOException {
++        return Files.readString(DIAGRAM, StandardCharsets.UTF_8);
++    }
++}
+diff --git a/src/test/java/com/ripple/MainSources.java b/src/test/java/com/ripple/MainSources.java
+new file mode 100644
+index 0000000..dbb3537
+--- /dev/null
++++ b/src/test/java/com/ripple/MainSources.java
+@@ -0,0 +1,75 @@
++package com.ripple;
++
++import java.io.IOException;
++import java.io.UncheckedIOException;
++import java.nio.file.Files;
++import java.nio.file.Path;
++import java.util.List;
++import java.util.stream.Stream;
++
++/**
++ * Test helper: finds Ripple's own source files so tests can check the project's structure.
++ *
++ * <p>Maven runs tests from the project folder, so the paths below are relative to it.
++ */
++public final class MainSources {
++
++    /** The folder that holds {@code com/ripple/...}. */
++    public static final Path ROOT = Path.of("src", "main", "java", "com", "ripple");
++
++    private MainSources() {
++    }
++
++    /**
++     * Lists every {@code .java} file under one package folder of {@code com.ripple}.
++     *
++     * @param packageName the sub-package, e.g. {@code "view"}
++     * @return its source files, without {@code package-info.java}
++     */
++    public static List<Path> inPackage(String packageName) {
++        return list(ROOT.resolve(packageName));
++    }
++
++    /**
++     * Lists every {@code .java} file of Ripple, without {@code package-info.java}.
++     *
++     * @return all main source files
++     */
++    public static List<Path> all() {
++        return list(ROOT);
++    }
++
++    private static List<Path> list(Path folder) {
++        try (Stream<Path> files = Files.walk(folder)) {
++            return files.filter(path -> path.toString().endsWith(".java"))
++                    .filter(path -> !path.getFileName().toString().equals("package-info.java"))
++                    .sorted()
++                    .toList();
++        } catch (IOException e) {
++            throw new UncheckedIOException("Could not read " + folder.toAbsolutePath()
++                    + ". Run the tests from the project folder (mvn test).", e);
++        }
++    }
++
++    /**
++     * The package a source file belongs to, taken from its folder, e.g. {@code "view"} for
++     * {@code src/main/java/com/ripple/view/MainFrame.java}.
++     *
++     * @param source a file returned by {@link #all()}
++     * @return the name of the folder directly under {@code com/ripple}
++     */
++    public static String packageOf(Path source) {
++        return ROOT.relativize(source).getName(0).toString();
++    }
++
++    /**
++     * The class name of a source file, e.g. {@code "MainFrame"}.
++     *
++     * @param source a file returned by {@link #all()}
++     * @return the file name without {@code .java}
++     */
++    public static String classNameOf(Path source) {
++        String file = source.getFileName().toString();
++        return file.substring(0, file.length() - ".java".length());
++    }
++}
+diff --git a/src/test/java/com/ripple/controller/DashboardControllerTest.java b/src/test/java/com/ripple/controller/DashboardControllerTest.java
+new file mode 100644
+index 0000000..a7834f5
+--- /dev/null
++++ b/src/test/java/com/ripple/controller/DashboardControllerTest.java
+@@ -0,0 +1,150 @@
++package com.ripple.controller;
++
++import com.ripple.TestDatabase;
++import com.ripple.factory.DonationFactory;
++import com.ripple.factory.DonationRequest;
++import com.ripple.logging.ApplicationLogger;
++import com.ripple.model.ContactChannel;
++import com.ripple.model.DonationMethod;
++import com.ripple.model.Donor;
++import com.ripple.repository.BeneficiaryRepository;
++import com.ripple.repository.Database;
++import com.ripple.repository.DonationRepository;
++import com.ripple.repository.DonationTypeRepository;
++import com.ripple.repository.DonorRepository;
++import com.ripple.repository.EventCategoryRepository;
++import com.ripple.repository.EventRepository;
++import com.ripple.repository.VolunteerRepository;
++import com.ripple.service.DonationService;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.io.TempDir;
++
++import java.nio.file.Path;
++
++import static org.junit.jupiter.api.Assertions.assertEquals;
++import static org.junit.jupiter.api.Assertions.assertThrows;
++import static org.junit.jupiter.api.Assertions.assertTrue;
++
++/** Tests that the Dashboard's numbers follow the data and that its activity list comes from the logger. */
++class DashboardControllerTest {
++
++    @TempDir
++    Path tempDir;
++
++    private Database db;
++    private DashboardController dashboard;
++    private DonationService donationService;
++    private DonationTypeRepository donationTypes;
++    private VolunteerController volunteerController;
++    private EventController eventController;
++    private BeneficiaryController beneficiaryController;
++
++    @BeforeEach
++    void setUp() {
++        db = TestDatabase.create(tempDir);
++        DonationFactory factory = new DonationFactory();
++        DonorRepository donors = new DonorRepository(db);
++        DonationRepository donations = new DonationRepository(db, factory);
++        VolunteerRepository volunteers = new VolunteerRepository(db);
++        EventRepository events = new EventRepository(db);
++        BeneficiaryRepository beneficiaries = new BeneficiaryRepository(db);
++        donationTypes = new DonationTypeRepository(db);
++
++        dashboard = new DashboardController(donors, donations, volunteers, events, beneficiaries);
++        donationService = new DonationService(factory, donors, donations, donationTypes);
++        volunteerController = new VolunteerController(volunteers);
++        eventController = new EventController(events, volunteers);
++        beneficiaryController = new BeneficiaryController(beneficiaries);
++    }
++
++    @Test
++    void aFreshDatabaseShowsZeros() {
++        DashboardSummary summary = dashboard.getSummary();
++
++        assertEquals(0, summary.donors());
++        assertEquals(0, summary.donations());
++        assertEquals(0.0, summary.totalDonationValue(), 0.0001);
++        assertEquals(0, summary.volunteers());
++        assertEquals(0, summary.events());
++        assertEquals(0, summary.beneficiaries());
++    }
++
++    @Test
++    void numbersChangeAfterRecordingADonation() {
++        Donor donor = donationService.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
++        int typeId = donationTypes.findAll().get(0).getId();
++        assertEquals(1, dashboard.getSummary().donors());
++        assertEquals(0, dashboard.getSummary().donations());
++
++        donationService.recordDonation(DonationMethod.CASH, donor.getId(), typeId,
++                new DonationRequest(100.0, null, null, 0, 0, null));
++        DashboardSummary afterOne = dashboard.getSummary();
++        assertEquals(1, afterOne.donations());
++        assertEquals(100.0, afterOne.totalDonationValue(), 0.0001);
++
++        donationService.recordDonation(DonationMethod.ONLINE, donor.getId(), typeId,
++                new DonationRequest(50.0, "TX-1", null, 0, 0, null));
++        donationService.recordDonation(DonationMethod.IN_KIND, donor.getId(), typeId,
++                new DonationRequest(0, null, "Blankets", 5, 25.0, null));
++        DashboardSummary afterThree = dashboard.getSummary();
++        assertEquals(3, afterThree.donations());
++        // 100 cash + 50 online + 25 estimated value of the in-kind gift
++        assertEquals(175.0, afterThree.totalDonationValue(), 0.0001);
++    }
++
++    @Test
++    void volunteerEventAndBeneficiaryCountsFollowTheirScreens() {
++        int categoryId = new EventCategoryRepository(db).findAll().get(0).getId();
++
++        assertTrue(volunteerController.saveVolunteer(null, "Omar Samy", "", "01198765432", "", "").success());
++        assertTrue(eventController.saveEvent(null, "Winter drive", categoryId, "2026-12-15", "Cairo", "")
++                .success());
++        assertTrue(beneficiaryController.saveBeneficiary(null, "Hoda Mahmoud", "", "01098765432", "", "")
++                .success());
++        assertTrue(beneficiaryController.saveBeneficiary(null, "Sara Adel", "", "01012345678", "", "")
++                .success());
++
++        DashboardSummary summary = dashboard.getSummary();
++        assertEquals(1, summary.volunteers());
++        assertEquals(1, summary.events());
++        assertEquals(2, summary.beneficiaries());
++    }
++
++    @Test
++    void recentActivityComesFromTheLoggerNewestFirstAndIsLimited() {
++        ApplicationLogger logger = ApplicationLogger.getInstance();
++        for (int i = 1; i <= DashboardController.RECENT_ACTIVITY_LIMIT + 5; i++) {
++            logger.info("dashboard test entry " + i);
++        }
++
++        var recent = dashboard.getSummary().recentActivity();
++
++        assertEquals(DashboardController.RECENT_ACTIVITY_LIMIT, recent.size());
++        assertTrue(recent.get(0).endsWith("dashboard test entry " + (DashboardController.RECENT_ACTIVITY_LIMIT + 5)),
++                recent.get(0));
++    }
++
++    @Test
++    void theActivityListCannotBeChangedByTheView() {
++        DashboardSummary summary = dashboard.getSummary();
++
++        assertThrows(UnsupportedOperationException.class, () -> summary.recentActivity().add("hack"));
++    }
++
++    @Test
++    void aDatabaseProblemGivesZerosAndAnExplanationInsteadOfAnException() {
++        // A database file that was never initialized has no tables, so every count fails.
++        Database broken = new Database(tempDir.resolve("broken.db").toString());
++        DashboardController brokenDashboard = new DashboardController(new DonorRepository(broken),
++                new DonationRepository(broken, new DonationFactory()), new VolunteerRepository(broken),
++                new EventRepository(broken), new BeneficiaryRepository(broken));
++
++        DashboardSummary summary = brokenDashboard.getSummary();
++
++        assertEquals(0, summary.donors());
++        assertEquals(0.0, summary.totalDonationValue(), 0.0001);
++        assertEquals(1, summary.recentActivity().size());
++        assertTrue(summary.recentActivity().get(0).contains("database error"), summary.recentActivity().get(0));
++    }
++}

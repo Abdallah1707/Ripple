@@ -65,7 +65,7 @@ flowchart LR
 
 **Why a service layer?** Rules like "no duplicate lookup names" must not live in a button handler (view) and should not be repeated in every controller. Services are added **only** where there are real rules: `LookupService`, `DonationService`. Simple CRUD screens (volunteers, events, beneficiaries) go controller → repository directly, with shared input checks in `InputValidator`.
 
-**How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. Section 6 checks it with this grep, which must print nothing:
+**How separation is checked:** no class in `com.ripple.view` imports `java.sql` or `com.ripple.repository`. `ArchitectureRulesTest` checks this on every `mvn test`, and you can also run this grep, which must print nothing:
 
 ```bash
 grep -rlE "import (java\.sql|com\.ripple\.repository)" src/main/java/com/ripple/view
@@ -131,10 +131,10 @@ flowchart TD
 3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy())`.
 4. Services: `LookupService` ×2, `DonationService`.
 5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
-6. Controllers.
-7. On the Swing event thread: `MainFrame`, then each screen plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`. Until a screen is plugged in, its sidebar button shows a placeholder naming the section that builds it.
+6. Controllers, including `DashboardController` (it gets the five repositories it counts).
+7. On the Swing event thread: `MainFrame`, then each of the seven screens plugged in with `frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()))`.
 
-`Main.java` already contains a `// Section N:` comment at each of these places; add your lines there.
+`Main.java` has a `// Section N:` comment at each of these places, showing which part of the plan added each line.
 
 ---
 
@@ -202,6 +202,30 @@ sequenceDiagram
     C-->>V: Result.fail(message)
     V->>Staff: red status message, row stays
 ```
+
+### 5.3 Open the Dashboard (uses Singleton)
+
+```mermaid
+sequenceDiagram
+    actor Staff
+    participant F as MainFrame
+    participant V as DashboardPanel (View)
+    participant C as DashboardController
+    participant R as Repositories (donor, donation, volunteer, event, beneficiary)
+    participant L as ApplicationLogger (Singleton)
+
+    Staff->>F: click "Dashboard"
+    F->>V: refresh()
+    V->>C: getSummary()
+    C->>R: count() / totalValue()
+    R-->>C: numbers
+    C->>L: getInstance().getRecentEntries(10)
+    L-->>C: newest log lines
+    C-->>V: DashboardSummary
+    V->>Staff: cards and recent activity updated
+```
+
+`MainFrame` calls `refresh()` every time a `Refreshable` screen is opened, so the Dashboard always shows the current numbers. If the database cannot be read, the controller logs the error and returns zeros with an explanation instead of throwing to the view.
 
 ---
 
