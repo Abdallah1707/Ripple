@@ -61,7 +61,7 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 8 arrows above 5 are aggregations and are listed in section 4. |
 | 8 | No "system" class | `Main` (the composition root) is not drawn. |
 | 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
-| 10 | Real diagrams are large | 79 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
+| 10 | Real diagrams are large | 80 classes in 10 packages, all from the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -80,6 +80,7 @@ namespace model {
         +getName() String
         +getEmail() String
         +getPhone() String
+        +getSocialHandle() String
     }
     class Person {
         <<abstract>>
@@ -92,6 +93,7 @@ namespace model {
         <<enumeration>>
         EMAIL
         SMS
+        SOCIAL
         +getAddressLabel() String
     }
     class DonationMethod {
@@ -103,7 +105,9 @@ namespace model {
         +getLabel() String
     }
     class Donor {
+        -String socialHandle
         -ContactChannel preferredChannel
+        +getSocialHandle() String
     }
     class Donation {
         <<abstract>>
@@ -303,6 +307,14 @@ namespace communication {
         +isValidAddress(String address) boolean
         +send(Message message) DeliveryResult
     }
+    class SocialMediaStrategy {
+        <<Strategy>>
+        +int MAX_LENGTH$
+        +getChannel() ContactChannel
+        +addressOf(Contactable recipient) String
+        +isValidAddress(String address) boolean
+        +send(Message message) DeliveryResult
+    }
     class CommunicationService {
         <<Context>>
         -CommunicationStrategy strategy
@@ -449,6 +461,7 @@ namespace service {
         +requireText(String value, String field, int min, int max)$ String
         +isValidEmail(String value)$ boolean
         +isValidPhone(String value)$ boolean
+        +isValidSocialHandle(String value)$ boolean
         +optionalEmail(String value)$ String
         +optionalPhone(String value)$ String
         +parseDouble(String value, String field)$ double
@@ -474,10 +487,10 @@ namespace service {
         +removeObserver(DonationObserver observer) void
         +notifyObservers(Donation donation) void
         +isRegistered(DonationObserver observer) boolean
-        +registerDonor(String name, String email, String phone, ContactChannel channel) Donor
-        +updateDonor(int id, String name, String email, String phone, ContactChannel channel) Donor
+        +registerDonor(String name, String email, String phone, String socialHandle, ContactChannel channel) Donor
+        +updateDonor(int id, String name, String email, String phone, String socialHandle, ContactChannel channel) Donor
         +deleteDonor(int id) Donor
-        -validateDonor(int id, String name, String email, String phone, ContactChannel channel)$ Donor
+        -validateDonor(int id, String name, String email, String phone, String socialHandle, ContactChannel channel)$ Donor
         +findAllDonors() List~Donor~
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
         +findAllDonations() List~Donation~
@@ -532,7 +545,7 @@ namespace controller {
         -ReceiptRepository receiptRepository
         -DonorNotificationObserver donorNotifier
         +listDonors() List~Donor~
-        +saveDonor(Integer id, String name, String email, String phone, String channel) Result
+        +saveDonor(Integer id, String name, String email, String phone, String socialHandle, String channel) Result
         +deleteDonor(int id) Result
         +recordDonation(int donorId, int typeId, String method, String amount, String transactionRef, String item, String quantity, String estimatedValue) Result
         +listDonations() List~Donation~
@@ -720,6 +733,7 @@ ReceiptObserver ..> TaxInformationDecorator : «create»
 %% ---------- Strategy ----------
 EmailStrategy ..|> CommunicationStrategy
 SmsStrategy ..|> CommunicationStrategy
+SocialMediaStrategy ..|> CommunicationStrategy
 CommunicationService o-- "0..1" CommunicationStrategy : strategy
 CommunicationService --> "1" MessageLogRepository
 CommunicationService ..> Message
@@ -832,7 +846,7 @@ LookupTablePanel ..> FormHelper
 |---|---|---|
 | `Contactable` | interface | Anything Ripple can message: name, email, phone. Lets communication treat donors, volunteers, attendees and beneficiaries the same way (polymorphism). |
 | `Person` | abstract class | The fields every person shares (id, name, email, phone) and their getters; implements `Contactable`. `Donor`, `Volunteer`, `Attendee` and `Beneficiary` extend it instead of repeating them. |
-| `ContactChannel` | enum | `EMAIL`, `SMS`. |
+| `ContactChannel` | enum | `EMAIL`, `SMS`, `SOCIAL`. |
 | `DonationMethod` | enum | `CASH`, `ONLINE`, `IN_KIND`, `CHEQUE` — the key of the creators map built in `Main`. |
 | `Donor` | class | `extends Person`. A person or company that donates; has a preferred channel (CR5). |
 | `Donation` | abstract class | Common donation data (donor, type, timestamp — CR3) and the abstract operations each kind must define. |
@@ -872,7 +886,7 @@ LookupTablePanel ..> FormHelper
 | Class | Kind | Responsibility |
 |---|---|---|
 | `CommunicationStrategy` | interface | One way of sending a message: which address to use, how to validate it, how to send. |
-| `EmailStrategy`, `SmsStrategy` | classes | Simulated email / SMS (status `SIMULATED`; the message log is the visible output). |
+| `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy` | classes | Simulated email / SMS / social media message (status `SIMULATED`; the message log is the visible output). Social media uses the donor's handle (only donors have one) and allows 280 characters. |
 | `CommunicationService` | class | Context: holds the current strategy, validates, sends, writes the message log. |
 | `Message`, `DeliveryResult`, `MessageLogEntry` | records | Data passed in and out. |
 
@@ -949,7 +963,7 @@ One small diagram per design pattern (sized for a slide), cut out of the complet
 
 | Pattern | Rubric | Package | Problem it solves | Section |
 |---|---|---|---|---|
-| Strategy | 1 | `communication` | Choose Email or SMS at runtime without `if/else` on the channel | 5 |
+| Strategy | 1 | `communication` | Choose Email, SMS or Social at runtime without `if/else` on the channel | 5 |
 | Observer | 1 | `observer` + `DonationService` | Several things must happen after a donation is recorded, without the donation code knowing them | 2 |
 | Decorator | 1 | `receipt` | Add optional receipt sections (thank-you, tax info) without changing the basic receipt | 3 |
 | Factory Method | 0.5 | `factory` | Each creator subclass decides which `Donation` subclass to build and validates it; new kinds need no edits | 1 |
@@ -957,7 +971,7 @@ One small diagram per design pattern (sized for a slide), cut out of the complet
 | MVC | 2 | all | Keep UI, coordination and business rules apart | all, checked in 6 |
 ### 5.1 Strategy — communication channels
 
-**Roles:** Strategy = `CommunicationStrategy` · Concrete strategies = `EmailStrategy`, `SmsStrategy` · Context = `CommunicationService` · Clients = `CommunicationController`, `DonorNotificationObserver`.
+**Roles:** Strategy = `CommunicationStrategy` · Concrete strategies = `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy` · Context = `CommunicationService` · Clients = `CommunicationController`, `DonorNotificationObserver`.
 
 ```mermaid
 classDiagram
@@ -989,6 +1003,12 @@ class SmsStrategy {
     +isValidAddress(String address) boolean
     +send(Message message) DeliveryResult
 }
+class SocialMediaStrategy {
+    <<Strategy>>
+    +addressOf(Contactable recipient) String
+    +isValidAddress(String address) boolean
+    +send(Message message) DeliveryResult
+}
 class CommunicationController {
     -Map~ContactChannel, CommunicationStrategy~ strategies
     +sendToGroup(Audience audience, Integer eventId, String channel, String subject, String body) Result
@@ -1000,23 +1020,24 @@ class DonorNotificationObserver {
 CommunicationService o-- "0..1" CommunicationStrategy : strategy
 EmailStrategy ..|> CommunicationStrategy
 SmsStrategy ..|> CommunicationStrategy
+SocialMediaStrategy ..|> CommunicationStrategy
 CommunicationController --> CommunicationService : setStrategy() + sendToAll()
 DonorNotificationObserver --> CommunicationService : setStrategy() + send()
 ```
 
-**How it works:** the user picks "SMS" in the Communication screen → the controller calls `communicationService.setStrategy(strategies.get(SMS))` → `sendToAll(...)` asks the *current* strategy for each recipient's address (`addressOf`), validates it (`isValidAddress`) and sends (`send`). `CommunicationService` never mentions `EmailStrategy` or `SmsStrategy` by name.
-**Honesty note:** both strategies are simulations; nothing is really sent, they return status `SIMULATED`, and the message log on the Communication screen shows what would have gone out. Core classes never print to the console (common-mistakes rule 9).
-**Extending:** a real provider (e.g. WhatsApp) = one new class implementing `CommunicationStrategy`; nothing else changes.
+**How it works:** the user picks "SMS" in the Communication screen → the controller calls `communicationService.setStrategy(strategies.get(SMS))` → `sendToAll(...)` asks the *current* strategy for each recipient's address (`addressOf`), validates it (`isValidAddress`) and sends (`send`). `CommunicationService` never mentions `EmailStrategy`, `SmsStrategy` or `SocialMediaStrategy` by name.
+**Honesty note:** all three strategies are simulations; nothing is really sent, they return status `SIMULATED`, and the message log on the Communication screen shows what would have gone out. Core classes never print to the console (common-mistakes rule 9).
+**Extending:** a new channel is one new class implementing `CommunicationStrategy`, plus one map entry in `Main`. `SocialMediaStrategy` was added exactly this way: `CommunicationService`, `CommunicationController` and `DonorNotificationObserver` did not change.
 
-- **In the code:** [CommunicationStrategy.java](../src/main/java/com/ripple/communication/CommunicationStrategy.java), [EmailStrategy.java](../src/main/java/com/ripple/communication/EmailStrategy.java), [SmsStrategy.java](../src/main/java/com/ripple/communication/SmsStrategy.java) and the context [CommunicationService.java](../src/main/java/com/ripple/communication/CommunicationService.java) (`setStrategy(...)`, `send(...)`; no channel `if/else`). The clients pick a strategy from a `Map<ContactChannel, CommunicationStrategy>` built in `Main`: [CommunicationController.java](../src/main/java/com/ripple/controller/CommunicationController.java) and [DonorNotificationObserver.java](../src/main/java/com/ripple/observer/DonorNotificationObserver.java).
-- **Demo:** on the Communication screen send a message to *All donors* by Email, then the same by SMS: the message log shows email addresses the first time and phone numbers the second, and people without one are logged as `FAILED: no valid ...`. Record a donation and its thank-you appears in the log on the donor's preferred channel; untick "Notify donors on new donation" and record again: no thank-you.
-- **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, and the 160-character SMS limit; `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel and stops after `removeObserver`.
+- **In the code:** [CommunicationStrategy.java](../src/main/java/com/ripple/communication/CommunicationStrategy.java), [EmailStrategy.java](../src/main/java/com/ripple/communication/EmailStrategy.java), [SmsStrategy.java](../src/main/java/com/ripple/communication/SmsStrategy.java), [SocialMediaStrategy.java](../src/main/java/com/ripple/communication/SocialMediaStrategy.java) and the context [CommunicationService.java](../src/main/java/com/ripple/communication/CommunicationService.java) (`setStrategy(...)`, `send(...)`; no channel `if/else`). The clients pick a strategy from a `Map<ContactChannel, CommunicationStrategy>` built in `Main`: [CommunicationController.java](../src/main/java/com/ripple/controller/CommunicationController.java) and [DonorNotificationObserver.java](../src/main/java/com/ripple/observer/DonorNotificationObserver.java).
+- **Demo:** on the Communication screen send a message to *All donors* by Email, then by SMS, then by Social: the message log shows email addresses, then phone numbers, then `@handles`, and people without one are logged as `FAILED: no valid ...`. Record a donation and its thank-you appears in the log on the donor's preferred channel; untick "Notify donors on new donation" and record again: no thank-you.
+- **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, the 160-character SMS limit, and that Social reaches donors with a handle (280-character limit); `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel (including Social) and stops after `removeObserver`.
 
 **Presentation note**
 
-- **Problem:** Staff must be able to send a message by Email or by SMS, chosen while the app is running. The two channels use a different address (email or phone number) and have different rules (an SMS is limited to 160 characters).
+- **Problem:** Staff must be able to send a message by Email, SMS or social media, chosen while the app is running. Each channel uses a different address (email, phone number or `@handle`) and has different rules (an SMS is limited to 160 characters, a social media message to 280).
 - **How Ripple solves it:** each channel is its own class that implements `CommunicationStrategy`. `CommunicationService` holds the current strategy and calls it, and the screen swaps it with `setStrategy(...)`. The message log is written in one place for every channel.
-- **Why not just `if/else`:** with `if (channel == EMAIL) ... else if (channel == SMS) ...` in the service, the controller and the thank-you observer, every new channel (WhatsApp, push) would mean editing all of them and re-testing code that already works. With a strategy, a new channel is one new class and nothing else changes.
+- **Why not just `if/else`:** with `if (channel == EMAIL) ... else if (channel == SMS) ...` in the service, the controller and the thank-you observer, every new channel would mean editing all of them and re-testing code that already works. With a strategy, a new channel is one new class and nothing else changes; adding Social proved it.
 
 ---
 
@@ -1302,7 +1323,7 @@ class LookupTablePanel {
 }
 class DonationController {
     <<Controller>>
-    +saveDonor(Integer id, String name, String email, String phone, String channel) Result
+    +saveDonor(Integer id, String name, String email, String phone, String socialHandle, String channel) Result
     +recordDonation(int donorId, int typeId, String method, ...) Result
 }
 class LookupController {

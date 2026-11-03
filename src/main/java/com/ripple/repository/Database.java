@@ -82,6 +82,7 @@ public class Database {
             for (String sql : SCHEMA) {
                 statement.execute(sql);
             }
+            addColumnIfMissing(connection, "donors", "social_handle", "TEXT");
             seedIfEmpty(connection, "donation_types",
                     "INSERT INTO donation_types (name, description, tax_deductible) VALUES (?, ?, ?)",
                     new Object[][]{
@@ -99,6 +100,26 @@ public class Database {
                     });
         } catch (SQLException e) {
             throw new IllegalStateException("Database error: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Adds a column that was introduced after the table was first created. {@code CREATE TABLE IF
+     * NOT EXISTS} skips tables that already exist, so without this an older {@code data/ripple.db}
+     * would be missing the new column.
+     */
+    private void addColumnIfMissing(Connection connection, String table, String column, String type)
+            throws SQLException {
+        try (Statement statement = connection.createStatement();
+             ResultSet columns = statement.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (columns.next()) {
+                if (columns.getString("name").equalsIgnoreCase(column)) {
+                    return;
+                }
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + type);
         }
     }
 
@@ -146,6 +167,7 @@ public class Database {
                 name              TEXT NOT NULL,
                 email             TEXT,
                 phone             TEXT,
+                social_handle     TEXT,
                 preferred_channel TEXT NOT NULL
             )""",
             """

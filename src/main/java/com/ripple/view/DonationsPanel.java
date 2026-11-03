@@ -58,6 +58,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JTextField donorNameField = new JTextField(18);
     private final JTextField donorEmailField = new JTextField(18);
     private final JTextField donorPhoneField = new JTextField(14);
+    private final JTextField donorSocialField = new JTextField(14);
     private final JComboBox<ContactChannel> channelBox = new JComboBox<>(ContactChannel.values());
     private final DefaultTableModel donorTableModel;
     private final JTable donorTable;
@@ -110,7 +111,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         table.setRowHeight(24);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        donorTableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Preferred channel"}, 0) {
+        donorTableModel = new DefaultTableModel(new String[]{"Name", "Email", "Phone", "Social handle", "Preferred channel"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // editing happens in the form, not in the table
@@ -130,13 +131,15 @@ public class DonationsPanel extends JPanel implements Refreshable {
         FormHelper.placeholder(donorNameField, "Full name");
         FormHelper.placeholder(donorEmailField, "name@example.com");
         FormHelper.placeholder(donorPhoneField, "01012345678");
+        FormHelper.placeholder(donorSocialField, "@handle");
         FormHelper.placeholder(amountField, "e.g. 500");
         FormHelper.placeholder(itemField, "e.g. Blankets");
         FormHelper.placeholder(quantityField, "e.g. 20");
         FormHelper.placeholder(valueField, "e.g. 4000");
         donorPhoneField.setToolTipText("Exactly 11 digits; required if the donor prefers SMS");
         donorEmailField.setToolTipText("Required if the donor prefers Email");
-        FormHelper.onEnter(this::onSaveDonor, donorNameField, donorEmailField, donorPhoneField);
+        donorSocialField.setToolTipText("Starts with @; required if the donor prefers Social");
+        FormHelper.onEnter(this::onSaveDonor, donorNameField, donorEmailField, donorPhoneField, donorSocialField);
         FormHelper.onEnter(this::recordDonation, amountField, referenceField, itemField, quantityField, valueField);
 
         JTabbedPane tabs = new JTabbedPane();
@@ -265,7 +268,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
         addRow(form, 0, new JLabel("Name"), donorNameField);
         addRow(form, 1, new JLabel("Email"), donorEmailField);
         addRow(form, 2, new JLabel("Phone"), donorPhoneField);
-        addRow(form, 3, new JLabel("Preferred channel"), channelBox);
+        addRow(form, 3, new JLabel("Social handle"), donorSocialField);
+        addRow(form, 4, new JLabel("Preferred channel"), channelBox);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         buttons.add(FormHelper.button("Add", "Save the form as a new donor", this::onAddDonor));
@@ -273,7 +277,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         buttons.add(FormHelper.button("Delete", "Delete the selected donor (not possible once they have donations)",
                 this::onDeleteDonor));
         buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearDonorForm));
-        addRow(form, 4, new JLabel(), buttons);
+        addRow(form, 5, new JLabel(), buttons);
         return form;
     }
 
@@ -288,7 +292,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
 
     private void onAddDonor() {
         showDonorResult(donationController.saveDonor(null, donorNameField.getText(), donorEmailField.getText(),
-                donorPhoneField.getText(), selectedChannelName()));
+                donorPhoneField.getText(), donorSocialField.getText(), selectedChannelName()));
     }
 
     private void onUpdateDonor() {
@@ -298,7 +302,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
             return;
         }
         showDonorResult(donationController.saveDonor(selected.getId(), donorNameField.getText(),
-                donorEmailField.getText(), donorPhoneField.getText(), selectedChannelName()));
+                donorEmailField.getText(), donorPhoneField.getText(), donorSocialField.getText(),
+                selectedChannelName()));
     }
 
     private void onDeleteDonor() {
@@ -339,6 +344,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         donorNameField.setText(selected.getName());
         donorEmailField.setText(selected.getEmail());
         donorPhoneField.setText(selected.getPhone());
+        donorSocialField.setText(selected.getSocialHandle());
         channelBox.setSelectedItem(selected.getPreferredChannel());
     }
 
@@ -347,6 +353,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         donorNameField.setText("");
         donorEmailField.setText("");
         donorPhoneField.setText("");
+        donorSocialField.setText("");
         channelBox.setSelectedIndex(0);
     }
 
@@ -377,7 +384,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         donorBox.removeAllItems();
         for (Donor donor : donors) {
             donorTableModel.addRow(new Object[]{donor.getName(), donor.getEmail(), donor.getPhone(),
-                    donor.getPreferredChannel()});
+                    donor.getSocialHandle(), donor.getPreferredChannel()});
             donorBox.addItem(donor);
             if (selectedDonor != null && donor.getId() == selectedDonor.getId()) {
                 donorBox.setSelectedItem(donor); // keep the previous choice

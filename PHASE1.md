@@ -86,7 +86,7 @@ The assignment asks us to add a few requirements from "the client". We had no re
 | CR2 | You can't delete a lookup value that is already in use. The app says how many records use it. | 1 |
 | CR3 | Every donation gets the date and time automatically, plus a receipt number like `RCP-2026-0007`. | 1, 2 |
 | CR4 | Only tax-deductible donation types get tax information on their receipt. | 3 |
-| CR5 | Each donor picks Email or SMS, and automatically gets a thank-you message that way. Staff can turn this off. | 2, 5 |
+| CR5 | Each donor picks Email, SMS or Social, and automatically gets a thank-you message that way. Staff can turn this off. | 2, 5 |
 | CR6 | Every action shows a clear success or error message. | all |
 
 ---
@@ -283,7 +283,7 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 
 ## Section 5 — Messages + Strategy
 
-**In short:** staff can send a message to a whole group by Email or SMS. Each channel is a separate "strategy" that can be swapped while the app runs. Donors also get an automatic thank-you on their preferred channel.
+**In short:** staff can send a message to a whole group by Email, SMS or Social media. Each channel is a separate "strategy" that can be swapped while the app runs. Donors also get an automatic thank-you on their preferred channel.
 
 > Sending is **simulated**: messages are printed and logged, not really sent. The screen must say so clearly.
 
@@ -295,6 +295,7 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 - [x] `CommunicationStrategy`: an interface for "a way of sending a message".
 - [x] `EmailStrategy`: uses the person's email.
 - [x] `SmsStrategy`: uses the phone number and rejects messages over 160 characters.
+- [x] `SocialMediaStrategy` (gap fix): uses the donor's `@handle` and rejects messages over 280 characters. Only donors have a handle.
 - [x] `CommunicationService`: holds the current strategy and lets you change it with `setStrategy(...)`. It must **not** contain any "if email… else if SMS…" code.
 - [x] Every attempt, sent or skipped, is saved in a message log.
 
@@ -304,7 +305,7 @@ Create an event under *Outreach* → register two attendees → add a volunteer 
 
 **3. Communication screen**
 - [x] Choose who to send to: all donors, all volunteers, all beneficiaries, or the attendees of one event.
-- [x] Choose Email or SMS, write a subject and message, then **Send**.
+- [x] Choose Email, SMS or Social, write a subject and message, then **Send**.
 - [x] Show a result like *"Sent 4, skipped 2 (no valid phone)"*.
 - [x] Show a table of the message log.
 - [x] Show a visible note: *"Simulated — no real email or SMS is sent."*
@@ -383,5 +384,5 @@ Please don't build these yet; they belong to Phase 2 or later:
 
 - The Phase 2 patterns: Command, Adapter, Facade, Template Method, Iterator, State, Proxy
 - Admin pages, payments, logins
-- Volunteer hours and certificates, tracking aid distribution, ticketing, social media
-- Real email or SMS sending
+- Volunteer hours and certificates, tracking aid distribution, ticketing
+- Real email, SMS or social media sending

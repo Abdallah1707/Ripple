@@ -3,7 +3,8 @@ package com.ripple.model;
 /** The ways Ripple can contact someone. */
 public enum ContactChannel {
     EMAIL("email address"),
-    SMS("phone number");
+    SMS("phone number"),
+    SOCIAL("social media handle");
 
     private final String addressLabel;
 

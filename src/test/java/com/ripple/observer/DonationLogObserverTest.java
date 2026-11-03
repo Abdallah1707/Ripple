@@ -52,7 +52,7 @@ class DonationLogObserverTest {
         DonationService service = new DonationService(factories, new DonorRepository(db),
                 new DonationRepository(db, factories), types);
         service.registerObserver(new DonationLogObserver());
-        Donor donor = service.registerDonor("Omar", "omar@example.com", "", ContactChannel.EMAIL);
+        Donor donor = service.registerDonor("Omar", "omar@example.com", "", "", ContactChannel.EMAIL);
 
         Donation donation = service.recordDonation(DonationMethod.CASH, donor.getId(),
                 types.findAll().get(0).getId(), new DonationRequest(75, null, null, 0, 0, null));

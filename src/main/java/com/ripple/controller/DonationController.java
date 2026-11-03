@@ -56,20 +56,22 @@ public class DonationController {
     /**
      * Adds a new donor ({@code id == null}) or updates an existing one.
      *
-     * @param id      {@code null} to add, or the id of the donor to update
-     * @param name    the name typed by the user
-     * @param email   the email typed by the user
-     * @param phone   the phone typed by the user
-     * @param channel {@code "EMAIL"} or {@code "SMS"}
+     * @param id           {@code null} to add, or the id of the donor to update
+     * @param name         the name typed by the user
+     * @param email        the email typed by the user
+     * @param phone        the phone typed by the user
+     * @param socialHandle the social media handle typed by the user, e.g. {@code "@mona_ali"}
+     * @param channel      {@code "EMAIL"}, {@code "SMS"} or {@code "SOCIAL"}
      * @return what happened, for the status bar
      */
-    public Result saveDonor(Integer id, String name, String email, String phone, String channel) {
+    public Result saveDonor(Integer id, String name, String email, String phone, String socialHandle,
+                            String channel) {
         boolean adding = id == null;
         try {
             ContactChannel preferred = parseChannel(channel);
             Donor donor = adding
-                    ? donationService.registerDonor(name, email, phone, preferred)
-                    : donationService.updateDonor(id, name, email, phone, preferred);
+                    ? donationService.registerDonor(name, email, phone, socialHandle, preferred)
+                    : donationService.updateDonor(id, name, email, phone, socialHandle, preferred);
             String message = "Donor '" + donor.getName() + "' " + (adding ? "registered" : "updated");
             ApplicationLogger.getInstance().info(message);
             return Result.ok(message);
@@ -199,7 +201,7 @@ public class DonationController {
         }
     }
 
-    /** Converts {@code "EMAIL"} / {@code "SMS"} to a channel, or explains what is wrong. */
+    /** Converts {@code "EMAIL"} / {@code "SMS"} / {@code "SOCIAL"} to a channel, or explains what is wrong. */
     private ContactChannel parseChannel(String channel) {
         if (channel != null) {
             for (ContactChannel value : ContactChannel.values()) {
@@ -208,6 +210,6 @@ public class DonationController {
                 }
             }
         }
-        throw new ValidationException("Preferred channel must be Email or SMS");
+        throw new ValidationException("Preferred channel must be Email, SMS or Social");
     }
 }

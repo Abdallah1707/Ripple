@@ -28,4 +28,14 @@ public interface Contactable {
      * @return the phone number, or an empty string if there is none
      */
     String getPhone();
+
+    /**
+     * Returns the social media handle. Only donors have one, so the default is empty; a
+     * {@code default} method lets the social media strategy ask anyone without checking their class.
+     *
+     * @return the handle, e.g. {@code "@mona_ali"}, or an empty string if there is none
+     */
+    default String getSocialHandle() {
+        return "";
+    }
 }

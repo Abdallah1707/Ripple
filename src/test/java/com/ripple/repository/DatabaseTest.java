@@ -36,6 +36,23 @@ class DatabaseTest {
     }
 
     @Test
+    void initializeAddsTheSocialHandleColumnToAnOlderDatabase() throws SQLException {
+        Database db = new Database(tempDir.resolve("old.db").toString());
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            // the donors table as it was before social media was added
+            s.execute("CREATE TABLE donors (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, "
+                    + "email TEXT, phone TEXT, preferred_channel TEXT NOT NULL)");
+            s.execute("INSERT INTO donors (name, email, preferred_channel) VALUES ('Mona', 'm@x.com', 'EMAIL')");
+        }
+
+        db.initialize();
+        db.initialize(); // a second start must not try to add the column again
+
+        assertEquals(1, count(db, "SELECT COUNT(*) FROM pragma_table_info('donors') WHERE name = 'social_handle'"));
+        assertEquals(1, count(db, "SELECT COUNT(*) FROM donors WHERE name = 'Mona'")); // old rows are kept
+    }
+
+    @Test
     void foreignKeysAreSwitchedOn() throws SQLException {
         Database db = TestDatabase.create(tempDir);
         assertEquals(1, count(db, "PRAGMA foreign_keys"));

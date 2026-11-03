@@ -10,7 +10,7 @@ import java.util.Map;
 
 /**
  * Concrete observer in the Observer pattern that sends the donor a thank-you message on
- * their preferred channel (Email or SMS) every time a donation is recorded (CR5).
+ * their preferred channel (Email, SMS or Social) every time a donation is recorded (CR5).
  *
  * <p>It is also a client of the Strategy pattern: it looks up the strategy for the donor's
  * channel in its map and gives it to {@link CommunicationService}, so there is no

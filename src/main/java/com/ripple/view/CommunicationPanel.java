@@ -2,6 +2,7 @@ package com.ripple.view;
 
 import com.ripple.communication.MessageLogEntry;
 import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.controller.Audience;
 import com.ripple.controller.CommunicationController;
 import com.ripple.controller.EventController;
@@ -31,7 +32,7 @@ import java.awt.Insets;
 import java.time.format.DateTimeFormatter;
 
 /**
- * The Communication screen: send a message to a whole group by Email or SMS, and see the
+ * The Communication screen: send a message to a whole group by Email, SMS or Social, and see the
  * message log.
  *
  * <p>A <b>View</b> in MVC: it only shows things and calls {@link CommunicationController}
@@ -124,7 +125,8 @@ public class CommunicationPanel extends JPanel implements Refreshable {
 
         FormHelper.placeholder(subjectField, "e.g. Thank you for your support");
         subjectField.setToolTipText("Used for email; SMS messages have no subject");
-        channelBox.setToolTipText("SMS messages are limited to " + SmsStrategy.MAX_LENGTH + " characters");
+        channelBox.setToolTipText("SMS messages are limited to " + SmsStrategy.MAX_LENGTH + " characters, social media "
+                + "messages to " + SocialMediaStrategy.MAX_LENGTH + "; only donors have a social handle");
         FormHelper.onEnter(this::send, subjectField);
         addRow(form, 6, new JLabel(), FormHelper.button("Send",
                 "Send this message to everyone in the chosen group", this::send));
@@ -150,13 +152,20 @@ public class CommunicationPanel extends JPanel implements Refreshable {
         form.add(field, c);
     }
 
-    /** Shows how long the message is, and the SMS limit when SMS is chosen. */
+    /** Shows how long the message is, and the channel's limit when SMS or Social is chosen. */
     private void updateLengthLabel() {
         int length = bodyArea.getText().length();
-        boolean sms = channelBox.getSelectedItem() == ContactChannel.SMS;
-        lengthLabel.setText(sms ? length + " / " + SmsStrategy.MAX_LENGTH + " characters (SMS limit)"
-                : length + " characters");
-        lengthLabel.setForeground(sms && length > SmsStrategy.MAX_LENGTH ? Color.RED : Color.DARK_GRAY);
+        ContactChannel channel = (ContactChannel) channelBox.getSelectedItem();
+        int limit = channel == ContactChannel.SMS ? SmsStrategy.MAX_LENGTH
+                : channel == ContactChannel.SOCIAL ? SocialMediaStrategy.MAX_LENGTH
+                : 0; // email has no limit
+        String text = limit == 0 ? length + " characters"
+                : length + " / " + limit + " characters (" + channel + " limit)";
+        if (channel == ContactChannel.SOCIAL) {
+            text += " · only donors with a social handle receive it";
+        }
+        lengthLabel.setText(text);
+        lengthLabel.setForeground(limit > 0 && length > limit ? Color.RED : Color.DARK_GRAY);
     }
 
     private void send() {

@@ -12,6 +12,8 @@ public final class InputValidator {
     private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
     /** Optional leading +, then 8 to 15 digits (after spaces and dashes are removed). */
     private static final Pattern PHONE = Pattern.compile("^\\+?\\d{8,15}$");
+    /** An @, then 2 to 30 letters, digits, underscores or dots, like most platforms allow. */
+    private static final Pattern SOCIAL_HANDLE = Pattern.compile("^@[A-Za-z0-9_.]{2,30}$");
 
     private InputValidator() {
     }
@@ -55,6 +57,16 @@ public final class InputValidator {
      */
     public static boolean isValidPhone(String value) {
         return value != null && PHONE.matcher(value.replaceAll("[\\s-]", "")).matches();
+    }
+
+    /**
+     * Tells whether the text looks like a social media handle.
+     *
+     * @param value the text to check (may be {@code null})
+     * @return {@code true} for e.g. {@code "@mona_ali"}; {@code false} without the leading {@code @}
+     */
+    public static boolean isValidSocialHandle(String value) {
+        return value != null && SOCIAL_HANDLE.matcher(value.trim()).matches();
     }
 
     /**

@@ -74,7 +74,7 @@ class DashboardControllerTest {
 
     @Test
     void numbersChangeAfterRecordingADonation() {
-        Donor donor = donationService.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        Donor donor = donationService.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
         int typeId = donationTypes.findAll().get(0).getId();
         assertEquals(1, dashboard.getSummary().donors());
         assertEquals(0, dashboard.getSummary().donations());

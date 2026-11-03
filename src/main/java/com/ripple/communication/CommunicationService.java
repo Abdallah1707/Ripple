@@ -62,7 +62,7 @@ public class CommunicationService {
      */
     public DeliveryResult send(Contactable recipient, String subject, String body) {
         if (strategy == null) {
-            throw new IllegalStateException("Choose Email or SMS before sending");
+            throw new IllegalStateException("Choose Email, SMS or Social before sending");
         }
         String address = strategy.addressOf(recipient);
         Message message = new Message(recipient.getName(), address == null ? "" : address.trim(), subject, body);

@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * One row of the message log: a message Ripple sent or skipped.
  *
  * @param id        database id
- * @param channel   Email or SMS
+ * @param channel   Email, SMS or Social
  * @param recipient the person's name and the address used, e.g. {@code "Mona Ali <mona@example.com>"}
  * @param subject   the subject line
  * @param body      the message text

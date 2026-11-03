@@ -67,7 +67,7 @@ class DonationServiceTest {
         DonationTypeRepository types = new DonationTypeRepository(db);
         service = new DonationService(factories, new DonorRepository(db),
                 new DonationRepository(db, factories), types);
-        donor = service.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        donor = service.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
         typeId = types.findAll().get(0).getId();
         observer = new CountingObserver();
         service.registerObserver(observer);
@@ -81,7 +81,7 @@ class DonationServiceTest {
 
     @Test
     void registerDonorSavesDonorWithPreferredChannel() {
-        Donor saved = service.registerDonor("  Omar  ", "", "010 1234 5678", ContactChannel.SMS);
+        Donor saved = service.registerDonor("  Omar  ", "", "010 1234 5678", "", ContactChannel.SMS);
         assertTrue(saved.getId() > 0);
         assertEquals("Omar", saved.getName());
         assertEquals(ContactChannel.SMS, service.findAllDonors().stream()
@@ -91,43 +91,58 @@ class DonationServiceTest {
     @Test
     void donorNameIsRequired() {
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("   ", "a@b.com", "", ContactChannel.EMAIL));
+                () -> service.registerDonor("   ", "a@b.com", "", "", ContactChannel.EMAIL));
     }
 
     @Test
     void emailDonorNeedsValidEmail() {
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "not-an-email", "", ContactChannel.EMAIL));
+                () -> service.registerDonor("Sara", "not-an-email", "", "", ContactChannel.EMAIL));
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "", "", ContactChannel.EMAIL));
+                () -> service.registerDonor("Sara", "", "", "", ContactChannel.EMAIL));
     }
 
     @Test
     void smsDonorNeedsValidPhone() {
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "sara@example.com", "abc", ContactChannel.SMS));
+                () -> service.registerDonor("Sara", "sara@example.com", "abc", "", ContactChannel.SMS));
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "sara@example.com", "", ContactChannel.SMS));
+                () -> service.registerDonor("Sara", "sara@example.com", "", "", ContactChannel.SMS));
+    }
+
+    @Test
+    void socialDonorNeedsAValidHandle() {
+        assertThrows(ValidationException.class,
+                () -> service.registerDonor("Sara", "", "", "", ContactChannel.SOCIAL));
+        assertThrows(ValidationException.class,
+                () -> service.registerDonor("Sara", "", "", "sara_s", ContactChannel.SOCIAL)); // no @
+        // a typed handle must be valid even when the donor prefers another channel
+        assertThrows(ValidationException.class,
+                () -> service.registerDonor("Sara", "sara@example.com", "", "@", ContactChannel.EMAIL));
+
+        Donor saved = service.registerDonor("Sara", "", "", " @sara_s ", ContactChannel.SOCIAL);
+        assertEquals("@sara_s", saved.getSocialHandle());
+        assertEquals(ContactChannel.SOCIAL, saved.getPreferredChannel());
     }
 
     @Test
     void phoneNumberMustBeExactly11Digits() {
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "sara@example.com", "0101234567", ContactChannel.EMAIL));   // 10 digits
+                () -> service.registerDonor("Sara", "sara@example.com", "0101234567", "", ContactChannel.EMAIL));   // 10 digits
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "sara@example.com", "010123456789", ContactChannel.EMAIL)); // 12 digits
+                () -> service.registerDonor("Sara", "sara@example.com", "010123456789", "", ContactChannel.EMAIL)); // 12 digits
         assertThrows(ValidationException.class,
-                () -> service.registerDonor("Sara", "", "0101234567", ContactChannel.SMS));
+                () -> service.registerDonor("Sara", "", "0101234567", "", ContactChannel.SMS));
         // exactly 11 digits is accepted (spaces and dashes are ignored)
-        assertTrue(service.registerDonor("Sara", "sara@example.com", "01012345678", ContactChannel.EMAIL).getId() > 0);
-        assertTrue(service.registerDonor("Omar", "", "010-1234-5678", ContactChannel.SMS).getId() > 0);
+        assertTrue(service.registerDonor("Sara", "sara@example.com", "01012345678", "", ContactChannel.EMAIL).getId() > 0);
+        assertTrue(service.registerDonor("Omar", "", "010-1234-5678", "", ContactChannel.SMS).getId() > 0);
     }
 
     // ---------------- update and delete donors ----------------
 
     @Test
     void updateDonorSavesTheNewDetails() {
-        service.updateDonor(donor.getId(), "Mona A. Ali", "", "01012345678", ContactChannel.SMS);
+        service.updateDonor(donor.getId(), "Mona A. Ali", "", "01012345678", "", ContactChannel.SMS);
 
         Donor updated = service.findAllDonors().get(0);
         assertEquals(donor.getId(), updated.getId());
@@ -138,11 +153,11 @@ class DonationServiceTest {
     @Test
     void updateDonorUsesTheSameRulesAsRegister() {
         assertThrows(ValidationException.class,
-                () -> service.updateDonor(donor.getId(), " ", "mona@example.com", "", ContactChannel.EMAIL));
+                () -> service.updateDonor(donor.getId(), " ", "mona@example.com", "", "", ContactChannel.EMAIL));
         assertThrows(ValidationException.class,
-                () -> service.updateDonor(donor.getId(), "Mona", "", "", ContactChannel.SMS));
+                () -> service.updateDonor(donor.getId(), "Mona", "", "", "", ContactChannel.SMS));
         assertThrows(ValidationException.class,
-                () -> service.updateDonor(9999, "Ghost", "ghost@example.com", "", ContactChannel.EMAIL));
+                () -> service.updateDonor(9999, "Ghost", "ghost@example.com", "", "", ContactChannel.EMAIL));
         assertEquals("Mona Ali", service.findAllDonors().get(0).getName()); // unchanged
     }
 

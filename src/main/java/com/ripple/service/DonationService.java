@@ -95,32 +95,36 @@ public class DonationService implements DonationSubject {
     /**
      * Checks and saves a new donor.
      *
-     * @param name    the donor's name (required)
-     * @param email   the email address (required if the donor prefers Email)
-     * @param phone   the phone number (required if the donor prefers SMS)
-     * @param channel the preferred channel for thank-you messages (CR5)
+     * @param name         the donor's name (required)
+     * @param email        the email address (required if the donor prefers Email)
+     * @param phone        the phone number (required if the donor prefers SMS)
+     * @param socialHandle the social media handle, e.g. {@code "@mona_ali"} (required if the donor prefers Social)
+     * @param channel      the preferred channel for thank-you messages (CR5)
      * @return the saved donor, with its id
      * @throws ValidationException if a rule is broken
      */
-    public Donor registerDonor(String name, String email, String phone, ContactChannel channel) {
-        return donorRepository.insert(validateDonor(0, name, email, phone, channel));
+    public Donor registerDonor(String name, String email, String phone, String socialHandle,
+                               ContactChannel channel) {
+        return donorRepository.insert(validateDonor(0, name, email, phone, socialHandle, channel));
     }
 
     /**
      * Checks and saves new details for an existing donor. The same rules as
      * {@link #registerDonor} apply.
      *
-     * @param id      the donor's id
-     * @param name    the new name
-     * @param email   the new email
-     * @param phone   the new phone number
-     * @param channel the new preferred channel
+     * @param id           the donor's id
+     * @param name         the new name
+     * @param email        the new email
+     * @param phone        the new phone number
+     * @param socialHandle the new social media handle
+     * @param channel      the new preferred channel
      * @return the updated donor
      * @throws ValidationException if the donor does not exist or a rule is broken
      */
-    public Donor updateDonor(int id, String name, String email, String phone, ContactChannel channel) {
+    public Donor updateDonor(int id, String name, String email, String phone, String socialHandle,
+                             ContactChannel channel) {
         requireExistingDonor(id);
-        Donor donor = validateDonor(id, name, email, phone, channel);
+        Donor donor = validateDonor(id, name, email, phone, socialHandle, channel);
         donorRepository.update(donor);
         return donor;
     }
@@ -150,10 +154,12 @@ public class DonationService implements DonationSubject {
     }
 
     /** The donor rules, shared by register and update. Returns a clean donor with the given id. */
-    private static Donor validateDonor(int id, String name, String email, String phone, ContactChannel channel) {
+    private static Donor validateDonor(int id, String name, String email, String phone, String socialHandle,
+                                       ContactChannel channel) {
         String cleanName = InputValidator.requireText(name, "Donor name", 1, 100);
         String cleanEmail = email == null ? "" : email.trim();
         String cleanPhone = phone == null ? "" : phone.trim();
+        String cleanHandle = socialHandle == null ? "" : socialHandle.trim();
         if (channel == null) {
             throw new ValidationException("Preferred channel is required");
         }
@@ -167,7 +173,14 @@ public class DonationService implements DonationSubject {
         if (channel == ContactChannel.SMS && !InputValidator.isValidPhone(cleanPhone)) {
             throw new ValidationException("A valid phone number is required when the donor prefers SMS");
         }
-        return new Donor(id, cleanName, cleanEmail, cleanPhone, channel);
+        // A handle is optional for the other channels, but if one is typed it must be valid.
+        if (!cleanHandle.isEmpty() && !InputValidator.isValidSocialHandle(cleanHandle)) {
+            throw new ValidationException("Social handle must start with @ (example: @mona_ali)");
+        }
+        if (channel == ContactChannel.SOCIAL && cleanHandle.isEmpty()) {
+            throw new ValidationException("A social media handle is required when the donor prefers Social");
+        }
+        return new Donor(id, cleanName, cleanEmail, cleanPhone, cleanHandle, channel);
     }
 
     /**

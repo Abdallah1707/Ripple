@@ -56,7 +56,7 @@ class DonationControllerTest {
         ReceiptRepository receiptRepository = new ReceiptRepository(db);
         service.registerObserver(new ReceiptObserver(receiptRepository));
         controller = new DonationController(service, receiptRepository, notifier);
-        donor = service.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        donor = service.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
         typeId = types.findAll().get(0).getId();
     }
 
@@ -134,15 +134,15 @@ class DonationControllerTest {
 
     @Test
     void saveDonorWithoutIdRegistersAndChecksChannelRules() {
-        assertTrue(controller.saveDonor(null, "Omar", "omar@example.com", "", "EMAIL").success());
-        assertFalse(controller.saveDonor(null, "Sara", "", "", "SMS").success());
-        assertFalse(controller.saveDonor(null, "Sara", "sara@example.com", "", "FAX").success());
+        assertTrue(controller.saveDonor(null, "Omar", "omar@example.com", "", "", "EMAIL").success());
+        assertFalse(controller.saveDonor(null, "Sara", "", "", "", "SMS").success());
+        assertFalse(controller.saveDonor(null, "Sara", "sara@example.com", "", "", "FAX").success());
         assertEquals(2, controller.listDonors().size()); // Mona (setUp) + Omar
     }
 
     @Test
     void saveDonorWithIdUpdatesTheDonor() {
-        Result result = controller.saveDonor(donor.getId(), "Mona A. Ali", "", "01012345678", "SMS");
+        Result result = controller.saveDonor(donor.getId(), "Mona A. Ali", "", "01012345678", "", "SMS");
         assertTrue(result.success(), result.message());
         assertEquals("Donor 'Mona A. Ali' updated", result.message());
         Donor updated = controller.listDonors().get(0);

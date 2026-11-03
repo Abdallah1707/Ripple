@@ -62,7 +62,7 @@ class ReceiptObserverTest {
                 new DonationRepository(db, factories), types);
         ReceiptRepository receiptRepository = new ReceiptRepository(db);
         service.registerObserver(new ReceiptObserver(receiptRepository));
-        Donor donor = service.registerDonor("Omar", "omar@example.com", "", ContactChannel.EMAIL);
+        Donor donor = service.registerDonor("Omar", "omar@example.com", "", "", ContactChannel.EMAIL);
         DonationType zakat = types.findAll().stream()
                 .filter(t -> t.getName().equals("Zakat")).findFirst().orElseThrow();
 

@@ -6,6 +6,7 @@ import com.ripple.communication.CommunicationService;
 import com.ripple.communication.EmailStrategy;
 import com.ripple.communication.MessageLogEntry;
 import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.ContactChannel;
@@ -48,7 +49,8 @@ class DonorNotificationObserverTest {
         service = new DonationService(factories, new DonorRepository(db), new DonationRepository(db, factories), types);
         log = new MessageLogRepository(db);
         notifier = new DonorNotificationObserver(new CommunicationService(log),
-                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy()));
+                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy(),
+                        ContactChannel.SOCIAL, new SocialMediaStrategy()));
         service.registerObserver(notifier);
         typeId = types.findAll().get(0).getId();
     }
@@ -60,8 +62,8 @@ class DonorNotificationObserverTest {
 
     @Test
     void thankYouUsesEachDonorsPreferredChannel() {
-        Donor byEmail = service.registerDonor("Mona Ali", "mona@example.com", "01012345678", ContactChannel.EMAIL);
-        Donor bySms = service.registerDonor("Omar Samy", "omar@example.com", "01198765432", ContactChannel.SMS);
+        Donor byEmail = service.registerDonor("Mona Ali", "mona@example.com", "01012345678", "", ContactChannel.EMAIL);
+        Donor bySms = service.registerDonor("Omar Samy", "omar@example.com", "01198765432", "", ContactChannel.SMS);
 
         Donation first = donate(byEmail);
         donate(bySms);
@@ -77,8 +79,20 @@ class DonorNotificationObserverTest {
     }
 
     @Test
+    void socialDonorIsThankedOnSocialMediaWithNoChangeToTheObserver() {
+        Donor donor = service.registerDonor("Sara", "", "", "@sara_s", ContactChannel.SOCIAL);
+
+        donate(donor);
+
+        MessageLogEntry entry = log.findAll().get(0);
+        assertEquals(ContactChannel.SOCIAL, entry.channel());
+        assertEquals("Sara <@sara_s>", entry.recipient());
+        assertEquals("SIMULATED", entry.status());
+    }
+
+    @Test
     void noThankYouIsSentAfterTheObserverIsDetached() {
-        Donor donor = service.registerDonor("Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        Donor donor = service.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
         donate(donor);
         assertEquals(1, log.findAll().size());
 

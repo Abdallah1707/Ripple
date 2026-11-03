@@ -68,7 +68,7 @@ public class CommunicationController {
      *
      * @param audience who to send to
      * @param eventId  the chosen event, only used for {@link Audience#EVENT_ATTENDEES}
-     * @param channel  {@code "EMAIL"} or {@code "SMS"}
+     * @param channel  {@code "EMAIL"}, {@code "SMS"} or {@code "SOCIAL"}
      * @param subject  the subject typed by the user
      * @param body     the message typed by the user
      * @return how many were sent and skipped, for the status bar
@@ -140,7 +140,7 @@ public class CommunicationController {
         return reasons.isEmpty() ? summary : summary + " (" + String.join("; ", reasons) + ")";
     }
 
-    /** Converts {@code "EMAIL"} / {@code "SMS"} to a channel, or explains what is wrong. */
+    /** Converts {@code "EMAIL"} / {@code "SMS"} / {@code "SOCIAL"} to a channel, or explains what is wrong. */
     private ContactChannel parseChannel(String channel) {
         if (channel != null) {
             for (ContactChannel value : ContactChannel.values()) {
@@ -149,6 +149,6 @@ public class CommunicationController {
                 }
             }
         }
-        throw new ValidationException("Channel must be Email or SMS");
+        throw new ValidationException("Channel must be Email, SMS or Social");
     }
 }

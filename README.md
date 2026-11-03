@@ -2,7 +2,7 @@
 
 Ripple is a desktop application that helps a non-profit organization manage donations, volunteers, events, beneficiaries and communication. It is the Phase 1 deliverable of the CSE336 *Software Design Patterns* major task, built to show **MVC** and five design patterns working inside real features: **Strategy, Observer, Decorator, Factory Method and Singleton**.
 
-> **Status:** Phase 1 is complete (all 6 sections of [PHASE1.md](PHASE1.md)): database, lookup tables, Singleton, Factory Method, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, the Communication screen with Strategy (simulated Email / SMS and automatic donor thank-yous), and the Dashboard.
+> **Status:** Phase 1 is complete (all 6 sections of [PHASE1.md](PHASE1.md)): database, lookup tables, Singleton, Factory Method, donations with Observer, receipts with Decorator, the Volunteers, Events and Beneficiaries screens, the Communication screen with Strategy (simulated Email / SMS / Social media and automatic donor thank-yous), and the Dashboard.
 
 ![The Ripple Dashboard: totals for each module and the recent activity from the log](docs/images/dashboard.png)
 
@@ -56,7 +56,7 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 | Volunteers | Add, edit and delete volunteers; assign a volunteer to an event |
 | Events | Add, edit and delete events; register attendees; see an event's attendees and volunteers |
 | Beneficiaries | Add, edit and delete beneficiaries |
-| Communication | Send a message to a group (donors, volunteers, beneficiaries or an event's attendees) by Email or SMS, and read the message log. Sending is **simulated**: nothing is really sent |
+| Communication | Send a message to a group (donors, volunteers, beneficiaries or an event's attendees) by Email, SMS or Social media (donors with a handle), and read the message log. Sending is **simulated**: nothing is really sent |
 | Lookup Management | Add, edit and delete Donation Types and Event Categories |
 
 ---
@@ -88,7 +88,7 @@ We had no real client, so these requirements are **our own assumptions**.
 | CR2 | A lookup value that is in use cannot be deleted, and the app says how many records use it | Lookup Management: delete "Zakat" after recording a Zakat donation → red message. `LookupServiceTest` |
 | CR3 | Every donation gets the date and time automatically, plus a receipt number like `RCP-2026-0007` | Donations table (receipt no., date). `DonationFactoryTest`, `DonationTest` |
 | CR4 | Only tax-deductible donation types get tax information on their receipt | *View receipt* on a Zakat donation vs. a Food Supplies donation. `ReceiptObserverTest` |
-| CR5 | Each donor picks Email or SMS and automatically gets a thank-you that way; staff can turn this off | Donor form, "Notify donors on new donation" checkbox, Communication message log. `DonorNotificationObserverTest` |
+| CR5 | Each donor picks Email, SMS or Social and automatically gets a thank-you that way; staff can turn this off | Donor form, "Notify donors on new donation" checkbox, Communication message log. `DonorNotificationObserverTest` |
 | CR6 | Every action shows a clear success or error message | The status bar at the bottom of every screen. Every controller returns a `Result` |
 
 ---

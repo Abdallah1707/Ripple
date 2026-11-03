@@ -32,7 +32,7 @@ public class DonorRepository {
      * @return all donors
      */
     public List<Donor> findAll() {
-        String sql = "SELECT id, name, email, phone, preferred_channel FROM donors ORDER BY name COLLATE NOCASE";
+        String sql = "SELECT id, name, email, phone, social_handle, preferred_channel FROM donors ORDER BY name COLLATE NOCASE";
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(sql);
              ResultSet rows = statement.executeQuery()) {
@@ -53,7 +53,7 @@ public class DonorRepository {
      * @return the donor, or empty if there is no donor with that id
      */
     public Optional<Donor> findById(int id) {
-        String sql = "SELECT id, name, email, phone, preferred_channel FROM donors WHERE id = ?";
+        String sql = "SELECT id, name, email, phone, social_handle, preferred_channel FROM donors WHERE id = ?";
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(sql)) {
             statement.setInt(1, id);
@@ -72,13 +72,14 @@ public class DonorRepository {
      * @return the same donor, now with its id
      */
     public Donor insert(Donor donor) {
-        String sql = "INSERT INTO donors (name, email, phone, preferred_channel) VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO donors (name, email, phone, social_handle, preferred_channel) VALUES (?, ?, ?, ?, ?)";
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             statement.setString(1, donor.getName());
             statement.setString(2, donor.getEmail());
             statement.setString(3, donor.getPhone());
-            statement.setString(4, donor.getPreferredChannel().name());
+            statement.setString(4, donor.getSocialHandle());
+            statement.setString(5, donor.getPreferredChannel().name());
             statement.executeUpdate();
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 donor.setId(keys.getInt(1));
@@ -95,14 +96,16 @@ public class DonorRepository {
      * @param donor the donor with its id and new details
      */
     public void update(Donor donor) {
-        String sql = "UPDATE donors SET name = ?, email = ?, phone = ?, preferred_channel = ? WHERE id = ?";
+        String sql = "UPDATE donors SET name = ?, email = ?, phone = ?, social_handle = ?, preferred_channel = ? "
+                + "WHERE id = ?";
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(sql)) {
             statement.setString(1, donor.getName());
             statement.setString(2, donor.getEmail());
             statement.setString(3, donor.getPhone());
-            statement.setString(4, donor.getPreferredChannel().name());
-            statement.setInt(5, donor.getId());
+            statement.setString(4, donor.getSocialHandle());
+            statement.setString(5, donor.getPreferredChannel().name());
+            statement.setInt(6, donor.getId());
             statement.executeUpdate();
         } catch (SQLException e) {
             throw new IllegalStateException("Database error: " + e.getMessage(), e);
@@ -159,6 +162,7 @@ public class DonorRepository {
 
     private static Donor toDonor(ResultSet row) throws SQLException {
         return new Donor(row.getInt("id"), row.getString("name"), row.getString("email"),
-                row.getString("phone"), ContactChannel.valueOf(row.getString("preferred_channel")));
+                row.getString("phone"), row.getString("social_handle"),
+                ContactChannel.valueOf(row.getString("preferred_channel")));
     }
 }

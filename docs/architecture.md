@@ -113,7 +113,7 @@ flowchart TD
 | `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
 | `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers. |
 | `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
-| `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, context `CommunicationService`. |
+| `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy`, context `CommunicationService`. |
 | `com.ripple.logging` | **Singleton**: `ApplicationLogger`. |
 | `com.ripple.repository` | `Database` and one repository per table group. |
 | `com.ripple.service` | `LookupService`, `DonationService`, `InputValidator`, `ValidationException`. |
@@ -128,7 +128,7 @@ flowchart TD
 
 1. `Database` (reads `RIPPLE_DB_PATH`, default `data/ripple.db`) → `initialize()` creates tables and seed data.
 2. The donation creators, one `DonationFactory` subclass per method, in a `Map<DonationMethod, DonationFactory>` keyed by `getMethod()`; then repositories (the donation repository gets the map so it can rebuild donations from rows).
-3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy())`.
+3. Strategies: `Map.of(EMAIL, new EmailStrategy(), SMS, new SmsStrategy(), SOCIAL, new SocialMediaStrategy())`.
 4. Services: `LookupService` ×2, `DonationService`.
 5. Observers attached to `DonationService`: `DonationLogObserver`, `ReceiptObserver`, `DonorNotificationObserver`.
 6. Controllers, including `DashboardController` (it gets the five repositories it counts).
@@ -154,7 +154,7 @@ sequenceDiagram
     participant RO as ReceiptObserver
     participant NO as DonorNotificationObserver
     participant CS as CommunicationService
-    participant ST as EmailStrategy / SmsStrategy
+    participant ST as EmailStrategy / SmsStrategy / SocialMediaStrategy
 
     Staff->>V: fill form, click "Record donation"
     V->>C: recordDonation(donorId, typeId, "ONLINE", "500", "TX-991", ...)
@@ -259,7 +259,8 @@ erDiagram
         TEXT name
         TEXT email
         TEXT phone
-        TEXT preferred_channel "EMAIL or SMS"
+        TEXT social_handle "e.g. @mona_ali, optional"
+        TEXT preferred_channel "EMAIL, SMS or SOCIAL"
     }
     DONATIONS {
         INTEGER id PK

@@ -5,6 +5,7 @@ import com.ripple.communication.CommunicationService;
 import com.ripple.communication.CommunicationStrategy;
 import com.ripple.communication.EmailStrategy;
 import com.ripple.communication.SmsStrategy;
+import com.ripple.communication.SocialMediaStrategy;
 import com.ripple.controller.BeneficiaryController;
 import com.ripple.controller.CommunicationController;
 import com.ripple.controller.DashboardController;
@@ -125,7 +126,8 @@ public final class Main {
         BeneficiaryRepository beneficiaryRepository = new BeneficiaryRepository(database);
         // Section 5: strategies map, MessageLogRepository, CommunicationService, DonorNotificationObserver
         Map<ContactChannel, CommunicationStrategy> strategies =
-                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy());
+                Map.of(ContactChannel.EMAIL, new EmailStrategy(), ContactChannel.SMS, new SmsStrategy(),
+                        ContactChannel.SOCIAL, new SocialMediaStrategy());
         MessageLogRepository messageLogRepository = new MessageLogRepository(database);
         CommunicationService communicationService = new CommunicationService(messageLogRepository);
         // Donor notification starts attached (CR5); the Donations screen checkbox can detach it.

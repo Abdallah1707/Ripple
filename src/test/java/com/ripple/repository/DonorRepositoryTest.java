@@ -61,6 +61,17 @@ class DonorRepositoryTest {
     }
 
     @Test
+    void socialHandleIsStoredAndUpdated() {
+        Donor saved = repository.insert(new Donor(0, "Mona Ali", "", "", "@mona_ali", ContactChannel.SOCIAL));
+        assertEquals("@mona_ali", repository.findById(saved.getId()).orElseThrow().getSocialHandle());
+
+        repository.update(new Donor(saved.getId(), "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
+        Donor found = repository.findById(saved.getId()).orElseThrow();
+        assertEquals("", found.getSocialHandle());
+        assertEquals(ContactChannel.EMAIL, found.getPreferredChannel());
+    }
+
+    @Test
     void deleteRemovesTheDonorAndCountDonationsStartsAtZero() {
         Donor saved = repository.insert(new Donor(0, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL));
         assertEquals(0, repository.countDonations(saved.getId()));

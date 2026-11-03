@@ -107,7 +107,7 @@ public class DonationRepository {
                 SELECT d.id, d.method, d.amount, d.transaction_ref, d.item_description,
                        d.quantity, d.estimated_value, d.created_at,
                        o.id AS donor_id, o.name AS donor_name, o.email AS donor_email,
-                       o.phone AS donor_phone, o.preferred_channel,
+                       o.phone AS donor_phone, o.social_handle, o.preferred_channel,
                        t.id AS type_id, t.name AS type_name, t.description AS type_description,
                        t.tax_deductible
                 FROM donations d
@@ -164,7 +164,7 @@ public class DonationRepository {
     /** Turns one joined row into a donation, using the creator for its method to pick the subclass. */
     private Donation toDonation(ResultSet row) throws SQLException {
         Donor donor = new Donor(row.getInt("donor_id"), row.getString("donor_name"),
-                row.getString("donor_email"), row.getString("donor_phone"),
+                row.getString("donor_email"), row.getString("donor_phone"), row.getString("social_handle"),
                 ContactChannel.valueOf(row.getString("preferred_channel")));
         DonationType type = new DonationType(row.getInt("type_id"), row.getString("type_name"),
                 row.getString("type_description"), row.getInt("tax_deductible") == 1);
