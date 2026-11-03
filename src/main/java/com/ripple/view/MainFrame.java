@@ -18,6 +18,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,9 +33,8 @@ import java.util.Map;
  *
  * <p>This is a <b>View</b> in MVC: it only arranges screens and switches between them.
  *
- * <p><b>Adding a screen:</b> every screen starts as a placeholder that names the section
- * of {@code PHASE1.md} that builds it, so no button pretends to work. When your screen is
- * ready, plug it in from {@code Main}:
+ * <p><b>Adding a screen:</b> {@code Main} plugs each screen in with
+ * {@link #addScreen(String, JPanel)}, using one of the screen-name constants:
  * <pre>{@code
  * frame.addScreen(MainFrame.LOOKUPS, new LookupPanel(lookupController, frame.getStatusBar()));
  * }</pre>
@@ -50,28 +50,24 @@ public class MainFrame extends JFrame {
     public static final String COMMUNICATION = "Communication";
     public static final String LOOKUPS = "Lookup Management";
 
+    /** Every screen, in the order of the sidebar buttons. */
+    private static final List<String> SCREEN_NAMES =
+            List.of(DASHBOARD, DONATIONS, VOLUNTEERS, EVENTS, BENEFICIARIES, COMMUNICATION, LOOKUPS);
+
     private final CardLayout cards = new CardLayout();
     private final JPanel content = new JPanel(cards);
     private final StatusBar statusBar = new StatusBar();
-    /** The component currently shown for each screen name (placeholder or real screen). */
+    /** The screen plugged in for each screen name. */
     private final Map<String, JPanel> cardsByName = new HashMap<>();
-    /** Screens that can reload their data when shown. Placeholders are not in here. */
+    /** Screens that can reload their data when shown. */
     private final Map<String, Refreshable> screens = new HashMap<>();
     private String currentScreen;
 
-    /** Builds the window with a placeholder for every screen. */
+    /** Builds the empty window: sidebar, content area and status bar. Screens are added by {@code Main}. */
     public MainFrame() {
         super("Ripple — NGO Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1000, 650));
-
-        addPlaceholder(DASHBOARD, "Totals and recent activity", 6);
-        addPlaceholder(DONATIONS, "Donors, donations and receipts", 2);
-        addPlaceholder(VOLUNTEERS, "Volunteer profiles and event assignment", 4);
-        addPlaceholder(EVENTS, "Events, attendees and assigned volunteers", 4);
-        addPlaceholder(BENEFICIARIES, "Beneficiaries and their needs", 4);
-        addPlaceholder(COMMUNICATION, "Email / SMS messages to groups", 5);
-        addPlaceholder(LOOKUPS, "Donation Types and Event Categories", 1);
 
         setLayout(new BorderLayout());
         add(buildSidebar(), BorderLayout.WEST);
@@ -102,8 +98,7 @@ public class MainFrame extends JFrame {
 
         // A ButtonGroup keeps exactly one toggle button pressed: the current screen.
         ButtonGroup group = new ButtonGroup();
-        String[] names = {DASHBOARD, DONATIONS, VOLUNTEERS, EVENTS, BENEFICIARIES, COMMUNICATION, LOOKUPS};
-        for (String name : names) {
+        for (String name : SCREEN_NAMES) {
             JToggleButton button = new JToggleButton(name);
             button.setAlignmentX(Component.LEFT_ALIGNMENT);
             button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
@@ -119,7 +114,8 @@ public class MainFrame extends JFrame {
     }
 
     /**
-     * Replaces the placeholder for {@code name} with a real screen.
+     * Plugs a screen in for the sidebar button called {@code name}. Adding a screen for a name
+     * that already has one replaces it.
      *
      * <p>If the screen implements {@link Refreshable}, it is refreshed every time the
      * user opens it.
@@ -129,15 +125,18 @@ public class MainFrame extends JFrame {
      * @throws IllegalArgumentException if {@code name} is not one of the constants
      */
     public void addScreen(String name, JPanel screen) {
-        JPanel old = cardsByName.get(name);
-        if (old == null) {
+        if (!SCREEN_NAMES.contains(name)) {
             throw new IllegalArgumentException("Unknown screen: " + name);
         }
-        content.remove(old);
+        JPanel old = cardsByName.put(name, screen);
+        if (old != null) {
+            content.remove(old);
+        }
         content.add(screen, name);
-        cardsByName.put(name, screen);
         if (screen instanceof Refreshable refreshable) {
             screens.put(name, refreshable);
+        } else {
+            screens.remove(name);
         }
         if (name.equals(currentScreen)) {
             showScreen(name); // the user is looking at it: swap it in now
@@ -151,22 +150,6 @@ public class MainFrame extends JFrame {
      */
     public StatusBar getStatusBar() {
         return statusBar;
-    }
-
-    /**
-     * Adds a screen that is not built yet. It says what it will contain and which
-     * section of {@code PHASE1.md} builds it.
-     */
-    private void addPlaceholder(String name, String purpose, int section) {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel("<html><div style='text-align:center'>"
-                + "<h2>" + name + "</h2>"
-                + "<p>" + purpose + "</p><br>"
-                + "<p><i>Built in Section " + section + " of PHASE1.md.</i></p></div></html>",
-                SwingConstants.CENTER);
-        panel.add(label, BorderLayout.CENTER);
-        content.add(panel, name);
-        cardsByName.put(name, panel);
     }
 
     /** Shows the named screen and, if it can, reloads its data. */

@@ -6,6 +6,7 @@ import com.ripple.communication.EmailStrategy;
 import com.ripple.communication.SmsStrategy;
 import com.ripple.controller.BeneficiaryController;
 import com.ripple.controller.CommunicationController;
+import com.ripple.controller.DashboardController;
 import com.ripple.controller.DonationController;
 import com.ripple.controller.EventController;
 import com.ripple.controller.LookupController;
@@ -32,6 +33,7 @@ import com.ripple.service.DonationService;
 import com.ripple.service.LookupService;
 import com.ripple.view.BeneficiariesPanel;
 import com.ripple.view.CommunicationPanel;
+import com.ripple.view.DashboardPanel;
 import com.ripple.view.DonationsPanel;
 import com.ripple.view.EventsPanel;
 import com.ripple.view.LookupPanel;
@@ -130,7 +132,12 @@ public final class Main {
         CommunicationController communicationController = new CommunicationController(communicationService,
                 strategies, donorRepository, volunteerRepository, beneficiaryRepository, eventRepository,
                 messageLogRepository);
-        // Section 6: DashboardController
+        // Section 6: DashboardController (reads the five counting repositories and the logger)
+        DashboardController dashboardController = new DashboardController(donorRepository, donationRepository,
+                volunteerRepository, eventRepository, beneficiaryRepository);
+
+        // Logged before the window is built, so it is always in the Dashboard's "Recent activity".
+        ApplicationLogger.getInstance().info("Ripple started");
 
         // Swing is not thread-safe: every UI object must be created on the
         // Event Dispatch Thread, which is what invokeLater does.
@@ -153,9 +160,9 @@ public final class Main {
             frame.addScreen(MainFrame.COMMUNICATION,
                     new CommunicationPanel(communicationController, eventController, frame.getStatusBar()));
             // Section 6: DASHBOARD     -> DashboardPanel
+            frame.addScreen(MainFrame.DASHBOARD, new DashboardPanel(dashboardController));
             frame.setVisible(true);
         });
-        ApplicationLogger.getInstance().info("Ripple started");
     }
 
     /** Makes Ripple look like a normal Windows (or Linux) app instead of Swing's default "Metal" theme. */

@@ -2,7 +2,7 @@
 
 > The complete UML class diagram of **Ripple**, Phase 1, plus one focused diagram per design pattern (section 5).
 
-**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. When the code is complete, `DiagramConsistencyTest` (Section 6) fails the build if code and diagram drift apart.
+**This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart.
 
 Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [PHASE1.md](../PHASE1.md) (who builds what)
 
@@ -874,7 +874,7 @@ Main ..> MainFrame : «create»
 
 ## 5. Pattern views
 
-One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. The section of `PHASE1.md` that implements a pattern adds a short **"In the code / Demo / Test"** note under its diagram.
+One small diagram per design pattern (sized for a slide), cut out of the complete diagram above: same class names and members, only what that pattern needs. The section of `PHASE1.md` that implements a pattern adds a short **"In the code / Demo / Test"** note under its diagram, and Section 6 adds a **"Presentation note"** (the problem, how Ripple solves it, and why not a simple `if/else`) for the slides.
 
 | Pattern | Rubric | Package | Problem it solves | Section |
 |---|---|---|---|---|
@@ -935,6 +935,12 @@ DonorNotificationObserver --> CommunicationService : setStrategy() + send()
 - **Demo:** on the Communication screen send a message to *All donors* by Email, then the same by SMS: the message log shows email addresses the first time and phone numbers the second, and people without one are logged as `FAILED: no valid ...`. Record a donation and its thank-you appears in the log on the donor's preferred channel; untick "Notify donors on new donation" and record again: no thank-you.
 - **Test:** `src/test/java/com/ripple/communication/CommunicationServiceTest.java` checks that switching Email → SMS changes the address used, that people without a valid address are skipped and logged, and the 160-character SMS limit; `src/test/java/com/ripple/controller/CommunicationControllerTest.java` covers every group on both channels; `src/test/java/com/ripple/observer/DonorNotificationObserverTest.java` checks the thank-you uses each donor's channel and stops after `detach`.
 
+**Presentation note**
+
+- **Problem:** Staff must be able to send a message by Email or by SMS, chosen while the app is running. The two channels use a different address (email or phone number) and have different rules (an SMS is limited to 160 characters).
+- **How Ripple solves it:** each channel is its own class that implements `CommunicationStrategy`. `CommunicationService` holds the current strategy and calls it, and the screen swaps it with `setStrategy(...)`. The message log is written in one place for every channel.
+- **Why not just `if/else`:** with `if (channel == EMAIL) ... else if (channel == SMS) ...` in the service, the controller and the thank-you observer, every new channel (WhatsApp, push) would mean editing all of them and re-testing code that already works. With a strategy, a new channel is one new class and nothing else changes.
+
 ---
 
 ### 5.2 Observer — reacting to a new donation
@@ -984,6 +990,16 @@ DonorNotificationObserver ..|> DonationObserver
 **How it works:** `recordDonation(...)` saves the donation and then calls `notifyObservers(donation)`, which loops over the list and calls `onDonationRecorded` on each one. The donation code does not know *what* the observers do.
 **Unsubscribe in the app:** the "Notify donors on new donation" checkbox in the Donations screen calls `detach(donorNotifier)` / `attach(donorNotifier)`. Record a donation with it unticked and no message appears in the message log.
 **Link to other patterns:** `ReceiptObserver` uses the Decorator; `DonorNotificationObserver` uses the Strategy; `DonationLogObserver` uses the Singleton.
+
+- **In the code:** [DonationSubject.java](../src/main/java/com/ripple/observer/DonationSubject.java), [DonationObserver.java](../src/main/java/com/ripple/observer/DonationObserver.java) and the subject [DonationService.java](../src/main/java/com/ripple/service/DonationService.java) (`attach`, `detach`, `notifyObservers`). The three observers are in `com.ripple.observer` and are attached in `Main`; the "Notify donors on new donation" checkbox in [DonationsPanel.java](../src/main/java/com/ripple/view/DonationsPanel.java) detaches and re-attaches `DonorNotificationObserver`.
+- **Demo:** register a donor and record an Online donation: open `logs/ripple.log` to see the line written by `DonationLogObserver`, then open *View receipt* (`ReceiptObserver`) and the Communication screen's message log (`DonorNotificationObserver`). Try an In-kind donation with quantity 0: it is rejected and no observer does anything. Untick "Notify donors", record again, and no thank-you is logged.
+- **Test:** `src/test/java/com/ripple/service/DonationServiceTest.java` checks that an attached observer is notified, a detached one is not, attaching twice notifies once, a failing observer does not stop the others, and bad input notifies nobody; `src/test/java/com/ripple/observer/DonationLogObserverTest.java` checks the log line.
+
+**Presentation note**
+
+- **Problem:** after a donation is saved, several things must happen (write the log, build the receipt, thank the donor) and the list will grow. `DonationService` should not have to know about them, and staff must be able to switch one off.
+- **How Ripple solves it:** `DonationService` is the subject: it keeps a list of `DonationObserver`s and calls `onDonationRecorded(...)` on each after saving. `Main` attaches the observers, and the checkbox attaches or detaches one while the app runs.
+- **Why not just `if/else`:** calling `writeLog(d); buildReceipt(d); sendThankYou(d);` inside `recordDonation` ties the service to every feature, turns "stop thanking donors" into a flag inside the service, and means each new reaction edits the service. With observers the service knows none of them, and a test can attach a counting observer.
 
 ---
 
@@ -1041,6 +1057,12 @@ String text = receipt.render();
 - **In the code:** [BasicReceipt.java](../src/main/java/com/ripple/receipt/BasicReceipt.java), [ReceiptDecorator.java](../src/main/java/com/ripple/receipt/ReceiptDecorator.java), [ThankYouMessageDecorator.java](../src/main/java/com/ripple/receipt/ThankYouMessageDecorator.java), [TaxInformationDecorator.java](../src/main/java/com/ripple/receipt/TaxInformationDecorator.java). The chain is built in [ReceiptObserver.java](../src/main/java/com/ripple/observer/ReceiptObserver.java), method `buildReceipt(...)`.
 - **Demo:** on the Donations screen, record a *Zakat* donation, select it and click "View receipt" (has a tax section); record a *Food Supplies* donation and view it (no tax section).
 - **Test:** `src/test/java/com/ripple/receipt/ReceiptDecoratorTest.java` checks that `BasicReceipt` has neither section and that each decorator adds only its own; `src/test/java/com/ripple/observer/ReceiptObserverTest.java` checks that tax information is attached only when the donation type is tax-deductible.
+
+**Presentation note**
+
+- **Problem:** every receipt has the basic facts, but the thank-you line and the tax section are optional, and the tax section only applies to tax-deductible donation types (CR4). More extras may follow.
+- **How Ripple solves it:** `BasicReceipt` prints only the basic facts. `ThankYouMessageDecorator` and `TaxInformationDecorator` each wrap a `Receipt` and add their own section, and `ReceiptObserver` wraps the ones that apply at run time.
+- **Why not just `if/else`:** one `Receipt` class with `showThanks` / `showTax` flags and `if` blocks has to be edited for every new section, and the number of combinations grows with every flag. With decorators the sections are stacked in any combination, and the basic receipt never changes.
 
 ---
 
@@ -1100,6 +1122,12 @@ DonationRepository --> DonationFactory : rows from DB
 - **Demo:** run `DonationFactoryTest` and show `create(...)`. From Section 2 on, the Donations screen records every donation through it (try an in-kind donation with quantity 0 to see the factory reject it).
 - **Test:** `src/test/java/com/ripple/factory/DonationFactoryTest.java` checks that each method gives the right subclass, rejects invalid details and unsupported methods, and keeps stored timestamps.
 
+**Presentation note**
+
+- **Problem:** the three donation kinds need different fields and rules (an amount above 0; an online donation needs a transaction reference; an in-kind donation needs an item and a quantity above 0). Donations are created in more than one place (when recording and when loading rows), and an invalid one must never exist.
+- **How Ripple solves it:** `DonationFactory.create(...)` is the only code that picks the subclass and checks its fields. Callers receive a `Donation` and never name the concrete classes; an unknown method such as "Cheque" gives "Unsupported donation method".
+- **Why not just `if/else`:** `if (method.equals("Cash")) new CashDonation(...)` chains scattered over the service, the repository and the tests would copy the validation rules, and the copies would drift apart (one place forgets the quantity check). One factory is one place to fix and one place to add a new kind.
+
 ---
 
 ### 5.5 Singleton — application logger
@@ -1130,9 +1158,15 @@ DashboardController --> ApplicationLogger : getRecentEntries()
 **Why this class deserves to be a Singleton:** there is one log file (`logs/ripple.log`) and one recent-activity feed on the Dashboard. Two logger objects would write the same file independently and each would see only half the activity.
 **Why nothing else is a Singleton:** `Database` and the services are passed through constructors so tests can give each one its own temporary database.
 
-- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `INSTANCE` and `getInstance()`. Used by `Main` ("Ripple started") and `LookupController` (every add, update or delete), and later by `DonationLogObserver` and the Dashboard.
+- **In the code:** [ApplicationLogger.java](../src/main/java/com/ripple/logging/ApplicationLogger.java): the private constructor, `INSTANCE` and `getInstance()`. Used by `Main` ("Ripple started"), `LookupController` (every add, update or delete) and `DonationLogObserver` (every donation), and read by `DashboardController` for the Dashboard's "Recent activity".
 - **Demo:** add or delete a lookup value, then open `logs/ripple.log` and show the new line. Point out that `new ApplicationLogger()` does not compile outside the class.
-- **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first.
+- **Test:** `src/test/java/com/ripple/logging/ApplicationLoggerTest.java` checks that `getInstance()` returns the same object every time and that entries come back newest first; `src/test/java/com/ripple/controller/DashboardControllerTest.java` checks that the Dashboard's recent activity comes from the logger, newest first.
+
+**Presentation note**
+
+- **Problem:** there is one log file and one "recent activity" list. If each class made its own logger, each would write the same file independently and keep only part of the recent entries, so the Dashboard would show only a fraction of what happened.
+- **How Ripple solves it:** `ApplicationLogger` has a private constructor and a static `getInstance()`, so every class gets the same object. The file and the Dashboard's feed see everything. The instance is created when the class loads, which Java guarantees is thread-safe.
+- **Why not the obvious shortcut:** `new ApplicationLogger()` in every class gives several loggers with partial histories, and a public static field that anyone can replace gives no guarantee of one. It is the only Singleton on purpose: `Database` and the services are passed through constructors so each test can use its own temporary database.
 
 ---
 
@@ -1183,3 +1217,13 @@ DonationRepository ..> Donation
 ```
 
 **Rule:** arrows only point to the right. A view never imports a repository or `java.sql`; a service never imports Swing. Full explanation in [architecture.md](architecture.md#2-mvc-with-a-thin-service-layer).
+
+- **In the code:** one package per layer: [view](../src/main/java/com/ripple/view) (Swing screens), [controller](../src/main/java/com/ripple/controller), and the model in `service`, `repository`, `model` and the pattern packages. Example: `DashboardPanel` → `DashboardController` → the five repositories and the logger → `DashboardSummary` back to the panel.
+- **Demo:** run `grep -rlE "import (java\.sql|com\.ripple\.repository)" src/main/java/com/ripple/view` and show that it prints nothing, then open `DashboardPanel.java` and show that it only imports a controller.
+- **Test:** `src/test/java/com/ripple/ArchitectureRulesTest.java` fails the build if a view imports `java.sql` or a repository, if model, controller or pattern classes import Swing, if anything outside the views refers to the view package, or if a class has no Javadoc.
+
+**Presentation note**
+
+- **Problem:** if the screen, the rules and the SQL all sit in a button's click code, a rule such as "no duplicate lookup names" cannot be tested without opening a window, and two screens that need the same rule would each copy it.
+- **How Ripple solves it:** views only show things and call a controller; controllers turn text into typed values and return a `Result` for the status bar; services and repositories hold the rules and the SQL. Arrows only point one way, and a test enforces it.
+- **Why not just one big class per screen:** every change would touch the UI, the rules and the database at once, and none of it could be tested on its own. Here a rule is tested with a plain JUnit test and a screen can be redrawn without touching the rules.
