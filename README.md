@@ -65,7 +65,7 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 
 | Grading item | Marks | See it in the app | In the code | Test |
 |---|:-:|---|---|---|
-| Class diagram | 2 | — | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
+| Class diagram | 2 | Printable picture: [docs/images/class-diagram.png](docs/images/class-diagram.png) ([SVG](docs/images/class-diagram.svg)) | [docs/class-diagram.md](docs/class-diagram.md) | `DiagramConsistencyTest` |
 | MVC structure | 2 | Every screen | `view` → `controller` → `service` / `repository` / `model` ([architecture](docs/architecture.md)) | `ArchitectureRulesTest` |
 | User control panel | 1 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
 | Strategy | 1 | Communication screen: send by Email, then by SMS | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |

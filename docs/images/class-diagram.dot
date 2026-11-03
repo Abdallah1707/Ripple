@@ -1,0 +1,405 @@
+digraph Ripple {
+  graph [rankdir=LR splines=true nodesep=0.3 ranksep=0.9 bgcolor="#fcfbf8" fontname="Helvetica"
+         labelloc=t labeljust=l pad=0.5 newrank=true
+         label=<<FONT POINT-SIZE="30"><B>Ripple — UML Class Diagram</B></FONT><BR ALIGN="LEFT"/><FONT POINT-SIZE="16" COLOR="#6a7489">NGO Management System  ·  Phase 1  ·  MVC  ·  Strategy  ·  Observer  ·  Decorator  ·  Factory Method  ·  Singleton</FONT><BR ALIGN="LEFT"/><FONT POINT-SIZE="12" COLOR="#6a7489">Arrows: hollow triangle = inheritance (dashed = implements) · open arrow = association · hollow diamond = aggregation (&gt;5 methods used) · filled diamond = composition · dashed open arrow = dependency. Dashed arrows into the shared helpers (ApplicationLogger, FormHelper, InputValidator, Result, ValidationException) are drawn once; docs/class-diagram.md lists them all.</FONT><BR ALIGN="LEFT"/> >];
+  node [fontname="Helvetica" fontsize=11];
+  edge [fontname="Helvetica" fontsize=9 fontcolor="#6a7489" penwidth=1.2];
+  subgraph cluster_view {
+    label=<<B>VIEW  |  MVC</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#eaf2ff" color="#cfe2fb" penwidth=2 margin=16
+    "Refreshable" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>Refreshable</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "StatusBar" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>StatusBar</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+showResult(result: Result): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "FormHelper" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>FormHelper</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+placeholder(field: JTextField, hint: String): void</U><BR ALIGN="LEFT"/><U>+button(text: String, tooltip: String, action: Runnable): JButton</U><BR ALIGN="LEFT"/><U>+tableWithSearch(table: JTable): JPanel</U><BR ALIGN="LEFT"/><U>+searchField(table: JTable): JTextField</U><BR ALIGN="LEFT"/><U>+selectedModelRow(table: JTable): int</U><BR ALIGN="LEFT"/><U>+onDoubleClick(table: JTable, action: Runnable): void</U><BR ALIGN="LEFT"/><U>+onEnter(action: Runnable, fields: JTextField...): void</U><BR ALIGN="LEFT"/><U>+confirmDelete(parent: Component, message: String): boolean</U><BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "MainFrame" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>MainFrame</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-cards: CardLayout<BR ALIGN="LEFT"/>-content: JPanel<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/>-cardsByName: Map&lt;String, JPanel&gt;<BR ALIGN="LEFT"/>-screens: Map&lt;String, Refreshable&gt;<BR ALIGN="LEFT"/>-currentScreen: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+addScreen(name: String, screen: JPanel): void<BR ALIGN="LEFT"/>+getStatusBar(): StatusBar<BR ALIGN="LEFT"/>-showScreen(name: String): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DashboardPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>DashboardPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-controller: DashboardController<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationsPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>DonationsPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donationController: DonationController<BR ALIGN="LEFT"/>-lookupController: LookupController<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "VolunteersPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>VolunteersPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-volunteerController: VolunteerController<BR ALIGN="LEFT"/>-eventController: EventController<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventsPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>EventsPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-eventController: EventController<BR ALIGN="LEFT"/>-lookupController: LookupController<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "BeneficiariesPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>BeneficiariesPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-controller: BeneficiaryController<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "CommunicationPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>CommunicationPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-communicationController: CommunicationController<BR ALIGN="LEFT"/>-eventController: EventController<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupPanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>LookupPanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donationTypesTab: LookupTablePanel<BR ALIGN="LEFT"/>-eventCategoriesTab: LookupTablePanel<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupTablePanel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#cfe2fb" CELLPADDING="5"><B>LookupTablePanel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-controller: LookupController<BR ALIGN="LEFT"/>-kind: LookupKind<BR ALIGN="LEFT"/>-statusBar: StatusBar<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+refresh(): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_controller {
+    label=<<B>CONTROLLER  |  MVC</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#fff1e5" color="#fad9bc" penwidth=2 margin=16
+    "Result" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«record»</FONT><BR/><B>Result</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+success: boolean<BR ALIGN="LEFT"/>+message: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+ok(message: String): Result</U><BR ALIGN="LEFT"/><U>+fail(message: String): Result</U><BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DashboardSummary" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«record»</FONT><BR/><B>DashboardSummary</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+donors: int<BR ALIGN="LEFT"/>+donations: int<BR ALIGN="LEFT"/>+totalDonationValue: double<BR ALIGN="LEFT"/>+volunteers: int<BR ALIGN="LEFT"/>+events: int<BR ALIGN="LEFT"/>+beneficiaries: int<BR ALIGN="LEFT"/>+recentActivity: List&lt;String&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupKind" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«enumeration»</FONT><BR/><B>LookupKind</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">DONATION_TYPE<BR ALIGN="LEFT"/>EVENT_CATEGORY<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getTitle(): String<BR ALIGN="LEFT"/>+hasTaxFlag(): boolean<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Audience" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«enumeration»</FONT><BR/><B>Audience</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">DONORS<BR ALIGN="LEFT"/>VOLUNTEERS<BR ALIGN="LEFT"/>BENEFICIARIES<BR ALIGN="LEFT"/>EVENT_ATTENDEES<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getLabel(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>LookupController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donationTypes: LookupService&lt;DonationType&gt;<BR ALIGN="LEFT"/>-eventCategories: LookupService&lt;EventCategory&gt;<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+list(kind: LookupKind): List&lt;LookupEntry&gt;<BR ALIGN="LEFT"/>+listDonationTypes(): List&lt;DonationType&gt;<BR ALIGN="LEFT"/>+listEventCategories(): List&lt;EventCategory&gt;<BR ALIGN="LEFT"/>+save(kind: LookupKind, id: Integer, name: String, description: String, taxDeductible: boolean): Result<BR ALIGN="LEFT"/>+delete(kind: LookupKind, id: int): Result<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>DonationController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donationService: DonationService<BR ALIGN="LEFT"/>-receiptRepository: ReceiptRepository<BR ALIGN="LEFT"/>-donorNotifier: DonorNotificationObserver<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listDonors(): List&lt;Donor&gt;<BR ALIGN="LEFT"/>+saveDonor(id: Integer, name: String, email: String, phone: String, socialHandle: String, channel: String): Result<BR ALIGN="LEFT"/>+deleteDonor(id: int): Result<BR ALIGN="LEFT"/>+recordDonation(donorId: int, typeId: int, method: String, amount: String, transactionRef: String, item: String, quantity: String, estimatedValue: String): Result<BR ALIGN="LEFT"/>+listDonations(): List&lt;Donation&gt;<BR ALIGN="LEFT"/>+getReceipt(donationId: int): String<BR ALIGN="LEFT"/>+setDonorNotifications(enabled: boolean): void<BR ALIGN="LEFT"/>+isDonorNotificationsEnabled(): boolean<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "VolunteerController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>VolunteerController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-volunteerRepository: VolunteerRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listVolunteers(): List&lt;Volunteer&gt;<BR ALIGN="LEFT"/>+saveVolunteer(id: Integer, name: String, email: String, phone: String, skills: String, availability: String): Result<BR ALIGN="LEFT"/>+deleteVolunteer(id: int): Result<BR ALIGN="LEFT"/>+assignToEvent(volunteerId: int, eventId: int): Result<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>EventController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-eventService: EventService<BR ALIGN="LEFT"/>-eventRepository: EventRepository<BR ALIGN="LEFT"/>-volunteerRepository: VolunteerRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listEvents(): List&lt;Event&gt;<BR ALIGN="LEFT"/>+saveEvent(id: Integer, name: String, categoryId: int, date: String, location: String, description: String): Result<BR ALIGN="LEFT"/>+deleteEvent(id: int): Result<BR ALIGN="LEFT"/>+registerAttendee(eventId: int, name: String, email: String, phone: String): Result<BR ALIGN="LEFT"/>+listAttendees(eventId: int): List&lt;Attendee&gt;<BR ALIGN="LEFT"/>+listVolunteers(eventId: int): List&lt;Volunteer&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "BeneficiaryController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>BeneficiaryController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-beneficiaryRepository: BeneficiaryRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+listBeneficiaries(): List&lt;Beneficiary&gt;<BR ALIGN="LEFT"/>+saveBeneficiary(id: Integer, name: String, email: String, phone: String, address: String, needs: String): Result<BR ALIGN="LEFT"/>+deleteBeneficiary(id: int): Result<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "CommunicationController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>CommunicationController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-communicationService: CommunicationService<BR ALIGN="LEFT"/>-strategies: Map&lt;ContactChannel, CommunicationStrategy&gt;<BR ALIGN="LEFT"/>-donorRepository: DonorRepository<BR ALIGN="LEFT"/>-volunteerRepository: VolunteerRepository<BR ALIGN="LEFT"/>-beneficiaryRepository: BeneficiaryRepository<BR ALIGN="LEFT"/>-eventRepository: EventRepository<BR ALIGN="LEFT"/>-messageLogRepository: MessageLogRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+sendToGroup(audience: Audience, eventId: Integer, channel: String, subject: String, body: String): Result<BR ALIGN="LEFT"/>+listMessageLog(): List&lt;MessageLogEntry&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DashboardController" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#fad9bc" CELLPADDING="5"><B>DashboardController</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donorRepository: DonorRepository<BR ALIGN="LEFT"/>-donationRepository: DonationRepository<BR ALIGN="LEFT"/>-volunteerRepository: VolunteerRepository<BR ALIGN="LEFT"/>-eventRepository: EventRepository<BR ALIGN="LEFT"/>-beneficiaryRepository: BeneficiaryRepository<BR ALIGN="LEFT"/>-logger: ApplicationLogger<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getSummary(): DashboardSummary<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_service {
+    label=<<B>SERVICE  |  MVC MODEL  ·  OBSERVER SUBJECTS</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#f3e9fa" color="#e3cdf2" penwidth=2 margin=16
+    "ValidationException" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#e3cdf2" CELLPADDING="5"><B>ValidationException</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+ValidationException(message: String)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "InputValidator" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#e3cdf2" CELLPADDING="5"><B>InputValidator</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+requireText(value: String, field: String, min: int, max: int): String</U><BR ALIGN="LEFT"/><U>+isValidEmail(value: String): boolean</U><BR ALIGN="LEFT"/><U>+isValidPhone(value: String): boolean</U><BR ALIGN="LEFT"/><U>+isValidSocialHandle(value: String): boolean</U><BR ALIGN="LEFT"/><U>+optionalEmail(value: String): String</U><BR ALIGN="LEFT"/><U>+optionalPhone(value: String): String</U><BR ALIGN="LEFT"/><U>+parseDouble(value: String, field: String): double</U><BR ALIGN="LEFT"/><U>+parseInt(value: String, field: String): int</U><BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupService" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#e3cdf2" CELLPADDING="5"><B>LookupService&lt;T&gt;</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-repository: LookupRepository&lt;T&gt;<BR ALIGN="LEFT"/>-entityLabel: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+findAll(): List&lt;T&gt;<BR ALIGN="LEFT"/>+add(entry: T): T<BR ALIGN="LEFT"/>+update(entry: T): void<BR ALIGN="LEFT"/>+delete(id: int): void<BR ALIGN="LEFT"/>-validate(entry: T): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationService" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#e3cdf2" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Subject»</FONT><BR/><B>DonationService</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-observers: List&lt;DonationObserver&gt;<BR ALIGN="LEFT"/>-factories: Map&lt;DonationMethod, DonationFactory&gt;<BR ALIGN="LEFT"/>-donorRepository: DonorRepository<BR ALIGN="LEFT"/>-donationRepository: DonationRepository<BR ALIGN="LEFT"/>-donationTypeRepository: LookupRepository&lt;DonationType&gt;<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+registerObserver(observer: DonationObserver): void<BR ALIGN="LEFT"/>+removeObserver(observer: DonationObserver): void<BR ALIGN="LEFT"/>+notifyObservers(donation: Donation): void<BR ALIGN="LEFT"/>+isRegistered(observer: DonationObserver): boolean<BR ALIGN="LEFT"/>+registerDonor(name: String, email: String, phone: String, socialHandle: String, channel: ContactChannel): Donor<BR ALIGN="LEFT"/>+updateDonor(id: int, name: String, email: String, phone: String, socialHandle: String, channel: ContactChannel): Donor<BR ALIGN="LEFT"/>+deleteDonor(id: int): Donor<BR ALIGN="LEFT"/><U>-validateDonor(id: int, name: String, email: String, phone: String, socialHandle: String, channel: ContactChannel): Donor</U><BR ALIGN="LEFT"/>+findAllDonors(): List&lt;Donor&gt;<BR ALIGN="LEFT"/>+recordDonation(method: DonationMethod, donorId: int, donationTypeId: int, request: DonationRequest): Donation<BR ALIGN="LEFT"/>+findAllDonations(): List&lt;Donation&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventService" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#e3cdf2" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Subject»</FONT><BR/><B>EventService</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-observers: List&lt;EventObserver&gt;<BR ALIGN="LEFT"/>-eventRepository: EventRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+registerObserver(observer: EventObserver): void<BR ALIGN="LEFT"/>+removeObserver(observer: EventObserver): void<BR ALIGN="LEFT"/>+notifyObservers(event: Event, change: String): void<BR ALIGN="LEFT"/>+isRegistered(observer: EventObserver): boolean<BR ALIGN="LEFT"/>+addEvent(event: Event): Event<BR ALIGN="LEFT"/>+updateEvent(event: Event): boolean<BR ALIGN="LEFT"/><U>-describeChange(before: Event, after: Event): String</U><BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_observer {
+    label=<<B>OBSERVER  |  OBSERVER</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#fff8dc" color="#f7e7a6" penwidth=2 margin=16
+    "DonationSubject" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>DonationSubject</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+registerObserver(observer: DonationObserver): void<BR ALIGN="LEFT"/>+removeObserver(observer: DonationObserver): void<BR ALIGN="LEFT"/>+notifyObservers(donation: Donation): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationObserver" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>DonationObserver</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+update(donation: Donation): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationLogObserver" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Observer»</FONT><BR/><B>DonationLogObserver</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-logger: ApplicationLogger<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+update(donation: Donation): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ReceiptObserver" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Observer»</FONT><BR/><B>ReceiptObserver</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-receiptRepository: ReceiptRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+update(donation: Donation): void<BR ALIGN="LEFT"/>+buildReceipt(donation: Donation): Receipt<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonorNotificationObserver" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Observer»</FONT><BR/><B>DonorNotificationObserver</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-communicationService: CommunicationService<BR ALIGN="LEFT"/>-strategies: Map&lt;ContactChannel, CommunicationStrategy&gt;<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+update(donation: Donation): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventSubject" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>EventSubject</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+registerObserver(observer: EventObserver): void<BR ALIGN="LEFT"/>+removeObserver(observer: EventObserver): void<BR ALIGN="LEFT"/>+notifyObservers(event: Event, change: String): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventObserver" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>EventObserver</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+update(event: Event, change: String): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "AttendeeNotificationObserver" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7e7a6" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Observer»</FONT><BR/><B>AttendeeNotificationObserver</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-eventRepository: EventRepository<BR ALIGN="LEFT"/>-communicationService: CommunicationService<BR ALIGN="LEFT"/>-strategies: List&lt;CommunicationStrategy&gt;<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+update(event: Event, change: String): void<BR ALIGN="LEFT"/>-strategyFor(attendee: Attendee): CommunicationStrategy<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_factory {
+    label=<<B>FACTORY  |  FACTORY METHOD</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#f1ecfb" color="#dcd1f4" penwidth=2 margin=16
+    "DonationFactory" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#dcd1f4" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«abstract»</FONT><BR/><B><I>DonationFactory</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+orderDonation(donor: Donor, type: DonationType, request: DonationRequest): Donation<BR ALIGN="LEFT"/><I>#createDonation(donor: Donor, type: DonationType, request: DonationRequest, createdAt: LocalDateTime): Donation</I><BR ALIGN="LEFT"/><I>+getMethod(): DonationMethod</I><BR ALIGN="LEFT"/><U>#requirePositiveAmount(amount: double): void</U><BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "CashDonationFactory" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#dcd1f4" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«ConcreteCreator»</FONT><BR/><B>CashDonationFactory</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">#createDonation(donor: Donor, type: DonationType, request: DonationRequest, createdAt: LocalDateTime): Donation<BR ALIGN="LEFT"/>+getMethod(): DonationMethod<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "OnlineDonationFactory" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#dcd1f4" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«ConcreteCreator»</FONT><BR/><B>OnlineDonationFactory</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">#createDonation(donor: Donor, type: DonationType, request: DonationRequest, createdAt: LocalDateTime): Donation<BR ALIGN="LEFT"/>+getMethod(): DonationMethod<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "InKindDonationFactory" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#dcd1f4" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«ConcreteCreator»</FONT><BR/><B>InKindDonationFactory</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">#createDonation(donor: Donor, type: DonationType, request: DonationRequest, createdAt: LocalDateTime): Donation<BR ALIGN="LEFT"/>+getMethod(): DonationMethod<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ChequeDonationFactory" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#dcd1f4" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«ConcreteCreator»</FONT><BR/><B>ChequeDonationFactory</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">#createDonation(donor: Donor, type: DonationType, request: DonationRequest, createdAt: LocalDateTime): Donation<BR ALIGN="LEFT"/>+getMethod(): DonationMethod<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationRequest" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#dcd1f4" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«record»</FONT><BR/><B>DonationRequest</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+amount: double<BR ALIGN="LEFT"/>+transactionReference: String<BR ALIGN="LEFT"/>+itemDescription: String<BR ALIGN="LEFT"/>+quantity: int<BR ALIGN="LEFT"/>+estimatedValue: double<BR ALIGN="LEFT"/>+createdAt: LocalDateTime<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_communication {
+    label=<<B>COMMUNICATION  |  STRATEGY</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#e6f6fa" color="#bde5f0" penwidth=2 margin=16
+    "CommunicationStrategy" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>CommunicationStrategy</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getChannel(): ContactChannel<BR ALIGN="LEFT"/>+addressOf(recipient: Contactable): String<BR ALIGN="LEFT"/>+isValidAddress(address: String): boolean<BR ALIGN="LEFT"/>+send(message: Message): DeliveryResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EmailStrategy" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Strategy»</FONT><BR/><B>EmailStrategy</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getChannel(): ContactChannel<BR ALIGN="LEFT"/>+addressOf(recipient: Contactable): String<BR ALIGN="LEFT"/>+isValidAddress(address: String): boolean<BR ALIGN="LEFT"/>+send(message: Message): DeliveryResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "SmsStrategy" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Strategy»</FONT><BR/><B>SmsStrategy</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+MAX_LENGTH: int</U><BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getChannel(): ContactChannel<BR ALIGN="LEFT"/>+addressOf(recipient: Contactable): String<BR ALIGN="LEFT"/>+isValidAddress(address: String): boolean<BR ALIGN="LEFT"/>+send(message: Message): DeliveryResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "SocialMediaStrategy" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Strategy»</FONT><BR/><B>SocialMediaStrategy</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+MAX_LENGTH: int</U><BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getChannel(): ContactChannel<BR ALIGN="LEFT"/>+addressOf(recipient: Contactable): String<BR ALIGN="LEFT"/>+isValidAddress(address: String): boolean<BR ALIGN="LEFT"/>+send(message: Message): DeliveryResult<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "CommunicationService" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Context»</FONT><BR/><B>CommunicationService</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-strategy: CommunicationStrategy<BR ALIGN="LEFT"/>-messageLog: MessageLogRepository<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+setStrategy(strategy: CommunicationStrategy): void<BR ALIGN="LEFT"/>+getStrategy(): CommunicationStrategy<BR ALIGN="LEFT"/>+send(recipient: Contactable, subject: String, body: String): DeliveryResult<BR ALIGN="LEFT"/>+sendToAll(recipients: List&lt;? extends Contactable&gt;, subject: String, body: String): List&lt;DeliveryResult&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Message" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«record»</FONT><BR/><B>Message</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+recipientName: String<BR ALIGN="LEFT"/>+address: String<BR ALIGN="LEFT"/>+subject: String<BR ALIGN="LEFT"/>+body: String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DeliveryResult" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«record»</FONT><BR/><B>DeliveryResult</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+success: boolean<BR ALIGN="LEFT"/>+status: String<BR ALIGN="LEFT"/>+detail: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+simulated(detail: String): DeliveryResult</U><BR ALIGN="LEFT"/><U>+failed(detail: String): DeliveryResult</U><BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "MessageLogEntry" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bde5f0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«record»</FONT><BR/><B>MessageLogEntry</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+id: int<BR ALIGN="LEFT"/>+channel: ContactChannel<BR ALIGN="LEFT"/>+recipient: String<BR ALIGN="LEFT"/>+subject: String<BR ALIGN="LEFT"/>+body: String<BR ALIGN="LEFT"/>+status: String<BR ALIGN="LEFT"/>+sentAt: LocalDateTime<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_receipt {
+    label=<<B>RECEIPT  |  DECORATOR</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#fdebef" color="#f7c6d0" penwidth=2 margin=16
+    "Receipt" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7c6d0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>Receipt</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+render(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "BasicReceipt" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7c6d0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Component»</FONT><BR/><B>BasicReceipt</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donation: Donation<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+render(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ReceiptDecorator" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7c6d0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«abstract»</FONT><BR/><B><I>ReceiptDecorator</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">#wrapped: Receipt<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">#ReceiptDecorator(wrapped: Receipt)<BR ALIGN="LEFT"/>+render(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ThankYouMessageDecorator" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7c6d0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Decorator»</FONT><BR/><B>ThankYouMessageDecorator</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donorName: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+render(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "TaxInformationDecorator" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f7c6d0" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Decorator»</FONT><BR/><B>TaxInformationDecorator</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-donation: Donation<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+render(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_model {
+    label=<<B>MODEL  |  ENTITIES  ·  FACTORY PRODUCTS</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#e7f7ed" color="#bce6cb" penwidth=2 margin=16
+    "Contactable" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>Contactable</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getName(): String<BR ALIGN="LEFT"/>+getEmail(): String<BR ALIGN="LEFT"/>+getPhone(): String<BR ALIGN="LEFT"/>+getSocialHandle(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Person" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«abstract»</FONT><BR/><B><I>Person</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-id: int<BR ALIGN="LEFT"/>-name: String<BR ALIGN="LEFT"/>-email: String<BR ALIGN="LEFT"/>-phone: String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ContactChannel" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«enumeration»</FONT><BR/><B>ContactChannel</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">EMAIL<BR ALIGN="LEFT"/>SMS<BR ALIGN="LEFT"/>SOCIAL<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getAddressLabel(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationMethod" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«enumeration»</FONT><BR/><B>DonationMethod</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">CASH<BR ALIGN="LEFT"/>ONLINE<BR ALIGN="LEFT"/>IN_KIND<BR ALIGN="LEFT"/>CHEQUE<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getLabel(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Donor" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>Donor</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-socialHandle: String<BR ALIGN="LEFT"/>-preferredChannel: ContactChannel<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getSocialHandle(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Donation" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«abstract»</FONT><BR/><B><I>Donation</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-id: int<BR ALIGN="LEFT"/>-donor: Donor<BR ALIGN="LEFT"/>-donationType: DonationType<BR ALIGN="LEFT"/>-createdAt: LocalDateTime<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><I>+getMethod(): DonationMethod</I><BR ALIGN="LEFT"/><I>+getValue(): double</I><BR ALIGN="LEFT"/><I>+describe(): String</I><BR ALIGN="LEFT"/>+getReceiptNumber(): String<BR ALIGN="LEFT"/>+isTaxDeductible(): boolean<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "CashDonation" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>CashDonation</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-amount: double<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getMethod(): DonationMethod<BR ALIGN="LEFT"/>+getValue(): double<BR ALIGN="LEFT"/>+describe(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "OnlineDonation" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>OnlineDonation</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-amount: double<BR ALIGN="LEFT"/>-transactionReference: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getMethod(): DonationMethod<BR ALIGN="LEFT"/>+getValue(): double<BR ALIGN="LEFT"/>+describe(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "InKindDonation" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>InKindDonation</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-itemDescription: String<BR ALIGN="LEFT"/>-quantity: int<BR ALIGN="LEFT"/>-estimatedValue: double<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getMethod(): DonationMethod<BR ALIGN="LEFT"/>+getValue(): double<BR ALIGN="LEFT"/>+describe(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ChequeDonation" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>ChequeDonation</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-amount: double<BR ALIGN="LEFT"/>-chequeNumber: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+getMethod(): DonationMethod<BR ALIGN="LEFT"/>+getValue(): double<BR ALIGN="LEFT"/>+describe(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupEntry" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«abstract»</FONT><BR/><B><I>LookupEntry</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-id: int<BR ALIGN="LEFT"/>-name: String<BR ALIGN="LEFT"/>-description: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+toString(): String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationType" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>DonationType</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-taxDeductible: boolean<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventCategory" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>EventCategory</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+EventCategory(id: int, name: String, description: String)<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Volunteer" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>Volunteer</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-skills: String<BR ALIGN="LEFT"/>-availability: String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Event" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>Event</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-id: int<BR ALIGN="LEFT"/>-name: String<BR ALIGN="LEFT"/>-category: EventCategory<BR ALIGN="LEFT"/>-eventDate: LocalDate<BR ALIGN="LEFT"/>-location: String<BR ALIGN="LEFT"/>-description: String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Attendee" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>Attendee</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-eventId: int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "Beneficiary" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#bce6cb" CELLPADDING="5"><B>Beneficiary</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-address: String<BR ALIGN="LEFT"/>-needs: String<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_repository {
+    label=<<B>REPOSITORY  |  PERSISTENCE</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#f0f2f5" color="#d5dae2" penwidth=2 margin=16
+    "Database" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>Database</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+DEFAULT_PATH: String</U><BR ALIGN="LEFT"/>-url: String<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>+fromEnvironment(): Database</U><BR ALIGN="LEFT"/>+getConnection(): Connection<BR ALIGN="LEFT"/>+initialize(): void<BR ALIGN="LEFT"/>-seedIfEmpty(Connection, table: String, insertSql: String, rows: Object[][]): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "LookupRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«interface»</FONT><BR/><B><I>LookupRepository&lt;T&gt;</I></B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+findAll(): List&lt;T&gt;<BR ALIGN="LEFT"/>+findById(id: int): Optional&lt;T&gt;<BR ALIGN="LEFT"/>+existsByName(name: String, excludeId: int): boolean<BR ALIGN="LEFT"/>+insert(entry: T): T<BR ALIGN="LEFT"/>+update(entry: T): void<BR ALIGN="LEFT"/>+delete(id: int): void<BR ALIGN="LEFT"/>+countUsages(id: int): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationTypeRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>DonationTypeRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventCategoryRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>EventCategoryRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonorRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>DonorRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+findAll(): List&lt;Donor&gt;<BR ALIGN="LEFT"/>+findById(id: int): Optional&lt;Donor&gt;<BR ALIGN="LEFT"/>+insert(donor: Donor): Donor<BR ALIGN="LEFT"/>+update(donor: Donor): void<BR ALIGN="LEFT"/>+delete(id: int): void<BR ALIGN="LEFT"/>+countDonations(donorId: int): int<BR ALIGN="LEFT"/>+count(): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "DonationRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>DonationRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/>-factories: Map&lt;DonationMethod, DonationFactory&gt;<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+insert(donation: Donation): Donation<BR ALIGN="LEFT"/>+findAll(): List&lt;Donation&gt;<BR ALIGN="LEFT"/>+count(): int<BR ALIGN="LEFT"/>+totalValue(): double<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "ReceiptRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>ReceiptRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+save(donationId: int, content: String): void<BR ALIGN="LEFT"/>+findByDonationId(donationId: int): Optional&lt;String&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "VolunteerRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>VolunteerRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+findAll(): List&lt;Volunteer&gt;<BR ALIGN="LEFT"/>+insert(volunteer: Volunteer): Volunteer<BR ALIGN="LEFT"/>+update(volunteer: Volunteer): void<BR ALIGN="LEFT"/>+delete(id: int): void<BR ALIGN="LEFT"/>+count(): int<BR ALIGN="LEFT"/>+assignToEvent(volunteerId: int, eventId: int): void<BR ALIGN="LEFT"/>+findByEvent(eventId: int): List&lt;Volunteer&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "EventRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>EventRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+findAll(): List&lt;Event&gt;<BR ALIGN="LEFT"/>+findById(id: int): Optional&lt;Event&gt;<BR ALIGN="LEFT"/>+insert(event: Event): Event<BR ALIGN="LEFT"/>+update(event: Event): void<BR ALIGN="LEFT"/>+delete(id: int): void<BR ALIGN="LEFT"/>+count(): int<BR ALIGN="LEFT"/>+addAttendee(attendee: Attendee): Attendee<BR ALIGN="LEFT"/>+findAttendees(eventId: int): List&lt;Attendee&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "BeneficiaryRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>BeneficiaryRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+findAll(): List&lt;Beneficiary&gt;<BR ALIGN="LEFT"/>+insert(beneficiary: Beneficiary): Beneficiary<BR ALIGN="LEFT"/>+update(beneficiary: Beneficiary): void<BR ALIGN="LEFT"/>+delete(id: int): void<BR ALIGN="LEFT"/>+count(): int<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+    "MessageLogRepository" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#d5dae2" CELLPADDING="5"><B>MessageLogRepository</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-database: Database<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">+save(channel: ContactChannel, message: Message, result: DeliveryResult): void<BR ALIGN="LEFT"/>+findAll(): List&lt;MessageLogEntry&gt;<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  subgraph cluster_logging {
+    label=<<B>LOGGING  |  SINGLETON</B>> fontsize=15 fontcolor="#5d6570" labeljust=l
+    style="rounded,filled" fillcolor="#fff3e0" color="#f9ddaa" penwidth=2 margin=16
+    "ApplicationLogger" [shape=plain label=<<TABLE BORDER="1" COLOR="#9aa6b8" STYLE="ROUNDED" CELLBORDER="0" CELLSPACING="0" BGCOLOR="white"><TR><TD BGCOLOR="#f9ddaa" CELLPADDING="5"><FONT POINT-SIZE="9" COLOR="#55607a">«Singleton»</FONT><BR/><B>ApplicationLogger</B></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5"><U>-uniqueInstance: ApplicationLogger</U><BR ALIGN="LEFT"/>-logFile: Path<BR ALIGN="LEFT"/>-recentEntries: Deque&lt;String&gt;<BR ALIGN="LEFT"/></TD></TR><HR/><TR><TD ALIGN="LEFT" BALIGN="LEFT" CELLPADDING="5">-ApplicationLogger()<BR ALIGN="LEFT"/><U>+getInstance(): ApplicationLogger</U><BR ALIGN="LEFT"/>+info(message: String): void<BR ALIGN="LEFT"/>+error(message: String): void<BR ALIGN="LEFT"/>+getRecentEntries(limit: int): List&lt;String&gt;<BR ALIGN="LEFT"/>-write(level: String, message: String): void<BR ALIGN="LEFT"/></TD></TR></TABLE>>];
+  }
+  "gate0" [shape=point style=invis width=0];
+  "Refreshable" -> "gate0" [style=invis];
+  "StatusBar" -> "gate0" [style=invis];
+  "FormHelper" -> "gate0" [style=invis];
+  "MainFrame" -> "gate0" [style=invis];
+  "DashboardPanel" -> "gate0" [style=invis];
+  "DonationsPanel" -> "gate0" [style=invis];
+  "VolunteersPanel" -> "gate0" [style=invis];
+  "EventsPanel" -> "gate0" [style=invis];
+  "BeneficiariesPanel" -> "gate0" [style=invis];
+  "CommunicationPanel" -> "gate0" [style=invis];
+  "LookupPanel" -> "gate0" [style=invis];
+  "LookupTablePanel" -> "gate0" [style=invis];
+  "gate0" -> "Result" [style=invis];
+  "gate0" -> "DashboardSummary" [style=invis];
+  "gate0" -> "LookupKind" [style=invis];
+  "gate0" -> "Audience" [style=invis];
+  "gate0" -> "LookupController" [style=invis];
+  "gate0" -> "DonationController" [style=invis];
+  "gate0" -> "VolunteerController" [style=invis];
+  "gate0" -> "EventController" [style=invis];
+  "gate0" -> "BeneficiaryController" [style=invis];
+  "gate0" -> "CommunicationController" [style=invis];
+  "gate0" -> "DashboardController" [style=invis];
+  "gate1" [shape=point style=invis width=0];
+  "Result" -> "gate1" [style=invis];
+  "DashboardSummary" -> "gate1" [style=invis];
+  "LookupKind" -> "gate1" [style=invis];
+  "Audience" -> "gate1" [style=invis];
+  "LookupController" -> "gate1" [style=invis];
+  "DonationController" -> "gate1" [style=invis];
+  "VolunteerController" -> "gate1" [style=invis];
+  "EventController" -> "gate1" [style=invis];
+  "BeneficiaryController" -> "gate1" [style=invis];
+  "CommunicationController" -> "gate1" [style=invis];
+  "DashboardController" -> "gate1" [style=invis];
+  "gate1" -> "ApplicationLogger" [style=invis];
+  "gate1" -> "ValidationException" [style=invis];
+  "gate1" -> "InputValidator" [style=invis];
+  "gate1" -> "LookupService" [style=invis];
+  "gate1" -> "DonationService" [style=invis];
+  "gate1" -> "EventService" [style=invis];
+  "gate2" [shape=point style=invis width=0];
+  "ApplicationLogger" -> "gate2" [style=invis];
+  "ValidationException" -> "gate2" [style=invis];
+  "InputValidator" -> "gate2" [style=invis];
+  "LookupService" -> "gate2" [style=invis];
+  "DonationService" -> "gate2" [style=invis];
+  "EventService" -> "gate2" [style=invis];
+  "gate2" -> "DonationFactory" [style=invis];
+  "gate2" -> "CashDonationFactory" [style=invis];
+  "gate2" -> "OnlineDonationFactory" [style=invis];
+  "gate2" -> "InKindDonationFactory" [style=invis];
+  "gate2" -> "ChequeDonationFactory" [style=invis];
+  "gate2" -> "DonationRequest" [style=invis];
+  "gate2" -> "DonationSubject" [style=invis];
+  "gate2" -> "DonationObserver" [style=invis];
+  "gate2" -> "DonationLogObserver" [style=invis];
+  "gate2" -> "ReceiptObserver" [style=invis];
+  "gate2" -> "DonorNotificationObserver" [style=invis];
+  "gate2" -> "EventSubject" [style=invis];
+  "gate2" -> "EventObserver" [style=invis];
+  "gate2" -> "AttendeeNotificationObserver" [style=invis];
+  "gate2" -> "Database" [style=invis];
+  "gate2" -> "LookupRepository" [style=invis];
+  "gate2" -> "DonationTypeRepository" [style=invis];
+  "gate2" -> "EventCategoryRepository" [style=invis];
+  "gate2" -> "DonorRepository" [style=invis];
+  "gate2" -> "DonationRepository" [style=invis];
+  "gate2" -> "ReceiptRepository" [style=invis];
+  "gate2" -> "VolunteerRepository" [style=invis];
+  "gate2" -> "EventRepository" [style=invis];
+  "gate2" -> "BeneficiaryRepository" [style=invis];
+  "gate2" -> "MessageLogRepository" [style=invis];
+  "gate3" [shape=point style=invis width=0];
+  "DonationFactory" -> "gate3" [style=invis];
+  "CashDonationFactory" -> "gate3" [style=invis];
+  "OnlineDonationFactory" -> "gate3" [style=invis];
+  "InKindDonationFactory" -> "gate3" [style=invis];
+  "ChequeDonationFactory" -> "gate3" [style=invis];
+  "DonationRequest" -> "gate3" [style=invis];
+  "DonationSubject" -> "gate3" [style=invis];
+  "DonationObserver" -> "gate3" [style=invis];
+  "DonationLogObserver" -> "gate3" [style=invis];
+  "ReceiptObserver" -> "gate3" [style=invis];
+  "DonorNotificationObserver" -> "gate3" [style=invis];
+  "EventSubject" -> "gate3" [style=invis];
+  "EventObserver" -> "gate3" [style=invis];
+  "AttendeeNotificationObserver" -> "gate3" [style=invis];
+  "Database" -> "gate3" [style=invis];
+  "LookupRepository" -> "gate3" [style=invis];
+  "DonationTypeRepository" -> "gate3" [style=invis];
+  "EventCategoryRepository" -> "gate3" [style=invis];
+  "DonorRepository" -> "gate3" [style=invis];
+  "DonationRepository" -> "gate3" [style=invis];
+  "ReceiptRepository" -> "gate3" [style=invis];
+  "VolunteerRepository" -> "gate3" [style=invis];
+  "EventRepository" -> "gate3" [style=invis];
+  "BeneficiaryRepository" -> "gate3" [style=invis];
+  "MessageLogRepository" -> "gate3" [style=invis];
+  "gate3" -> "Receipt" [style=invis];
+  "gate3" -> "BasicReceipt" [style=invis];
+  "gate3" -> "ReceiptDecorator" [style=invis];
+  "gate3" -> "ThankYouMessageDecorator" [style=invis];
+  "gate3" -> "TaxInformationDecorator" [style=invis];
+  "gate3" -> "CommunicationStrategy" [style=invis];
+  "gate3" -> "EmailStrategy" [style=invis];
+  "gate3" -> "SmsStrategy" [style=invis];
+  "gate3" -> "SocialMediaStrategy" [style=invis];
+  "gate3" -> "CommunicationService" [style=invis];
+  "gate3" -> "Message" [style=invis];
+  "gate3" -> "DeliveryResult" [style=invis];
+  "gate3" -> "MessageLogEntry" [style=invis];
+  "gate4" [shape=point style=invis width=0];
+  "Receipt" -> "gate4" [style=invis];
+  "BasicReceipt" -> "gate4" [style=invis];
+  "ReceiptDecorator" -> "gate4" [style=invis];
+  "ThankYouMessageDecorator" -> "gate4" [style=invis];
+  "TaxInformationDecorator" -> "gate4" [style=invis];
+  "CommunicationStrategy" -> "gate4" [style=invis];
+  "EmailStrategy" -> "gate4" [style=invis];
+  "SmsStrategy" -> "gate4" [style=invis];
+  "SocialMediaStrategy" -> "gate4" [style=invis];
+  "CommunicationService" -> "gate4" [style=invis];
+  "Message" -> "gate4" [style=invis];
+  "DeliveryResult" -> "gate4" [style=invis];
+  "MessageLogEntry" -> "gate4" [style=invis];
+  "gate4" -> "Contactable" [style=invis];
+  "gate4" -> "Person" [style=invis];
+  "gate4" -> "ContactChannel" [style=invis];
+  "gate4" -> "DonationMethod" [style=invis];
+  "gate4" -> "Donor" [style=invis];
+  "gate4" -> "Donation" [style=invis];
+  "gate4" -> "CashDonation" [style=invis];
+  "gate4" -> "OnlineDonation" [style=invis];
+  "gate4" -> "InKindDonation" [style=invis];
+  "gate4" -> "ChequeDonation" [style=invis];
+  "gate4" -> "LookupEntry" [style=invis];
+  "gate4" -> "DonationType" [style=invis];
+  "gate4" -> "EventCategory" [style=invis];
+  "gate4" -> "Volunteer" [style=invis];
+  "gate4" -> "Event" [style=invis];
+  "gate4" -> "Attendee" [style=invis];
+  "gate4" -> "Beneficiary" [style=invis];
+  "Contactable" -> "Person" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Person" -> "Donor" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Person" -> "Volunteer" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Person" -> "Attendee" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Person" -> "Beneficiary" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Donor" -> "ContactChannel" [arrowhead=vee color="#6c7a96" label="preferredChannel" taillabel="*" headlabel="1"];
+  "Donation" -> "CashDonation" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Donation" -> "OnlineDonation" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Donation" -> "InKindDonation" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Donation" -> "ChequeDonation" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Donation" -> "Donor" [arrowhead=vee color="#6c7a96" label="donor" taillabel="*" headlabel="1"];
+  "Donation" -> "DonationType" [arrowhead=vee color="#6c7a96" label="donationType" taillabel="*" headlabel="1"];
+  "Donation" -> "DonationMethod" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "LookupEntry" -> "DonationType" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "LookupEntry" -> "EventCategory" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "Event" -> "EventCategory" [arrowhead=vee color="#6c7a96" label="category" taillabel="*" headlabel="1"];
+  "Attendee" -> "Event" [arrowhead=vee color="#6c7a96" label="eventId" taillabel="*" headlabel="1"];
+  "Event" -> "Volunteer" [arrowhead=none color="#6c7a96" label="assigned via event_volunteers" taillabel="*" headlabel="*"];
+  "DonationFactory" -> "CashDonationFactory" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "DonationFactory" -> "OnlineDonationFactory" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "DonationFactory" -> "InKindDonationFactory" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "DonationFactory" -> "ChequeDonationFactory" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "DonationFactory" -> "Donation" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create» (factory method)"];
+  "DonationFactory" -> "DonationRequest" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false label="reads"];
+  "CashDonationFactory" -> "CashDonation" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "OnlineDonationFactory" -> "OnlineDonation" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "InKindDonationFactory" -> "InKindDonation" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "ChequeDonationFactory" -> "ChequeDonation" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "DonationFactory" -> "ValidationException" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false label="throws"];
+  "DonationSubject" -> "DonationService" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed constraint=false];
+  "DonationObserver" -> "DonationLogObserver" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "DonationObserver" -> "ReceiptObserver" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "DonationObserver" -> "DonorNotificationObserver" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "DonationService" -> "DonationObserver" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" label="observers" taillabel="1" headlabel="0..*"];
+  "DonationLogObserver" -> "ApplicationLogger" [arrowhead=vee color="#6c7a96" constraint=false headlabel="1"];
+  "ReceiptObserver" -> "ReceiptRepository" [arrowhead=vee color="#6c7a96" constraint=false headlabel="1"];
+  "DonorNotificationObserver" -> "CommunicationService" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "DonorNotificationObserver" -> "CommunicationStrategy" [arrowhead=vee color="#6c7a96" label="strategies" headlabel="2"];
+  "EventSubject" -> "EventService" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed constraint=false];
+  "EventService" -> "EventObserver" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" label="observers" taillabel="1" headlabel="0..*"];
+  "EventObserver" -> "AttendeeNotificationObserver" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "AttendeeNotificationObserver" -> "EventRepository" [arrowhead=vee color="#6c7a96" constraint=false headlabel="1"];
+  "AttendeeNotificationObserver" -> "CommunicationService" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "AttendeeNotificationObserver" -> "CommunicationStrategy" [arrowhead=vee color="#6c7a96" label="strategies" headlabel="*"];
+  "EventService" -> "EventRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "EventService" -> "ApplicationLogger" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false label="failing observer"];
+  "Receipt" -> "BasicReceipt" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Receipt" -> "ReceiptDecorator" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "ReceiptDecorator" -> "Receipt" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" label="wrapped" headlabel="1"];
+  "ReceiptDecorator" -> "ThankYouMessageDecorator" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "ReceiptDecorator" -> "TaxInformationDecorator" [dir=back arrowtail=empty color="#4f5d7a" weight=4];
+  "BasicReceipt" -> "Donation" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" label="6 getters" headlabel="1"];
+  "TaxInformationDecorator" -> "Donation" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "ReceiptObserver" -> "BasicReceipt" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "ReceiptObserver" -> "ThankYouMessageDecorator" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "ReceiptObserver" -> "TaxInformationDecorator" [arrowhead=vee style=dashed color="#8a93a8" weight=0 label="«create»"];
+  "CommunicationStrategy" -> "EmailStrategy" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "CommunicationStrategy" -> "SmsStrategy" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "CommunicationStrategy" -> "SocialMediaStrategy" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "CommunicationService" -> "CommunicationStrategy" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" label="strategy" headlabel="0..1"];
+  "CommunicationService" -> "MessageLogRepository" [arrowhead=vee color="#6c7a96" constraint=false headlabel="1"];
+  "CommunicationService" -> "Message" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "CommunicationService" -> "DeliveryResult" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "CommunicationStrategy" -> "Contactable" [arrowhead=vee style=dashed color="#8a93a8" weight=0];
+  "CommunicationStrategy" -> "ContactChannel" [arrowhead=vee style=dashed color="#8a93a8" weight=0];
+  "LookupRepository" -> "DonationTypeRepository" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "LookupRepository" -> "EventCategoryRepository" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "DonationTypeRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "EventCategoryRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "DonorRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "DonationRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "DonationRepository" -> "DonationFactory" [arrowhead=vee color="#6c7a96" constraint=false label="rebuilds rows" headlabel="4"];
+  "ReceiptRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "VolunteerRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "EventRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "BeneficiaryRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "MessageLogRepository" -> "Database" [arrowhead=vee color="#6c7a96"];
+  "MessageLogRepository" -> "MessageLogEntry" [arrowhead=vee style=dashed color="#8a93a8" weight=0];
+  "LookupService" -> "LookupRepository" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "LookupService" -> "InputValidator" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "DonationService" -> "DonationFactory" [arrowhead=vee color="#6c7a96" label="factories" headlabel="4"];
+  "DonationService" -> "DonorRepository" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "DonationService" -> "DonationRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "DonationService" -> "LookupRepository" [arrowhead=vee color="#6c7a96" label="donation types" headlabel="1"];
+  "LookupController" -> "LookupService" [arrowhead=vee color="#6c7a96" headlabel="2"];
+  "LookupController" -> "LookupKind" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "DonationController" -> "DonationService" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "DonationController" -> "ReceiptRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "DonationController" -> "DonorNotificationObserver" [arrowhead=vee color="#6c7a96" label="registerObserver / removeObserver" headlabel="1"];
+  "VolunteerController" -> "VolunteerRepository" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "EventController" -> "EventService" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "EventController" -> "EventRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "EventController" -> "VolunteerRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "BeneficiaryController" -> "BeneficiaryRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "CommunicationController" -> "CommunicationService" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "CommunicationController" -> "CommunicationStrategy" [arrowhead=vee color="#6c7a96" label="strategies" headlabel="2"];
+  "CommunicationController" -> "MessageLogRepository" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "CommunicationController" -> "Audience" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "DashboardController" -> "ApplicationLogger" [arrowhead=vee color="#6c7a96" headlabel="1"];
+  "DashboardController" -> "DashboardSummary" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false label="«create»"];
+  "LookupController" -> "Result" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+  "MainFrame" -> "StatusBar" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "DashboardPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "DonationsPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "VolunteersPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "EventsPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "BeneficiariesPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "CommunicationPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "MainFrame" -> "LookupPanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="1"];
+  "LookupPanel" -> "LookupTablePanel" [dir=both arrowtail=diamond arrowhead=vee color="#4f5d7a" headlabel="2"];
+  "Refreshable" -> "DashboardPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "DonationsPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "VolunteersPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "EventsPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "BeneficiariesPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "CommunicationPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "LookupPanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "Refreshable" -> "LookupTablePanel" [dir=back arrowtail=empty color="#4f5d7a" weight=4 style=dashed];
+  "DashboardPanel" -> "DashboardController" [arrowhead=vee color="#6c7a96"];
+  "DonationsPanel" -> "DonationController" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a"];
+  "DonationsPanel" -> "LookupController" [arrowhead=vee color="#6c7a96"];
+  "VolunteersPanel" -> "VolunteerController" [arrowhead=vee color="#6c7a96"];
+  "VolunteersPanel" -> "EventController" [arrowhead=vee color="#6c7a96"];
+  "EventsPanel" -> "EventController" [dir=both arrowtail=odiamond arrowhead=vee color="#4f5d7a"];
+  "EventsPanel" -> "LookupController" [arrowhead=vee color="#6c7a96"];
+  "BeneficiariesPanel" -> "BeneficiaryController" [arrowhead=vee color="#6c7a96"];
+  "CommunicationPanel" -> "CommunicationController" [arrowhead=vee color="#6c7a96"];
+  "CommunicationPanel" -> "EventController" [arrowhead=vee color="#6c7a96"];
+  "LookupTablePanel" -> "LookupController" [arrowhead=vee color="#6c7a96"];
+  "DonationsPanel" -> "FormHelper" [arrowhead=vee style=dashed color="#8a93a8" weight=0 constraint=false];
+}

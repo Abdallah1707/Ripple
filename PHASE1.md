@@ -376,6 +376,13 @@ A review against the lab slides, the "Common Mistakes in Class Diagram" slide an
 - [x] No `System.out` / `System.err` in the code (common-mistakes rule 9).
 - [x] The class diagram follows the common-mistakes rules: no empty classes, no "system" class (`Main` is not drawn), and aggregation only where more than 5 methods are used. The checklist is at the top of [class-diagram.md](docs/class-diagram.md).
 
+A second review compared Ripple with the project description and another team's class diagram. These were added:
+
+- [x] **Abstract `Person`:** `Donor`, `Volunteer`, `Attendee` and `Beneficiary` extend it instead of each repeating id, name, email and phone (the description's *reusability* goal).
+- [x] **Social media channel:** `SocialMediaStrategy` is a third Strategy (the description asks to "integrate with social media platforms"). Only donors have a `@handle`; it was added with one new class and one map entry, without changing `CommunicationService`.
+- [x] **Observer for event updates:** `EventService` (subject) tells `AttendeeNotificationObserver` when an event's date or location changes, and each attendee is messaged by Email, or SMS if they have no email (the description's own example: "when … an event is updated").
+- [x] **Cleaner diagram picture:** [docs/tools/render_class_diagram.py](docs/tools/render_class_diagram.py) draws the packages in MVC-like columns and draws repeated helper arrows once. The Mermaid text still has every class and arrow.
+
 ---
 
 ## Not in Phase 1

@@ -4,7 +4,13 @@
 
 **This diagram is the team contract.** Whatever section of [PHASE1.md](../PHASE1.md) you are working on, create your classes **with exactly these names, fields and methods**. If you need to change a class, update this diagram in the same change. `DiagramConsistencyTest` (`src/test/java/com/ripple/DiagramConsistencyTest.java`) fails the build if the classes in the code and in this diagram drift apart.
 
-**Printable picture:** [images/class-diagram.svg](images/class-diagram.svg) (zoomable vector) and [images/class-diagram.png](images/class-diagram.png) show the complete diagram below as one UML picture, grouped and coloured by layer and pattern. They are generated from section 2 with Graphviz; regenerate them whenever section 2 changes.
+**Printable picture:** [images/class-diagram.svg](images/class-diagram.svg) (zoomable vector) and [images/class-diagram.png](images/class-diagram.png) show the complete diagram below as one UML picture, grouped and coloured by layer and pattern, with the packages in left-to-right columns like the MVC layers. To keep it readable, a dashed "uses" arrow into the shared helpers (`ApplicationLogger`, `Result`, `InputValidator`, `ValidationException`, `FormHelper`) is drawn only once; section 2 below lists all of them. They are generated from section 2 by [tools/render_class_diagram.py](tools/render_class_diagram.py) (Python 3 + Graphviz, no other dependencies); regenerate them whenever section 2 changes, from the project root:
+
+```bash
+python docs/tools/render_class_diagram.py docs/class-diagram.md docs/images/class-diagram.dot
+dot -Tsvg docs/images/class-diagram.dot -o docs/images/class-diagram.svg
+dot -Tpng -Gdpi=96 docs/images/class-diagram.dot -o docs/images/class-diagram.png
+```
 
 Related: [architecture.md](architecture.md) (layers, object wiring, sequence diagrams, database) · [PHASE1.md](../PHASE1.md) (who builds what)
 
