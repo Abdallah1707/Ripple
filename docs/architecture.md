@@ -91,11 +91,13 @@ flowchart TD
     controller --> repository
     controller --> communication
     controller --> extras
+    controller --> receipt
     controller --> model
     service --> factory
     service --> observer
     service --> repository
     service --> extras
+    service --> receipt
     service --> model
     observer --> receipt
     observer --> communication
@@ -117,7 +119,7 @@ flowchart TD
 | `com.ripple.model` | Entities (the `Person` hierarchy: `Donor`, `Volunteer`, `Attendee`, `Beneficiary`; the `Donation` hierarchy; `Event`, ...), lookup entities, enums, the `Contactable` interface. |
 | `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
 | `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers; `EventSubject`, `EventObserver` and `AttendeeNotificationObserver` for event changes. |
-| `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
+| `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. Also `TaxStatement`, a donor's yearly tax document. |
 | `com.ripple.extras` | **Decorator** on the donation itself: `DonationDecorator` and `UrgentDonation`, `GiftDonation`, `AnonymousDonation`; `DonationOptions` applies them. |
 | `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy`, context `CommunicationService`. |
 | `com.ripple.logging` | **Singleton**: `ApplicationLogger`. |

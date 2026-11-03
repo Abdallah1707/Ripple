@@ -13,6 +13,7 @@ import com.ripple.model.Donor;
 import com.ripple.model.InKindDonation;
 import com.ripple.model.OnlineDonation;
 import com.ripple.observer.DonationObserver;
+import com.ripple.receipt.TaxStatement;
 import com.ripple.repository.Database;
 import com.ripple.repository.DonationRepository;
 import com.ripple.repository.DonationTypeRepository;
@@ -22,6 +23,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,13 +63,14 @@ class DonationServiceTest {
     private DonationService service;
     private Donor donor;
     private int typeId;
+    private DonationTypeRepository types;
     private CountingObserver observer;
 
     @BeforeEach
     void setUp() {
         Database db = TestDatabase.create(tempDir);
         Map<DonationMethod, DonationFactory> factories = TestFactories.all();
-        DonationTypeRepository types = new DonationTypeRepository(db);
+        types = new DonationTypeRepository(db);
         service = new DonationService(factories, new DonorRepository(db),
                 new DonationRepository(db, factories), types);
         donor = service.registerDonor("Mona Ali", "mona@example.com", "", "", ContactChannel.EMAIL);
@@ -293,5 +297,34 @@ class DonationServiceTest {
         assertEquals(1, observer.calls);
         assertEquals(1, after.calls);
         assertEquals(1, service.findAllDonations().size()); // donation is still saved
+    }
+
+    // ---- tax statements ----
+
+    @Test
+    void taxStatementListsOnlyThisDonorsTaxDeductibleDonationsOfThatYear() {
+        int thisYear = LocalDate.now().getYear();
+        int foodTypeId = types.findAll().stream().filter(t -> !t.isTaxDeductible()).findFirst().orElseThrow().getId();
+        Donor omar = service.registerDonor("Omar Samy", "omar@example.com", "", "", ContactChannel.EMAIL);
+        service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(500));
+        service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(300));
+        service.recordDonation(DonationMethod.CASH, donor.getId(), foodTypeId, cash(1000)); // not tax-deductible
+        service.recordDonation(DonationMethod.CASH, omar.getId(), typeId, cash(700));     // another donor
+        service.recordDonation(DonationMethod.CASH, donor.getId(), typeId,                // last year
+                new DonationRequest(900, null, null, 0, 0, LocalDateTime.of(thisYear - 1, 5, 1, 10, 0)));
+
+        TaxStatement statement = service.buildTaxStatement(donor.getId(), thisYear);
+
+        assertEquals(2, statement.getDonations().size());
+        assertEquals(800, statement.getTotalDeductible(), 0.001);
+        assertEquals(900, service.buildTaxStatement(donor.getId(), thisYear - 1).getTotalDeductible(), 0.001);
+    }
+
+    @Test
+    void taxStatementNeedsAnExistingDonorAndAYearThatIsNotInTheFuture() {
+        int thisYear = LocalDate.now().getYear();
+        assertThrows(ValidationException.class, () -> service.buildTaxStatement(999, thisYear));
+        assertThrows(ValidationException.class, () -> service.buildTaxStatement(donor.getId(), thisYear + 1));
+        assertThrows(ValidationException.class, () -> service.buildTaxStatement(donor.getId(), 1999));
     }
 }

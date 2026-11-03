@@ -27,6 +27,7 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -275,6 +276,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
         buttons.add(FormHelper.button("Delete", "Delete the selected donor (not possible once they have donations)",
                 this::onDeleteDonor));
         buttons.add(FormHelper.button("Clear", "Empty the form and unselect the row", this::clearDonorForm));
+        buttons.add(FormHelper.button("Tax statement",
+                "Show the selected donor's tax-deductible donations for one year", this::showTaxStatement));
         addRow(form, 5, new JLabel(), buttons);
         return form;
     }
@@ -321,6 +324,27 @@ public class DonationsPanel extends JPanel implements Refreshable {
         if (result.success()) {
             clearDonorForm();
             refresh(); // reloads the donor table and combo box
+        }
+    }
+
+    /** Asks for a year and shows the selected donor's tax statement. */
+    private void showTaxStatement() {
+        Donor donor = selectedDonor();
+        if (donor == null) {
+            statusBar.showResult(Result.fail("Select a donor first"));
+            return;
+        }
+        Object year = JOptionPane.showInputDialog(this, "Tax statement for which year?", "Tax statement",
+                JOptionPane.QUESTION_MESSAGE, null, null, String.valueOf(LocalDate.now().getYear()));
+        if (year == null) {
+            return; // cancelled
+        }
+        Result result = donationController.getTaxStatement(donor.getId(), year.toString());
+        if (result.success()) {
+            JOptionPane.showMessageDialog(this, result.message(), "Tax statement – " + donor.getName(),
+                    JOptionPane.PLAIN_MESSAGE);
+        } else {
+            statusBar.showResult(result);
         }
     }
 

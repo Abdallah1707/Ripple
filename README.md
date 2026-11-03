@@ -65,7 +65,7 @@ The main window (`MainFrame`) has a sidebar with one button per screen. The stat
 | Screen | What you can do |
 |---|---|
 | Dashboard | See the totals (donors, donations and their total value, volunteers, events, beneficiaries) and the recent activity from the log |
-| Donations | Two tabs. *Donors*: add, edit and delete donors (a donor with donations can't be deleted). *Donations*: record Cash, Online, In-kind or Cheque donations, mark them Urgent, Anonymous or a gift "in honor of" someone, view each donation's receipt, and turn the automatic donor thank-you on or off. This is the complete module, see its [CRUD matrix](docs/crud-matrix.md). |
+| Donations | Two tabs. *Donors*: add, edit and delete donors (a donor with donations can't be deleted), and create a donor's yearly tax statement. *Donations*: record Cash, Online, In-kind or Cheque donations, mark them Urgent, Anonymous or a gift "in honor of" someone, view each donation's receipt, and turn the automatic donor thank-you on or off. This is the complete module, see its [CRUD matrix](docs/crud-matrix.md). |
 | Volunteers | Add, edit and delete volunteers, and assign a volunteer to an event |
 | Events | Add, edit and delete events, register attendees, and see each event's attendees and volunteers. Attendees get a message when an event's date or location changes |
 | Beneficiaries | Add, edit and delete beneficiaries |

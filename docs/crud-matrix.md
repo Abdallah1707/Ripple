@@ -21,6 +21,7 @@ Rows are the functions a staff member can use on the **Donations** screen (two t
 | F6 | Record a donation (cash, online, in-kind or cheque) | **R** | **C** | **R** | **C** | **C** |
 | F7 | View all donations (*Donations* table) | **R** | **R** | **R** | | |
 | F8 | View a donation's receipt (*View receipt*) | | | | **R** | |
+| F9 | Create a donor's yearly tax statement (*Donors* tab → Tax statement) | **R** | **R** | **R** | | |
 | **Total** | | **C R U D** | **C R** | **R** | **C R** | **C** |
 
 Notes on the cells:
@@ -53,6 +54,7 @@ Every function goes through the same MVC path: **View → Controller → Service
 | F6 | *Record donation* button | `recordDonation(...)` | `recordDonation(...)` → creator `orderDonation(...)` → `notifyObservers(...)` | `DonorRepository.findById`, `DonationTypeRepository.findById`, `DonationRepository.insert`; observers: `ReceiptRepository.save`, `MessageLogRepository.save` |
 | F7 | `refresh()` | `listDonations()` | `findAllDonations()` | `DonationRepository.findAll` → `SELECT ... JOIN donors JOIN donation_types` |
 | F8 | *View receipt* button | `getReceipt(id)` | — | `ReceiptRepository.findByDonationId` → `SELECT content FROM receipts` |
+| F9 | *Tax statement* button (asks for the year) | `getTaxStatement(donorId, year)` | `buildTaxStatement(donorId, year)` | `DonorRepository.findById`, `DonationRepository.findAll`; the service keeps the donor's tax-deductible donations of that year |
 
 ## 4. Tests that cover the matrix
 
@@ -62,3 +64,4 @@ Every function goes through the same MVC path: **View → Controller → Service
 | Donation **C R** for all four methods | `DonationServiceTest`, `DonationRepositoryTest` (including a cheque saved and loaded back), `DonationControllerTest` |
 | Receipt **C R** | `ReceiptObserverTest`, `ReceiptRepositoryTest`, `DonationControllerTest` (receipt with and without tax information) |
 | MessageLog **C** | `DonorNotificationObserverTest` |
+| F9 tax statement (Donor, Donation, DonationType **R**) | `TaxStatementTest`, `DonationServiceTest` (tax statements section), `DonationControllerTest` |
