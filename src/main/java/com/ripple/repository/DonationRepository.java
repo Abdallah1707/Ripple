@@ -1,5 +1,6 @@
 package com.ripple.repository;
 
+import com.ripple.extras.DonationOptions;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.CashDonation;
@@ -27,7 +28,8 @@ import java.util.Map;
  *
  * <p>When donations are loaded, each row is turned back into the right {@code Donation}
  * subclass by the {@link DonationFactory} creator for its method, so every donation object
- * in the app comes from a creator (Factory Method pattern).
+ * in the app comes from a creator (Factory Method pattern). Its saved extras (urgent, gift,
+ * anonymous) are then put back as decorators by {@link DonationOptions#decorate(Donation)}.
  */
 public class DonationRepository {
 
@@ -47,14 +49,17 @@ public class DonationRepository {
 
     /**
      * Saves a donation and sets its generated id (which gives it its receipt number).
-     * The donor and the donation type must already be saved.
+     * The donor and the donation type must already be saved. A decorated donation is saved as
+     * its plain donation plus the extras it was decorated with.
      *
-     * @param donation the donation to save
+     * @param donation the donation to save (plain or decorated)
      * @return the same donation, now with its id
      */
     public Donation insert(Donation donation) {
         String sql = "INSERT INTO donations (donor_id, donation_type_id, method, amount, transaction_ref, "
-                + "item_description, quantity, estimated_value, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "item_description, quantity, estimated_value, created_at, urgent, gift_honoree, anonymous) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        Donation base = donation.getBase(); // only the plain donation knows its own fields
 
         // Only the columns for this kind of donation are filled; the others stay NULL.
         Double amount = null;
@@ -62,15 +67,15 @@ public class DonationRepository {
         String item = null;
         Integer quantity = null;
         Double estimatedValue = null;
-        if (donation instanceof CashDonation cash) {
+        if (base instanceof CashDonation cash) {
             amount = cash.getAmount();
-        } else if (donation instanceof OnlineDonation online) {
+        } else if (base instanceof OnlineDonation online) {
             amount = online.getAmount();
             transactionRef = online.getTransactionReference();
-        } else if (donation instanceof ChequeDonation cheque) {
+        } else if (base instanceof ChequeDonation cheque) {
             amount = cheque.getAmount();
             transactionRef = cheque.getChequeNumber(); // the cheque number shares the reference column
-        } else if (donation instanceof InKindDonation inKind) {
+        } else if (base instanceof InKindDonation inKind) {
             item = inKind.getItemDescription();
             quantity = inKind.getQuantity();
             estimatedValue = inKind.getEstimatedValue();
@@ -87,6 +92,9 @@ public class DonationRepository {
             statement.setObject(7, quantity);
             statement.setObject(8, estimatedValue);
             statement.setString(9, donation.getCreatedAt().toString());
+            statement.setInt(10, donation.isUrgent() ? 1 : 0);
+            statement.setString(11, donation.getHonoree().isEmpty() ? null : donation.getHonoree());
+            statement.setInt(12, donation.isAnonymous() ? 1 : 0);
             statement.executeUpdate();
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 donation.setId(keys.getInt(1));
@@ -98,14 +106,15 @@ public class DonationRepository {
     }
 
     /**
-     * Returns all donations, newest first. Each one is rebuilt through its creator.
+     * Returns all donations: urgent ones first, then newest first. Each one is rebuilt through
+     * its creator and decorated with its saved extras.
      *
      * @return all donations
      */
     public List<Donation> findAll() {
         String sql = """
                 SELECT d.id, d.method, d.amount, d.transaction_ref, d.item_description,
-                       d.quantity, d.estimated_value, d.created_at,
+                       d.quantity, d.estimated_value, d.created_at, d.urgent, d.gift_honoree, d.anonymous,
                        o.id AS donor_id, o.name AS donor_name, o.email AS donor_email,
                        o.phone AS donor_phone, o.social_handle, o.preferred_channel,
                        t.id AS type_id, t.name AS type_name, t.description AS type_description,
@@ -113,7 +122,7 @@ public class DonationRepository {
                 FROM donations d
                 JOIN donors o ON o.id = d.donor_id
                 JOIN donation_types t ON t.id = d.donation_type_id
-                ORDER BY d.id DESC
+                ORDER BY d.urgent DESC, d.id DESC
                 """;
         try (Connection c = database.getConnection();
              PreparedStatement statement = c.prepareStatement(sql);
@@ -161,7 +170,7 @@ public class DonationRepository {
         }
     }
 
-    /** Turns one joined row into a donation, using the creator for its method to pick the subclass. */
+    /** Turns one joined row into a donation: the creator for its method builds it, then its extras are re-applied. */
     private Donation toDonation(ResultSet row) throws SQLException {
         Donor donor = new Donor(row.getInt("donor_id"), row.getString("donor_name"),
                 row.getString("donor_email"), row.getString("donor_phone"), row.getString("social_handle"),
@@ -180,8 +189,10 @@ public class DonationRepository {
         if (factory == null) {
             throw new IllegalStateException("No creator for stored donation method " + method);
         }
-        Donation donation = factory.orderDonation(donor, type, request);
-        donation.setId(row.getInt("id"));
-        return donation;
+        Donation base = factory.orderDonation(donor, type, request);
+        base.setId(row.getInt("id"));
+        DonationOptions options = new DonationOptions(row.getInt("urgent") == 1, row.getString("gift_honoree"),
+                row.getInt("anonymous") == 1);
+        return options.decorate(base); // put the saved extras back as decorators
     }
 }

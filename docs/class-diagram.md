@@ -65,12 +65,12 @@ Example: `Donation "*" --> "1" Donor` — each donation has exactly one donor; a
 | 2 | No stand-alone class | Every class has at least one relationship. |
 | 3 | No inheritance cycles | All generalizations point one way (e.g. `CashDonation → Donation`, `ThankYouMessageDecorator → ReceiptDecorator`). |
 | 4 | Balance the relationship types | Generalization, realization, association, aggregation, composition and dependency are all used, each for its own meaning (table above). |
-| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 4, `DonationFactory` 4, `Person` 4, `LookupEntry` 2, `ReceiptDecorator` 2). The two interfaces with a single implementer, `DonationSubject` and `EventSubject`, are the slides' Subject/WeatherData shape (see section 4). |
+| 5 | No single inheritance (a parent with one child) | Every superclass has at least two subclasses (`Donation` 5: four kinds + `DonationDecorator`; `DonationFactory` 4, `Person` 4, `DonationDecorator` 3, `LookupEntry` 2, `ReceiptDecorator` 2). The two interfaces with a single implementer, `DonationSubject` and `EventSubject`, are the slides' Subject/WeatherData shape (see section 4). |
 | 6 | Use interfaces where possible | `Contactable`, `CommunicationStrategy`, `DonationSubject`, `DonationObserver`, `EventSubject`, `EventObserver`, `Receipt`, `LookupRepository<T>`, `Refreshable`. |
 | 7 | Association by default, aggregation if more than 5 functions are used | Counted method by method in the code; the 7 arrows above 5 are aggregations and are listed in section 4. |
 | 8 | No "system" class | `Main` (the composition root) is not drawn. |
 | 9 | No print statements in core classes | No class in `src/main/java` writes to `System.out` or `System.err`; output goes to the screen, the message log or `ApplicationLogger`. |
-| 10 | Real diagrams are large | 81 classes in 10 packages, every one of them in the code, with one smaller view per pattern in section 5. |
+| 10 | Real diagrams are large | 86 classes in 11 packages, every one of them in the code, with one smaller view per pattern in section 5. |
 
 ---
 
@@ -129,6 +129,12 @@ namespace model {
         +describe()* String
         +getReceiptNumber() String
         +isTaxDeductible() boolean
+        +getBase() Donation
+        +getDonorDisplayName() String
+        +isUrgent() boolean
+        +getHonoree() String
+        +isAnonymous() boolean
+        +getOptions() List~String~
     }
     class CashDonation {
         -double amount
@@ -189,6 +195,43 @@ namespace model {
     class Beneficiary {
         -String address
         -String needs
+    }
+}
+
+%% ===================== extras =====================
+namespace extras {
+    class DonationDecorator {
+        <<abstract>>
+        #Donation wrapped
+        #DonationDecorator(Donation wrapped)
+        +describe() String
+        +getBase() Donation
+    }
+    class UrgentDonation {
+        <<Decorator>>
+        +isUrgent() boolean
+        +describe() String
+    }
+    class GiftDonation {
+        <<Decorator>>
+        -String honoree
+        +getHonoree() String
+        +describe() String
+    }
+    class AnonymousDonation {
+        <<Decorator>>
+        +String DISPLAY_NAME$
+        +getDonorDisplayName() String
+        +isAnonymous() boolean
+    }
+    class DonationOptions {
+        <<record>>
+        +boolean urgent
+        +String honoree
+        +boolean anonymous
+        +DonationOptions NONE$
+        +isGift() boolean
+        +decorate(Donation base) Donation
     }
 }
 
@@ -481,6 +524,7 @@ namespace service {
         +deleteDonor(int id) Donor
         +findAllDonors() List~Donor~
         +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request) Donation
+        +recordDonation(DonationMethod method, int donorId, int donationTypeId, DonationRequest request, DonationOptions options) Donation
         +findAllDonations() List~Donation~
     }
     class EventService {
@@ -541,6 +585,7 @@ namespace controller {
         +saveDonor(Integer id, String name, String email, String phone, String socialHandle, String channel) Result
         +deleteDonor(int id) Result
         +recordDonation(int donorId, int typeId, String method, String amount, String transactionRef, String item, String quantity, String estimatedValue) Result
+        +recordDonation(int donorId, int typeId, String method, String amount, String transactionRef, String item, String quantity, String estimatedValue, boolean urgent, String honoree, boolean anonymous) Result
         +listDonations() List~Donation~
         +getReceipt(int donationId) String
         +setDonorNotifications(boolean enabled) void
@@ -670,11 +715,22 @@ ReceiptDecorator ..|> Receipt
 ReceiptDecorator o-- "1" Receipt : wrapped
 ThankYouMessageDecorator --|> ReceiptDecorator
 TaxInformationDecorator --|> ReceiptDecorator
-BasicReceipt o-- "1" Donation : 6 getters
+BasicReceipt o-- "1" Donation : 7 methods
 TaxInformationDecorator --> "1" Donation
 ReceiptObserver ..> BasicReceipt : «create»
 ReceiptObserver ..> ThankYouMessageDecorator : «create»
 ReceiptObserver ..> TaxInformationDecorator : «create»
+DonationDecorator --|> Donation
+DonationDecorator o-- "1" Donation : wrapped
+UrgentDonation --|> DonationDecorator
+GiftDonation --|> DonationDecorator
+AnonymousDonation --|> DonationDecorator
+DonationOptions ..> UrgentDonation : «create»
+DonationOptions ..> GiftDonation : «create»
+DonationOptions ..> AnonymousDonation : «create»
+DonationService ..> DonationOptions : decorate()
+DonationRepository ..> DonationOptions : decorate() on load
+DonationController ..> DonationOptions : «create»
 
 %% ---------- Strategy ----------
 EmailStrategy ..|> CommunicationStrategy
@@ -823,6 +879,13 @@ StatusBar ..> Result
 | `ThankYouMessageDecorator` | class | Appends a personal thank-you. |
 | `TaxInformationDecorator` | class | Appends the tax-deductible statement and amount. |
 
+### `com.ripple.extras` — Decorator pattern (donation extras)
+| Class | Kind | Responsibility |
+|---|---|---|
+| `DonationDecorator` | abstract class | **Decorator** for donations: `extends Donation` and wraps one, forwarding every method to it. |
+| `UrgentDonation`, `GiftDonation`, `AnonymousDonation` | classes | **Concrete decorators.** Urgent: listed first, description starts with "URGENT: ". Gift: adds "(gift in honor of …)". Anonymous: shows "Anonymous donor" in lists, the log and the Dashboard, while the real donor still gets the receipt and thank-you. |
+| `DonationOptions` | record | The extras the donor ticked; `decorate(...)` is the one place that wraps a donation, used both when it is recorded and when it is loaded. |
+
 ### `com.ripple.communication` — Strategy pattern
 | Class | Kind | Responsibility |
 |---|---|---|
@@ -896,9 +959,10 @@ Small utilities added while coding. They are not part of the design, so they are
 | `DonationService "1" o-- "0..*" DonationObserver` | **Aggregation**, as in the Observer UML of the lab slides: observers are created in `Main` and registered; the service only holds them. Zero observers is valid. |
 | `DonationService ..\|> DonationSubject` | `DonationSubject` has a single implementer on purpose: it is the slides' `Subject` interface with `WeatherData` as the one concrete subject. The interface is what lets a test or another subject reuse the observers. |
 | `EventService ..\|> EventSubject`, `EventService "1" o-- "0..*" EventObserver` | The same Observer shape a second time, for events. A separate pair of interfaces, because event observers need the event and the change, not a donation. `EventController --> EventService`: the controller saves through the subject, so it cannot forget to notify. |
+| `DonationDecorator --\|> Donation`, `DonationDecorator o-- "1" Donation` | A second Decorator, on the donation itself: a decorator **is-a** `Donation` and **has-a** `Donation`. `Donation` is an abstract class, as `Beverage` is in *Head First*, so the decorator extends it and forwards every getter; the repository saves `getBase()` plus the extras and re-wraps them on load with `DonationOptions`. |
 | `ReceiptDecorator o-- "1" Receipt` | The heart of Decorator: a decorator **is-a** `Receipt` (realization) and **has-a** `Receipt` (aggregation). |
 | `CommunicationService o-- "0..1" CommunicationStrategy` | **Aggregation**, as in the Strategy UML of the lab slides: the context holds at most one current strategy, created elsewhere, and swaps it at runtime. |
-| `LookupService o-- LookupRepository`, `DonationService o-- DonorRepository`, `DonationController o-- DonationService`, `VolunteerController o-- VolunteerRepository`, `DonationsPanel o-- DonationController`, `EventsPanel o-- EventController`, `BasicReceipt o-- Donation` | **Aggregation by the course rule**: each uses more than 5 methods of the other (7, 6, 9, 6, 8, 6 and 6). `EventController --> EventRepository` became a plain association once saving moved to `EventService` (5 methods left). Every other field is drawn as a plain association. |
+| `LookupService o-- LookupRepository`, `DonationService o-- DonorRepository`, `DonationController o-- DonationService`, `VolunteerController o-- VolunteerRepository`, `DonationsPanel o-- DonationController`, `EventsPanel o-- EventController`, `BasicReceipt o-- Donation` | **Aggregation by the course rule**: each uses more than 5 methods of the other (7, 6, 9, 6, 8, 6 and 7). `EventController --> EventRepository` became a plain association once saving moved to `EventService` (5 methods left). Every other field is drawn as a plain association. |
 | `DonationService --> "4" DonationFactory` | Association, not aggregation: the service calls only `orderDonation(...)` on its creators. |
 | `CashDonationFactory ..> CashDonation : «create»` | Dependency, not association: a creator does not keep the objects it creates. |
 | `MainFrame *-- DashboardPanel` | **Composition**: the frame creates its panels and they live only inside it. |
@@ -914,7 +978,7 @@ One small diagram per design pattern (sized for a slide), cut out of the complet
 |---|---|---|---|---|
 | Strategy | 1 | `communication` | Choose Email, SMS or Social at runtime without `if/else` on the channel | 5 |
 | Observer | 1 | `observer` + `DonationService`, `EventService` | Several things must happen after a donation is recorded or an event changes, without that code knowing them | 2 |
-| Decorator | 1 | `receipt` | Add optional receipt sections (thank-you, tax info) without changing the basic receipt | 3 |
+| Decorator | 1 | `receipt`, `model` | Add optional receipt sections (thank-you, tax info), and optional donation extras (urgent, gift, anonymous), without changing the basic classes | 3 |
 | Factory Method | 0.5 | `factory` | Each creator subclass decides which `Donation` subclass to build and validates it; new kinds need no edits | 1 |
 | Singleton | 0.5 | `logging` | Exactly one shared application log | 1 |
 | MVC | 2 | all | Keep UI, coordination and business rules apart | all, checked in 6 |
@@ -1070,9 +1134,10 @@ AttendeeNotificationObserver ..|> EventObserver
 
 ---
 
-### 5.3 Decorator — donation receipts
+### 5.3 Decorator — receipts and donation extras
 
 **Roles:** Component = `Receipt` · Concrete component = `BasicReceipt` · Decorator = `ReceiptDecorator` · Concrete decorators = `ThankYouMessageDecorator`, `TaxInformationDecorator`.
+**Second family, on the donation itself:** Component = `Donation` · Concrete components = the four kinds of donation · Decorator = `DonationDecorator` · Concrete decorators = `UrgentDonation`, `GiftDonation`, `AnonymousDonation`.
 
 ```mermaid
 classDiagram
@@ -1107,6 +1172,43 @@ ReceiptDecorator ..|> Receipt
 ReceiptDecorator o-- "1" Receipt : wrapped
 ThankYouMessageDecorator --|> ReceiptDecorator
 TaxInformationDecorator --|> ReceiptDecorator
+class Donation {
+    <<abstract>>
+    +describe()* String
+    +getDonorDisplayName() String
+    +isUrgent() boolean
+    +getHonoree() String
+}
+class CashDonation {
+    -double amount
+    +describe() String
+}
+class DonationDecorator {
+    <<abstract>>
+    #Donation wrapped
+    #DonationDecorator(Donation wrapped)
+    +describe() String
+}
+class UrgentDonation {
+    <<Decorator>>
+    +isUrgent() boolean
+    +describe() String
+}
+class GiftDonation {
+    <<Decorator>>
+    -String honoree
+    +describe() String
+}
+class AnonymousDonation {
+    <<Decorator>>
+    +getDonorDisplayName() String
+}
+CashDonation --|> Donation
+DonationDecorator --|> Donation
+DonationDecorator o-- "1" Donation : wrapped
+UrgentDonation --|> DonationDecorator
+GiftDonation --|> DonationDecorator
+AnonymousDonation --|> DonationDecorator
 ```
 
 **How it works:** each decorator's `render()` returns `wrapped.render()` plus its own section. `ReceiptObserver` builds the chain at runtime:
@@ -1119,17 +1221,29 @@ if (donation.isTaxDeductible()) {
 String text = receipt.render();
 ```
 
-`BasicReceipt` has no `if (showTax)` flag and is never edited to add sections — that is the point of the pattern. Same idea as the course lab's pizza toppings (`Pizza` / `ToppingDecorator`).
+`BasicReceipt` has no `if (showTax)` flag and is never edited to add sections — that is the point of the pattern.
 
-- **In the code:** [BasicReceipt.java](../src/main/java/com/ripple/receipt/BasicReceipt.java), [ReceiptDecorator.java](../src/main/java/com/ripple/receipt/ReceiptDecorator.java), [ThankYouMessageDecorator.java](../src/main/java/com/ripple/receipt/ThankYouMessageDecorator.java), [TaxInformationDecorator.java](../src/main/java/com/ripple/receipt/TaxInformationDecorator.java). The chain is built in [ReceiptObserver.java](../src/main/java/com/ripple/observer/ReceiptObserver.java), method `buildReceipt(...)`.
-- **Demo:** on the Donations screen, record a *Zakat* donation, select it and click "View receipt" (has a tax section); record a *Food Supplies* donation and view it (no tax section).
-- **Test:** `src/test/java/com/ripple/receipt/ReceiptDecoratorTest.java` checks that `BasicReceipt` has neither section and that each decorator adds only its own; `src/test/java/com/ripple/observer/ReceiptObserverTest.java` checks that tax information is attached only when the donation type is tax-deductible.
+**Donation extras:** when a donation is recorded, the creator builds the plain donation (Factory Method) and `DonationOptions.decorate(...)` wraps it in one decorator per ticked extra, always in the same order:
+
+```java
+Donation donation = new CashDonation(...);                 // made by CashDonationFactory
+donation = new GiftDonation(donation, "Hana Ali");          // "... (gift in honor of Hana Ali)"
+donation = new UrgentDonation(donation);                    // "URGENT: ..."
+donation = new AnonymousDonation(donation);                 // shown as "Anonymous donor"
+donation.describe();  // "URGENT: Cash donation of EGP 500.00 (gift in honor of Hana Ali)"
+```
+
+Each decorator overrides only what it changes and forwards the rest (`getValue()`, `getId()`, the receipt number…) to the donation it wraps. `getBase()` reaches the plain donation, which the repository needs to save its own fields. Anonymous changes only the *display* name: `getDonor()` is still the real donor, so they still get their own receipt and thank-you. Same idea as the course lab's pizza toppings (`Pizza` / `ToppingDecorator`).
+
+- **In the code:** [BasicReceipt.java](../src/main/java/com/ripple/receipt/BasicReceipt.java), [ReceiptDecorator.java](../src/main/java/com/ripple/receipt/ReceiptDecorator.java), [ThankYouMessageDecorator.java](../src/main/java/com/ripple/receipt/ThankYouMessageDecorator.java), [TaxInformationDecorator.java](../src/main/java/com/ripple/receipt/TaxInformationDecorator.java). The chain is built in [ReceiptObserver.java](../src/main/java/com/ripple/observer/ReceiptObserver.java), method `buildReceipt(...)`. Donation extras: [DonationDecorator.java](../src/main/java/com/ripple/extras/DonationDecorator.java), [UrgentDonation.java](../src/main/java/com/ripple/extras/UrgentDonation.java), [GiftDonation.java](../src/main/java/com/ripple/extras/GiftDonation.java), [AnonymousDonation.java](../src/main/java/com/ripple/extras/AnonymousDonation.java), wrapped by [DonationOptions.java](../src/main/java/com/ripple/extras/DonationOptions.java).
+- **Demo:** on the Donations screen, record a *Zakat* donation, select it and click "View receipt" (has a tax section); record a *Food Supplies* donation and view it (no tax section). Then record a donation with **Urgent** and **Anonymous** ticked and "In honor of" filled in: it appears at the top of the list as "Anonymous donor" with Extras "Gift, Urgent, Anonymous", and its receipt's Details line reads "URGENT: … (gift in honor of …)".
+- **Test:** `src/test/java/com/ripple/receipt/ReceiptDecoratorTest.java` checks that `BasicReceipt` has neither section and that each decorator adds only its own; `src/test/java/com/ripple/observer/ReceiptObserverTest.java` checks that tax information is attached only when the donation type is tax-deductible; `src/test/java/com/ripple/extras/DonationDecoratorTest.java` checks each donation decorator alone and stacked, that the id and value pass through, and the fixed wrapping order; `DonationRepositoryTest` checks that extras survive saving and loading.
 
 **Presentation note**
 
-- **Problem:** every receipt has the basic facts, but the thank-you line and the tax section are optional, and the tax section only applies to tax-deductible donation types (CR4). More extras may follow.
+- **Problem:** every receipt has the basic facts, but the thank-you line and the tax section are optional, and in the same way a donation may be urgent, a gift, anonymous, or any mix of the three (8 combinations, which would be 8 × 4 subclasses of `Donation`), and the tax section only applies to tax-deductible donation types (CR4). More extras may follow.
 - **How Ripple solves it:** `BasicReceipt` prints only the basic facts. `ThankYouMessageDecorator` and `TaxInformationDecorator` each wrap a `Receipt` and add their own section, and `ReceiptObserver` wraps the ones that apply at run time.
-- **Why not just `if/else`:** one `Receipt` class with `showThanks` / `showTax` flags and `if` blocks has to be edited for every new section, and the number of combinations grows with every flag. With decorators the sections are stacked in any combination, and the basic receipt never changes.
+- **Why not just `if/else`:** one `Receipt` class with `showThanks` / `showTax` flags and `if` blocks has to be edited for every new section, and the number of combinations grows with every flag. With decorators the sections are stacked in any combination, and the basic receipt never changes. The donation extras work the same way: none of the four donation classes was edited to add them.
 
 ---
 

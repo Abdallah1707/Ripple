@@ -79,6 +79,10 @@ public class DonationsPanel extends JPanel implements Refreshable {
     private final JLabel itemLabel = new JLabel("Item");
     private final JLabel quantityLabel = new JLabel("Quantity");
     private final JLabel valueLabel = new JLabel("Estimated value (EGP)");
+    // Extras: each one ticked becomes a decorator around the donation.
+    private final JCheckBox urgentCheckBox = new JCheckBox("Urgent need");
+    private final JCheckBox anonymousCheckBox = new JCheckBox("Anonymous (hide the donor's name in lists)");
+    private final JTextField honoreeField = new JTextField(12);
 
     private final JCheckBox notifyCheckBox = new JCheckBox("Notify donors on new donation");
     private final JButton viewReceiptButton = new JButton("View receipt");
@@ -101,7 +105,7 @@ public class DonationsPanel extends JPanel implements Refreshable {
         this.statusBar = statusBar;
 
         tableModel = new DefaultTableModel(
-                new String[]{"Receipt no.", "Date", "Donor", "Type", "Method", "Value"}, 0) {
+                new String[]{"Receipt no.", "Date", "Donor", "Type", "Method", "Value", "Extras"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -136,11 +140,15 @@ public class DonationsPanel extends JPanel implements Refreshable {
         FormHelper.placeholder(itemField, "e.g. Blankets");
         FormHelper.placeholder(quantityField, "e.g. 20");
         FormHelper.placeholder(valueField, "e.g. 4000");
+        FormHelper.placeholder(honoreeField, "optional, e.g. Hana Ali");
+        honoreeField.setToolTipText("Fill in to make this donation a gift in honor of someone");
+        urgentCheckBox.setToolTipText("Urgent donations are listed first");
         donorPhoneField.setToolTipText("Exactly 11 digits; required if the donor prefers SMS");
         donorEmailField.setToolTipText("Required if the donor prefers Email");
         donorSocialField.setToolTipText("Starts with @; required if the donor prefers Social");
         FormHelper.onEnter(this::onSaveDonor, donorNameField, donorEmailField, donorPhoneField, donorSocialField);
-        FormHelper.onEnter(this::recordDonation, amountField, referenceField, itemField, quantityField, valueField);
+        FormHelper.onEnter(this::recordDonation, amountField, referenceField, itemField, quantityField, valueField,
+                honoreeField);
 
         JTabbedPane tabs = new JTabbedPane();
         tabs.addTab("Donations", buildDonationsTab());
@@ -189,7 +197,10 @@ public class DonationsPanel extends JPanel implements Refreshable {
         addRow(form, 5, itemLabel, itemField);
         addRow(form, 6, quantityLabel, quantityField);
         addRow(form, 7, valueLabel, valueField);
-        addRow(form, 8, new JLabel(), FormHelper.button("Record donation",
+        addRow(form, 8, new JLabel("In honor of"), honoreeField);
+        addRow(form, 9, new JLabel("Extras"), urgentCheckBox);
+        addRow(form, 10, new JLabel(), anonymousCheckBox);
+        addRow(form, 11, new JLabel(), FormHelper.button("Record donation",
                 "Save this donation; its receipt is created automatically", this::recordDonation));
         return form;
     }
@@ -226,7 +237,8 @@ public class DonationsPanel extends JPanel implements Refreshable {
                 type == null ? 0 : type.getId(),
                 method == null ? null : method.name(),
                 amountField.getText(), referenceField.getText(),
-                itemField.getText(), quantityField.getText(), valueField.getText());
+                itemField.getText(), quantityField.getText(), valueField.getText(),
+                urgentCheckBox.isSelected(), honoreeField.getText(), anonymousCheckBox.isSelected());
         statusBar.showResult(result);
         if (result.success()) {
             amountField.setText("");
@@ -234,6 +246,9 @@ public class DonationsPanel extends JPanel implements Refreshable {
             itemField.setText("");
             quantityField.setText("");
             valueField.setText("");
+            honoreeField.setText("");
+            urgentCheckBox.setSelected(false);
+            anonymousCheckBox.setSelected(false);
             refresh();
         }
     }
@@ -404,10 +419,11 @@ public class DonationsPanel extends JPanel implements Refreshable {
             tableModel.addRow(new Object[]{
                     donation.getReceiptNumber(),
                     donation.getCreatedAt().format(DATE_FORMAT),
-                    donation.getDonor().getName(),
+                    donation.getDonorDisplayName(), // "Anonymous donor" for anonymous donations
                     donation.getDonationType().getName(),
                     donation.getMethod().getLabel(),
-                    String.format(Locale.US, "EGP %,.2f", donation.getValue())});
+                    String.format(Locale.US, "EGP %,.2f", donation.getValue()),
+                    String.join(", ", donation.getOptions())});
         }
         notifyCheckBox.setSelected(donationController.isDonorNotificationsEnabled());
     }

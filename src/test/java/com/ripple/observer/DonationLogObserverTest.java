@@ -2,12 +2,14 @@ package com.ripple.observer;
 
 import com.ripple.TestDatabase;
 import com.ripple.TestFactories;
+import com.ripple.extras.AnonymousDonation;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Donation;
 import com.ripple.model.DonationMethod;
+import com.ripple.model.DonationType;
 import com.ripple.model.Donor;
 import com.ripple.repository.Database;
 import com.ripple.repository.DonationRepository;
@@ -21,6 +23,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Tests that DonationLogObserver writes a line to the application log. */
@@ -42,6 +45,20 @@ class DonationLogObserverTest {
         String latest = ApplicationLogger.getInstance().getRecentEntries(1).get(0);
         assertTrue(latest.contains(donation.getReceiptNumber()));
         assertTrue(latest.contains("Mona Ali"));
+    }
+
+    @Test
+    void anAnonymousDonationIsLoggedWithoutTheDonorsName() {
+        Donor donor = new Donor(3, "Mona Ali", "mona@example.com", "", ContactChannel.EMAIL);
+        Donation donation = new AnonymousDonation(TestFactories.create(DonationMethod.CASH, donor,
+                new DonationType(1, "Zakat", "", true), new DonationRequest(50, null, null, 0, 0, null)));
+        donation.setId(42);
+
+        new DonationLogObserver().update(donation);
+
+        String latest = ApplicationLogger.getInstance().getRecentEntries(1).get(0);
+        assertTrue(latest.contains("Anonymous donor"), latest);
+        assertFalse(latest.contains("Mona Ali"), latest);
     }
 
     @Test

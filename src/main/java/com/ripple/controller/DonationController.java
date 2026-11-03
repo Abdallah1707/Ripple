@@ -1,5 +1,6 @@
 package com.ripple.controller;
 
+import com.ripple.extras.DonationOptions;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
 import com.ripple.model.ContactChannel;
@@ -119,6 +120,30 @@ public class DonationController {
      */
     public Result recordDonation(int donorId, int typeId, String method, String amount,
                                  String transactionRef, String item, String quantity, String estimatedValue) {
+        return recordDonation(donorId, typeId, method, amount, transactionRef, item, quantity, estimatedValue,
+                false, "", false);
+    }
+
+    /**
+     * Records a donation with the extras the user ticked: urgent, a gift in honor of someone,
+     * anonymous. Each extra becomes a decorator around the donation.
+     *
+     * @param donorId          id of the chosen donor
+     * @param typeId           id of the chosen donation type
+     * @param method           {@code "CASH"}, {@code "ONLINE"}, {@code "IN_KIND"} or {@code "CHEQUE"}
+     * @param amount           amount in EGP (cash, online, cheque)
+     * @param transactionRef   payment reference (online) or cheque number (cheque)
+     * @param item             what was given (in-kind)
+     * @param quantity         how many (in-kind)
+     * @param estimatedValue   estimated value in EGP (in-kind)
+     * @param urgent           whether the donation is for an urgent need
+     * @param honoree          who the donation honors; empty if it is not a gift
+     * @param anonymous        whether the donor should not be named publicly
+     * @return what happened, for the status bar
+     */
+    public Result recordDonation(int donorId, int typeId, String method, String amount,
+                                 String transactionRef, String item, String quantity, String estimatedValue,
+                                 boolean urgent, String honoree, boolean anonymous) {
         try {
             DonationMethod donationMethod = parseMethod(method);
             DonationRequest request = switch (donationMethod) {
@@ -132,8 +157,10 @@ public class DonationController {
                 case CHEQUE -> new DonationRequest(
                         InputValidator.parseDouble(amount, "Amount"), transactionRef, null, 0, 0, null);
             };
-            Donation donation = donationService.recordDonation(donationMethod, donorId, typeId, request);
-            return Result.ok("Donation " + donation.getReceiptNumber() + " recorded");
+            Donation donation = donationService.recordDonation(donationMethod, donorId, typeId, request,
+                    new DonationOptions(urgent, honoree, anonymous));
+            String extras = donation.getOptions().isEmpty() ? "" : " (" + String.join(", ", donation.getOptions()) + ")";
+            return Result.ok("Donation " + donation.getReceiptNumber() + " recorded" + extras);
         } catch (ValidationException e) {
             return Result.fail(e.getMessage());
         } catch (IllegalStateException e) {

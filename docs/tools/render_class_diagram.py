@@ -28,6 +28,7 @@ CLUSTERS = {
     "factory": ("FACTORY  |  FACTORY METHOD", "#f1ecfb", "#dcd1f4"),
     "communication": ("COMMUNICATION  |  STRATEGY", "#e6f6fa", "#bde5f0"),
     "receipt": ("RECEIPT  |  DECORATOR", "#fdebef", "#f7c6d0"),
+    "extras": ("DONATION EXTRAS  |  DECORATOR", "#fdebef", "#f7c6d0"),
     "model": ("MODEL  |  ENTITIES  ·  FACTORY PRODUCTS", "#e7f7ed", "#bce6cb"),
     "repository": ("REPOSITORY  |  PERSISTENCE", "#f0f2f5", "#d5dae2"),
     "logging": ("LOGGING  |  SINGLETON", "#fff3e0", "#f9ddaa"),
@@ -40,7 +41,7 @@ COLUMNS = [
     ["controller"],
     ["service", "logging"],
     ["observer", "repository"],
-    ["communication", "receipt", "factory"],
+    ["communication", "receipt", "extras", "factory"],
     ["model"],
 ]
 

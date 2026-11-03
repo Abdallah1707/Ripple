@@ -1,6 +1,7 @@
 package com.ripple.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * A donation: who gave it, its type, and when it was recorded.
@@ -10,6 +11,11 @@ import java.time.LocalDateTime;
  * are created only by the subclasses of {@code DonationFactory}, one creator per kind. The rest of the app works with {@code Donation} and calls
  * {@link #getValue()} and {@link #describe()} without knowing which kind it has
  * (polymorphism).
+ *
+ * <p>It is also the <b>Component</b> in a Decorator pattern: {@code DonationDecorator} (package
+ * {@code com.ripple.extras}) wraps a donation to make it urgent, a gift or anonymous, in any combination. The methods from
+ * {@link #getBase()} down are the hooks those decorators change; a plain donation answers them
+ * with the defaults below.
  */
 public abstract class Donation {
 
@@ -93,5 +99,62 @@ public abstract class Donation {
      */
     public boolean isTaxDeductible() {
         return donationType.isTaxDeductible();
+    }
+
+    // ---------------- Decorator hooks: a plain donation's answers ----------------
+
+    /**
+     * Returns the plain donation inside any decorators. Saving needs it, because only the plain
+     * donation knows its own fields (amount, cheque number...).
+     *
+     * @return this donation; a decorator returns the base of the donation it wraps
+     */
+    public Donation getBase() {
+        return this;
+    }
+
+    /**
+     * Returns the donor's name as it may be shown to everyone (lists, log, Dashboard).
+     *
+     * @return the donor's name; "Anonymous donor" when the donation is anonymous
+     */
+    public String getDonorDisplayName() {
+        return getDonor().getName();
+    }
+
+    /**
+     * Tells whether the donation is for an urgent need and should be handled first.
+     *
+     * @return {@code false} unless decorated as urgent
+     */
+    public boolean isUrgent() {
+        return false;
+    }
+
+    /**
+     * Returns the person the donation is given in honor of.
+     *
+     * @return the honoree's name, or an empty string if the donation is not a gift
+     */
+    public String getHonoree() {
+        return "";
+    }
+
+    /**
+     * Tells whether the donor asked not to be named publicly.
+     *
+     * @return {@code false} unless decorated as anonymous
+     */
+    public boolean isAnonymous() {
+        return false;
+    }
+
+    /**
+     * Returns the names of the options added by decorators, for the donations table.
+     *
+     * @return e.g. {@code ["Gift", "Urgent"]}; empty for a plain donation
+     */
+    public List<String> getOptions() {
+        return List.of();
     }
 }

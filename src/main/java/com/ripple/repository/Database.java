@@ -83,6 +83,9 @@ public class Database {
                 statement.execute(sql);
             }
             addColumnIfMissing(connection, "donors", "social_handle", "TEXT");
+            addColumnIfMissing(connection, "donations", "urgent", "INTEGER NOT NULL DEFAULT 0");
+            addColumnIfMissing(connection, "donations", "gift_honoree", "TEXT");
+            addColumnIfMissing(connection, "donations", "anonymous", "INTEGER NOT NULL DEFAULT 0");
             seedIfEmpty(connection, "donation_types",
                     "INSERT INTO donation_types (name, description, tax_deductible) VALUES (?, ?, ?)",
                     new Object[][]{
@@ -181,7 +184,10 @@ public class Database {
                 item_description TEXT,
                 quantity         INTEGER,
                 estimated_value  REAL,
-                created_at       TEXT    NOT NULL
+                created_at       TEXT    NOT NULL,
+                urgent           INTEGER NOT NULL DEFAULT 0,
+                gift_honoree     TEXT,
+                anonymous        INTEGER NOT NULL DEFAULT 0
             )""",
             """
             CREATE TABLE IF NOT EXISTS receipts (

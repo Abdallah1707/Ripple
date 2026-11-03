@@ -70,7 +70,7 @@ The main window (`MainFrame`) has a sidebar with one button per screen and a sta
 | User control panel | 1 | The main window | `view/MainFrame.java`, `view/StatusBar.java` | — |
 | Strategy | 1 | Communication screen: send by Email, then by SMS | `communication/` (`CommunicationService.setStrategy`) | `CommunicationServiceTest` |
 | Observer | 1 | Donations screen: record a donation, then untick "Notify donors". Events screen: change an event's date and its attendees are messaged | `observer/`, `service/DonationService.java`, `service/EventService.java` | `DonationServiceTest`, `DonorNotificationObserverTest`, `EventServiceTest`, `AttendeeNotificationObserverTest` |
-| Decorator | 1 | Donations screen: *View receipt* | `receipt/`, `observer/ReceiptObserver.java` | `ReceiptDecoratorTest`, `ReceiptObserverTest` |
+| Decorator | 1 | Donations screen: *View receipt*; record a donation with Urgent / Anonymous ticked and "In honor of" filled in | `receipt/`, `observer/ReceiptObserver.java`, `extras/` (`DonationDecorator` and its 3 subclasses) | `ReceiptDecoratorTest`, `ReceiptObserverTest`, `DonationDecoratorTest` |
 | Factory Method | 0.5 | Donations screen: record a donation of each method (Cheque was added as a new creator) | `factory/DonationFactory.java` (creator) + 4 concrete creators | `DonationFactoryTest` |
 | Singleton | 0.5 | Dashboard "Recent activity" and `logs/ripple.log` | `logging/ApplicationLogger.java` | `ApplicationLoggerTest` |
 | Lookup tables | 0.5 | Lookup Management screen; CRUD matrix for the Donations module in [docs/crud-matrix.md](docs/crud-matrix.md) | `service/LookupService.java` | `LookupServiceTest` |
@@ -114,7 +114,8 @@ src/main/java/com/ripple/
   model/          Domain entities
   factory/        Factory Method pattern
   observer/       Observer pattern
-  receipt/        Decorator pattern
+  receipt/        Decorator pattern (receipts)
+  extras/         Decorator pattern (donation extras: urgent, gift, anonymous)
   communication/  Strategy pattern
   logging/        Singleton pattern
   repository/     SQL / persistence

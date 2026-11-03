@@ -381,6 +381,7 @@ A second review compared Ripple with the project description and another team's 
 - [x] **Abstract `Person`:** `Donor`, `Volunteer`, `Attendee` and `Beneficiary` extend it instead of each repeating id, name, email and phone (the description's *reusability* goal).
 - [x] **Social media channel:** `SocialMediaStrategy` is a third Strategy (the description asks to "integrate with social media platforms"). Only donors have a `@handle`; it was added with one new class and one map entry, without changing `CommunicationService`.
 - [x] **Observer for event updates:** `EventService` (subject) tells `AttendeeNotificationObserver` when an event's date or location changes, and each attendee is messaged by Email, or SMS if they have no email (the description's own example: "when … an event is updated").
+- [x] **Donation extras (second Decorator):** a donation can be urgent (listed first), a gift in honor of someone, and/or anonymous (shown as "Anonymous donor"), in any combination. `DonationDecorator` wraps the donation; `DonationOptions` applies the decorators when a donation is recorded and again when it is loaded.
 - [x] **Cleaner diagram picture:** [docs/tools/render_class_diagram.py](docs/tools/render_class_diagram.py) draws the packages in MVC-like columns and draws repeated helper arrows once. The Mermaid text still has every class and arrow.
 
 ---

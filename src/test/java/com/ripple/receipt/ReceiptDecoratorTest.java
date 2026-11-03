@@ -1,6 +1,9 @@
 package com.ripple.receipt;
 
 import com.ripple.TestFactories;
+import com.ripple.extras.AnonymousDonation;
+import com.ripple.extras.GiftDonation;
+import com.ripple.extras.UrgentDonation;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.ContactChannel;
 import com.ripple.model.Donation;
@@ -33,6 +36,17 @@ class ReceiptDecoratorTest {
         assertTrue(text.contains("Mona Ali"));
         assertFalse(text.contains("Thank you"));
         assertFalse(text.contains("tax-deductible"));
+    }
+
+    @Test
+    void theReceiptShowsTheDonationExtrasButKeepsTheRealDonorName() {
+        Donation donation = new AnonymousDonation(new UrgentDonation(new GiftDonation(newDonation(), "Hana Ali")));
+
+        String text = new BasicReceipt(donation).render();
+
+        assertTrue(text.contains("Details: URGENT: Cash donation of EGP 500.00 (gift in honor of Hana Ali)"), text);
+        assertTrue(text.contains("Donor: Mona Ali"), text); // the receipt is the donor's own copy
+        assertTrue(text.contains("Receipt RCP-"), text);
     }
 
     @Test

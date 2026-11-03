@@ -78,6 +78,28 @@ class DonationControllerTest {
     }
 
     @Test
+    void tickedExtrasAreRecordedAndNamedInTheStatusMessage() {
+        Result result = controller.recordDonation(donor.getId(), typeId, "CASH", "500", "", "", "", "",
+                true, "Hana Ali", true);
+
+        assertTrue(result.success());
+        assertTrue(result.message().endsWith("recorded (Gift, Urgent, Anonymous)"), result.message());
+        Donation saved = controller.listDonations().get(0);
+        assertEquals("Anonymous donor", saved.getDonorDisplayName());
+        assertTrue(controller.getReceipt(saved.getId()).contains("gift in honor of Hana Ali"));
+    }
+
+    @Test
+    void aTooShortHonoreeGivesARedResult() {
+        Result result = controller.recordDonation(donor.getId(), typeId, "CASH", "500", "", "", "", "",
+                false, "H", false);
+
+        assertFalse(result.success());
+        assertTrue(result.message().contains("In honor of"), result.message());
+        assertTrue(controller.listDonations().isEmpty());
+    }
+
+    @Test
     void onlyTheFieldsOfTheChosenMethodAreRead() {
         Result result = controller.recordDonation(donor.getId(), typeId, "IN_KIND", "abc", "", "Blankets", "3", "900");
         assertTrue(result.success()); // the bad "amount" text is ignored for in-kind

@@ -2,6 +2,7 @@ package com.ripple.service;
 
 import com.ripple.TestDatabase;
 import com.ripple.TestFactories;
+import com.ripple.extras.DonationOptions;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.CashDonation;
@@ -26,6 +27,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -75,6 +77,31 @@ class DonationServiceTest {
 
     private DonationRequest cash(double amount) {
         return new DonationRequest(amount, null, null, 0, 0, null);
+    }
+
+    // ---------------- donation extras (Decorator) ----------------
+
+    @Test
+    void chosenExtrasDecorateTheDonationBeforeObserversHearOfIt() {
+        Donation donation = service.recordDonation(DonationMethod.CASH, donor.getId(), typeId, cash(500),
+                new DonationOptions(true, "Hana Ali", true));
+
+        assertTrue(donation.isUrgent() && donation.isAnonymous());
+        assertEquals("URGENT: Cash donation of EGP 500.00 (gift in honor of Hana Ali)", donation.describe());
+        assertSame(donation, observer.last); // observers get the decorated donation
+        assertEquals("Anonymous donor", observer.last.getDonorDisplayName());
+        assertEquals("Mona Ali", observer.last.getDonor().getName()); // the real donor is still known
+    }
+
+    @Test
+    void aGiftNeedsARealHonoreeNameAndNothingIsSavedOtherwise() {
+        assertThrows(ValidationException.class, () -> service.recordDonation(DonationMethod.CASH,
+                donor.getId(), typeId, cash(500), new DonationOptions(false, "H", false)));
+        assertThrows(ValidationException.class, () -> service.recordDonation(DonationMethod.CASH,
+                donor.getId(), typeId, cash(500), null));
+
+        assertEquals(0, observer.calls);
+        assertTrue(service.findAllDonations().isEmpty());
     }
 
     // ---------------- donor rules ----------------

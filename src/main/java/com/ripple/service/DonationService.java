@@ -1,5 +1,6 @@
 package com.ripple.service;
 
+import com.ripple.extras.DonationOptions;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.logging.ApplicationLogger;
@@ -195,8 +196,9 @@ public class DonationService implements DonationSubject {
     // ---------------- Donations ----------------
 
     /**
-     * Records a donation: checks it, saves it, then tells the observers.
-     * If anything is invalid nothing is saved and no observer is told.
+     * Records a plain donation, with no extras. Same as
+     * {@link #recordDonation(DonationMethod, int, int, DonationRequest, DonationOptions)} with
+     * {@link DonationOptions#NONE}.
      *
      * @param method         how the donation was given
      * @param donorId        id of the donor
@@ -207,6 +209,32 @@ public class DonationService implements DonationSubject {
      */
     public Donation recordDonation(DonationMethod method, int donorId, int donationTypeId,
                                    DonationRequest request) {
+        return recordDonation(method, donorId, donationTypeId, request, DonationOptions.NONE);
+    }
+
+    /**
+     * Records a donation: checks it, saves it, then tells the observers.
+     * If anything is invalid nothing is saved and no observer is told.
+     *
+     * <p>Three patterns meet here: the creator for the method builds the plain donation (Factory
+     * Method), the chosen extras wrap it (Decorator), and the observers are told (Observer).
+     *
+     * @param method         how the donation was given
+     * @param donorId        id of the donor
+     * @param donationTypeId id of the donation type
+     * @param request        the details for that method
+     * @param options        the extras the donor chose (urgent, gift, anonymous)
+     * @return the saved donation, decorated with the chosen extras, with its id and receipt number
+     * @throws ValidationException if the donor, type, details or honoree are not valid
+     */
+    public Donation recordDonation(DonationMethod method, int donorId, int donationTypeId,
+                                   DonationRequest request, DonationOptions options) {
+        if (options == null) {
+            throw new ValidationException("Donation options are required");
+        }
+        if (options.isGift()) {
+            InputValidator.requireText(options.honoree(), "In honor of", 2, 100);
+        }
         Donor donor = donorRepository.findById(donorId)
                 .orElseThrow(() -> new ValidationException("Please choose a donor"));
         DonationType type = donationTypeRepository.findById(donationTypeId)
@@ -219,7 +247,8 @@ public class DonationService implements DonationSubject {
         if (factory == null) {
             throw new ValidationException("Unsupported donation method: " + method.getLabel());
         }
-        Donation donation = factory.orderDonation(donor, type, request); // validates the details
+        Donation base = factory.orderDonation(donor, type, request); // validates the details
+        Donation donation = options.decorate(base);                  // adds the chosen extras
         donationRepository.insert(donation);
         notifyObservers(donation);
         return donation;

@@ -28,9 +28,10 @@ public class BasicReceipt implements Receipt {
     @Override
     public String render() {
         return String.format(Locale.US,
-                "Receipt %s%nDate: %s%nDonor: %s%nType: %s%nMethod: %s%nValue: EGP %,.2f",
+                "Receipt %s%nDate: %s%nDonor: %s%nType: %s%nMethod: %s%nValue: EGP %,.2f%nDetails: %s",
                 donation.getReceiptNumber(), donation.getCreatedAt().format(DATE_FORMAT),
-                donation.getDonor().getName(), donation.getDonationType().getName(),
-                donation.getMethod().getLabel(), donation.getValue());
+                donation.getDonor().getName(), // the receipt is the donor's own, so it keeps their name
+                donation.getDonationType().getName(), donation.getMethod().getLabel(), donation.getValue(),
+                donation.describe()); // shows the donation decorators: "URGENT: ... (gift in honor of ...)"
     }
 }

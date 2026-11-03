@@ -35,7 +35,7 @@ flowchart LR
     end
     subgraph Model["Model"]
         S[Services<br/>com.ripple.service]
-        P[Pattern packages<br/>factory · observer · receipt · communication · logging]
+        P[Pattern packages<br/>factory · observer · receipt · extras · communication · logging]
         R[Repositories<br/>com.ripple.repository]
         E[Entities<br/>com.ripple.model]
     end
@@ -59,7 +59,7 @@ flowchart LR
 | **View** | `view` | Builds widgets, reads form fields, calls one controller method, shows the returned data or `Result` message. | SQL, validation rules, creating domain objects with business meaning, talking to repositories. |
 | **Controller** | `controller` | Converts UI strings into typed values, calls the right service or repository, catches `ValidationException` and returns a `Result`. | Build widgets, write SQL. |
 | **Service** (Model) | `service` | Business rules: lookup uniqueness and in-use checks, donor validation, recording donations, saving events, and notifying observers. | Know about Swing. |
-| **Pattern packages** (Model) | `factory`, `observer`, `receipt`, `communication`, `logging` | The five design patterns. | Know about Swing. |
+| **Pattern packages** (Model) | `factory`, `observer`, `receipt`, `extras`, `communication`, `logging` | The five design patterns (Decorator twice: receipts and donation extras). | Know about Swing. |
 | **Repository** (Model) | `repository` | The **only** place with SQL. Turns rows into entities and back. | Business rules. |
 | **Entity** (Model) | `model` | Domain data and small behaviour (`Donation.getValue()`, `getReceiptNumber()`). | Know about the database or the UI. |
 
@@ -89,17 +89,21 @@ flowchart TD
     controller --> service
     controller --> repository
     controller --> communication
+    controller --> extras
     controller --> model
     service --> factory
     service --> observer
     service --> repository
+    service --> extras
     service --> model
     observer --> receipt
     observer --> communication
     observer --> logging
     observer --> repository
     repository --> factory
+    repository --> extras
     repository --> model
+    extras --> model
     factory --> model
     receipt --> model
     communication --> model
@@ -113,6 +117,7 @@ flowchart TD
 | `com.ripple.factory` | **Factory Method**: abstract creator `DonationFactory`, the four concrete creators (`CashDonationFactory`, `OnlineDonationFactory`, `InKindDonationFactory`, `ChequeDonationFactory`), `DonationRequest`. |
 | `com.ripple.observer` | **Observer**: `DonationSubject`, `DonationObserver` and three concrete observers; `EventSubject`, `EventObserver` and `AttendeeNotificationObserver` for event changes. |
 | `com.ripple.receipt` | **Decorator**: `Receipt`, `BasicReceipt`, `ReceiptDecorator` and two decorators. |
+| `com.ripple.extras` | **Decorator** on the donation itself: `DonationDecorator` and `UrgentDonation`, `GiftDonation`, `AnonymousDonation`; `DonationOptions` applies them. |
 | `com.ripple.communication` | **Strategy**: `CommunicationStrategy`, `EmailStrategy`, `SmsStrategy`, `SocialMediaStrategy`, context `CommunicationService`. |
 | `com.ripple.logging` | **Singleton**: `ApplicationLogger`. |
 | `com.ripple.repository` | `Database` and one repository per table group. |

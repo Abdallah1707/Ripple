@@ -2,6 +2,7 @@ package com.ripple.repository;
 
 import com.ripple.TestDatabase;
 import com.ripple.TestFactories;
+import com.ripple.extras.DonationOptions;
 import com.ripple.factory.DonationFactory;
 import com.ripple.factory.DonationRequest;
 import com.ripple.model.CashDonation;
@@ -47,6 +48,37 @@ class DonationRepositoryTest {
 
     private Donation save(DonationMethod method, DonationRequest request) {
         return repository.insert(TestFactories.create(method, donor, type, request));
+    }
+
+    @Test
+    void decoratedDonationsAreSavedAsTheirPlainDonationAndComeBackDecorated() {
+        Donation plain = TestFactories.create(DonationMethod.ONLINE, donor, type,
+                new DonationRequest(250, "TX-9", null, 0, 0, null));
+        Donation saved = repository.insert(new DonationOptions(true, "Hana Ali", true).decorate(plain));
+        assertTrue(saved.getId() > 0);
+
+        Donation loaded = repository.findAll().get(0);
+
+        assertInstanceOf(OnlineDonation.class, loaded.getBase()); // the plain donation is rebuilt by its creator
+        assertEquals("TX-9", ((OnlineDonation) loaded.getBase()).getTransactionReference());
+        assertTrue(loaded.isUrgent());
+        assertTrue(loaded.isAnonymous());
+        assertEquals("Hana Ali", loaded.getHonoree());
+        assertEquals(List.of("Gift", "Urgent", "Anonymous"), loaded.getOptions());
+        assertEquals(saved.getReceiptNumber(), loaded.getReceiptNumber());
+    }
+
+    @Test
+    void urgentDonationsAreListedFirst() {
+        save(DonationMethod.CASH, new DonationRequest(100, null, null, 0, 0, null));
+        Donation urgent = repository.insert(new DonationOptions(true, "", false).decorate(
+                TestFactories.create(DonationMethod.CASH, donor, type, new DonationRequest(50, null, null, 0, 0, null))));
+        save(DonationMethod.CASH, new DonationRequest(300, null, null, 0, 0, null)); // newest, but not urgent
+
+        List<Donation> all = repository.findAll();
+
+        assertEquals(urgent.getId(), all.get(0).getId());
+        assertEquals(300, all.get(1).getValue()); // then newest first
     }
 
     @Test

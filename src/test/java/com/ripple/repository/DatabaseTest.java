@@ -53,6 +53,23 @@ class DatabaseTest {
     }
 
     @Test
+    void initializeAddsTheDonationExtrasColumnsToAnOlderDatabase() throws SQLException {
+        Database db = new Database(tempDir.resolve("old-donations.db").toString());
+        try (Connection c = db.getConnection(); Statement s = c.createStatement()) {
+            // the donations table as it was before urgent / gift / anonymous were added
+            s.execute("CREATE TABLE donations (id INTEGER PRIMARY KEY AUTOINCREMENT, donor_id INTEGER NOT NULL, "
+                    + "donation_type_id INTEGER NOT NULL, method TEXT NOT NULL, amount REAL, transaction_ref TEXT, "
+                    + "item_description TEXT, quantity INTEGER, estimated_value REAL, created_at TEXT NOT NULL)");
+        }
+
+        db.initialize();
+        db.initialize(); // a second start must not add them again
+
+        assertEquals(3, count(db, "SELECT COUNT(*) FROM pragma_table_info('donations') "
+                + "WHERE name IN ('urgent', 'gift_honoree', 'anonymous')"));
+    }
+
+    @Test
     void foreignKeysAreSwitchedOn() throws SQLException {
         Database db = TestDatabase.create(tempDir);
         assertEquals(1, count(db, "PRAGMA foreign_keys"));
